@@ -207,6 +207,32 @@ startup manifest, recovery and lock paths. Cancellation and invalid/expired edit
 preserve the current scene. The small scene-organization checkpoint passed 22
 focused scene/document/project tests, Ruff and strict mypy; no format change is needed.
 
+The first independent native export now publishes an exclusive executable `.pyz`
+through a worker from the applied scene snapshot. An explicit source allowlist packs
+only core/runtime code and embedded sprite/animation/PCM data, excluding editor,
+project, AI, scripts and preferences. Shared runtime startup handles normal Play and
+exported games; shared control selection prefers the first Player. The launcher uses
+isolated Python mode, rejects unsupported Python versions and reports missing Qt.
+A CLI smoke check exercises the native window/timer/input and reports the imported
+runtime origin, gameplay state and absence of editor packages. Existing output files
+are preserved, and editing after export starts does not alter the captured snapshot
+or mark the document saved.
+
+Native Wayland export launched in a temporary Python/Qt-only environment with no
+engine installed: the 15,751-byte two-object fixture moved and collected its coin,
+kept authored data intact, and imported runtime code from the archive. Dependencies
+were reused via local Qt links, both natively and in the Wayland desktop container;
+this is not a clean-machine distribution test.
+Python 3.14, PySide6-Essentials 6.11.2 and Linux Qt libraries remain prerequisites;
+PipeWire is optional. Bundling native dependencies, clean Arch acceptance and full
+project/scene-transition export remain open. The
+[Python zipapp contract](https://docs.python.org/3.14/library/zipapp.html) explains
+why native extension dependencies stay outside this first archive.
+Export verification: 258 tests pass locally (20.38 seconds) and in Docker (24.54 seconds),
+plus Ruff, formatting and strict mypy. Tests cover actual archive movement/collection,
+portable sprites/audio, isolated imports/environment overrides, invalid snapshots,
+exclusive output publication and immutable background export snapshots.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -393,8 +419,10 @@ test container. This does not validate an arbitrary-code sandbox or establish fu
 compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project asset
-libraries, audio, sandboxed script execution, real model adapters, and native game
-exports are not implemented. The assistant currently uses an offline demo fixture. Project folders support multiple authored scenes with
+libraries and sound import/collection playback now exist, alongside a runtime-only
+native export and opt-in local Ollama adapter. Sandboxed scripts, dependency-bundled
+exports and enterprise adapters remain unimplemented. The assistant starts with
+an offline demo fixture. Project folders support multiple authored scenes with
 relative sprite references, per-scene recovery and a project-wide sprite palette.
 Reviewed unused-asset scanning, reversible quarantine and native browsing/restoration
 are implemented, including reviewed single-file purge. Runtime scene transitions remain planned.
@@ -469,7 +497,8 @@ press Play, navigate around walls, collect all five coins, restart, and save/reo
 the scene. A focused route test verifies the starter can be completed without crossing
 walls. PNG sprites can be imported, sized, duplicated, saved and played. Scenes
 can be copied into a new project folder and reopened through its manifest.
-Sprite dragging is implemented; sound effects, real-model changes, and native export remain pending. The five-person usability exercise has not run.
+Sprite dragging, collection sound effects, reviewed local-model edits and runtime-only
+native export are implemented; dependency bundling remains pending. The five-person usability exercise has not run.
 
 ## 3. Scope and editor design
 
@@ -513,7 +542,8 @@ Implemented scope is intentionally narrower than the v0.1 requirements above:
   are still planned.
 - Development: separate native Play process, Stop, startup/error log, and snapshot
   playback that leaves authored state unchanged. No project script execution,
-  script editor, debugger, real model connection, or exported game bundle yet.
+  script editor, debugger, or dependency-bundled game export yet; local model connection
+  and runtime-only native export are implemented.
   The Assistant tab has a deterministic offline demo with review/apply/discard,
   atomic undo, bounded scene tools, cancellation and stale-document protection.
 
@@ -1062,7 +1092,9 @@ Completed task checklist:
 - [ ] Add stronger concurrent-edit and power-loss recovery guarantees.
 - [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
 - [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.
-- [ ] Add Python game scripting and native game export.
+- [x] Add runtime-only native active-scene export and verified editor-free playback.
+- [ ] Bundle runtime dependencies and verify exported games on clean Arch.
+- [ ] Add sandboxed Python game scripting.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
 - [x] Add bounded installed-model discovery and worker-based saved local preferences, preserving offline startup.
@@ -1073,8 +1105,8 @@ Next small features, in recommended order:
 
 1. Continue scene organization and project integrity work; stronger concurrent-edit
    and power-loss recovery guarantees remain open.
-2. Add a small independent native player/export package. Verify it
-   outside the editor on clean Arch.
+2. Package native runtime dependencies and verify the independent game export
+   on clean Arch. Measure bundle size and startup, preserving the lightweight option.
 3. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
 4. Connect local and enterprise provider adapters after the initial fake-provider

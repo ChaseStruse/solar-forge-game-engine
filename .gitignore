@@ -9,4 +9,5 @@ build/
 *.egg-info/
 .env
 compose.override.yaml
-*.v1.bak
+*.v*.bak
+*.pyz

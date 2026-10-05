@@ -9,6 +9,17 @@ WORLD_HEIGHT = 576
 FIXED_STEP = 1 / 60
 
 
+def controlled_entity(scene: Scene, preferred: str | None = None) -> str:
+    if not scene.entities:
+        raise ValueError("Add an object before playing or exporting the scene.")
+    for entity in scene.entities:
+        if entity.role == Role.PLAYER:
+            return entity.id
+    if preferred is not None:
+        return scene.entity(preferred).id
+    return scene.entities[0].id
+
+
 class Simulation:
     def __init__(self, scene: Scene, controlled_id: str) -> None:
         self.scene = scene

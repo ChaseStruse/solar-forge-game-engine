@@ -54,6 +54,7 @@ from solar_forge_engine.editor.assistant import AssistantPanel
 from solar_forge_engine.editor.audio import SoundsDialog
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
+from solar_forge_engine.editor.exporting import ExportWorker
 from solar_forge_engine.editor.locks import LockPersistence
 from solar_forge_engine.editor.objects import ROLE_DATA, SceneObjects
 from solar_forge_engine.editor.quarantine import QuarantineDialog
@@ -78,6 +79,7 @@ from solar_forge_engine.project.workspace import (
     open_scene as open_project_scene,
 )
 from solar_forge_engine.runtime.rendering import render_scene, sprite_pixmap
+from solar_forge_engine.runtime.simulation import controlled_entity
 
 SCENE_FILTER = "Solar Forge scene (*.forge.json)"
 
@@ -138,6 +140,7 @@ class EditorWindow(QMainWindow):
         self._closing = False
         self._cleanup_job: CleanupWorker | None = None
         self._save_job: SceneSaver | None = None
+        self._export_job: ExportWorker | None = None
         self._asset_bytes = 0
         asset_panel = QWidget()
         asset_layout = QVBoxLayout(asset_panel)
@@ -410,6 +413,8 @@ class EditorWindow(QMainWindow):
         save_as = file_menu.addAction("Save &As…")
         save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
         save_as.triggered.connect(lambda: self.save(choose_path=True))
+        self.export_action = file_menu.addAction("Export active scene as game…")
+        self.export_action.triggered.connect(self.choose_export)
         self.undo_action = action("Undo", QKeySequence.StandardKey.Undo)
         self.undo_action.triggered.connect(self.undo)
         self.redo_action = action("Redo", QKeySequence.StandardKey.Redo)
@@ -555,6 +560,9 @@ class EditorWindow(QMainWindow):
             self.refresh_project_scenes()
         self.refresh_assets_button.setEnabled(
             self.project is not None and self._asset_index_job is None
+        )
+        self.export_action.setEnabled(
+            bool(self.document.scene.entities) and self._export_job is None
         )
         self.sounds_action.setEnabled(self.project is not None)
         self.clear_sound_action.setEnabled(self.document.scene.coin_sound is not None)
@@ -1097,11 +1105,7 @@ class EditorWindow(QMainWindow):
         if len(snapshot) > MAX_FILE_BYTES:
             self._error("The scene is too large to preview (4 MiB limit).")
             return
-        controlled_id = self.selected_id or self.document.scene.entities[0].id
-        for entity in self.document.scene.entities:
-            if entity.role == Role.PLAYER:
-                controlled_id = entity.id
-                break
+        controlled_id = controlled_entity(self.document.scene, self.selected_id)
         self._stopping_preview = False
         self.preview.setProgram(sys.executable)
         self.preview.setArguments(
@@ -1154,6 +1158,43 @@ class EditorWindow(QMainWindow):
         if not self.preview.waitForFinished(1000):
             self.preview.kill()
             self.preview.waitForFinished(1000)
+
+    def choose_export(self) -> None:
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Export active scene as a native game", "Game.pyz", "Python native game (*.pyz)"
+        )
+        if filename:
+            path = Path(filename)
+            if not path.suffix:
+                path = path.with_suffix(".pyz")
+            self.export_game_to(path)
+
+    def export_game_to(self, path: Path) -> bool:
+        if self._export_job is not None:
+            return False
+        if not self.document.scene.entities:
+            self._error("Add an object before exporting the scene.")
+            return False
+        job = ExportWorker(path, self.document.scene)
+        self._export_job = job
+        self.export_action.setEnabled(False)
+        self.log.append(f"Exporting {job.scene.name}…")
+        job.finished.connect(lambda: self._export_finished(job))
+        job.start()
+        return True
+
+    def _export_finished(self, job: ExportWorker) -> None:
+        self._export_job = None
+        job.deleteLater()
+        self.export_action.setEnabled(bool(self.document.scene.entities))
+        if job.error:
+            self._error(f"Could not export game: {job.error}")
+        else:
+            self.log.append(
+                f"Exported {job.scene.name} to {job.path.name} ({job.size} bytes). "
+                "Requires Python 3.14 and PySide6-Essentials 6.11.2. "
+                "Editor and Docker are not needed."
+            )
 
     def save(self, checked: bool = False, *, choose_path: bool = False) -> bool:
         if self._save_job is not None:
@@ -1534,6 +1575,10 @@ class EditorWindow(QMainWindow):
         QMessageBox.warning(self, "Scene could not be changed", message)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self._export_job is not None:
+            self.log.append("Finishing native export; close again shortly.")
+            event.ignore()
+            return
         if self._save_job is not None:
             self.log.append("Finishing the scene save; close again shortly.")
             event.ignore()

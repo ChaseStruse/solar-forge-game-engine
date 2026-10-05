@@ -7,9 +7,8 @@ import stat
 import tempfile
 from pathlib import Path
 
+from solar_forge_engine.core.limits import MAX_FILE_BYTES as MAX_FILE_BYTES
 from solar_forge_engine.core.scene import Scene
-
-MAX_FILE_BYTES = 4 * 1024 * 1024
 
 
 def read_scene_bytes(path: Path) -> bytes | None:
@@ -103,7 +102,12 @@ def save_scene_data(
 
 
 def atomic_write(
-    path: Path, raw: bytes, *, exclusive: bool = False, expected_fingerprint: str | None = None
+    path: Path,
+    raw: bytes,
+    *,
+    exclusive: bool = False,
+    expected_fingerprint: str | None = None,
+    mode: int = 0o600,
 ) -> None:
     """Publish bytes through a flushed same-directory temporary file."""
     if path.is_symlink():
@@ -114,6 +118,7 @@ def atomic_write(
             temporary = Path(handle.name)
             handle.write(raw)
             handle.flush()
+            os.fchmod(handle.fileno(), mode)
             os.fsync(handle.fileno())
         if expected_fingerprint is not None:
             check_file_revision(path, expected_fingerprint)

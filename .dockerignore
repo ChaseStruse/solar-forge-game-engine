@@ -5,7 +5,8 @@
 .mypy_cache
 **/__pycache__
 *.forge.json
-*.v1.bak
+*.v*.bak
 .env
 dist
 build
+*.pyz

@@ -435,6 +435,35 @@ reads reject symbolic links/FIFOs and stay bounded. File and directory flushes i
 publication durability; concurrent-edit locking and full crash/power-loss guarantees
 remain open.
 
+## Native game export
+
+Choose **File → Export active scene as game…** and save a new `.pyz` file. Export
+uses the currently applied scene, including built-in gameplay, sprites, animation
+and collection sound. It runs in a worker, retains your unsaved edits, and keeps
+the captured snapshot even if you edit afterward. Existing output files are never
+overwritten; choose a new filename for a new build.
+
+The archive contains only engine core/runtime code and bounded scene data. It runs
+without the editor, assistant, project folder or Docker. It needs **Python 3.14**,
+**PySide6-Essentials 6.11.2** and the native Linux Qt libraries; PipeWire is optional
+for sound. Python/Qt dependency bundling and clean-machine packaging remain future
+work. Qt's native extension modules stay outside the zip archive, as described in
+[Python's zipapp documentation](https://docs.python.org/3.14/library/zipapp.html).
+
+```sh
+# Use an interpreter with the supported Qt package installed
+python3.14 -I Game.pyz
+
+# Brief native compatibility check: exercise movement, print a report, then close
+python3.14 -I Game.pyz --smoke-check
+```
+
+The executable archive also supports `./Game.pyz` when `python3` resolves to the
+supported environment. Its launcher uses Python isolated mode, ignoring project
+imports and Python environment overrides. Export includes one scene and the built-in
+behaviors; imported/generated Python scripts and runtime scene transitions remain
+unimplemented.
+
 ## Project sounds
 
 Open a project, then choose **Scene → Project sounds…**. Import WAV clips, select
