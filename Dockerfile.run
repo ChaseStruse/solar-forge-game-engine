@@ -13,7 +13,8 @@ COPY src ./src
 RUN uv sync --frozen --no-dev --no-cache
 RUN groupadd --gid "${SOLAR_FORGE_GID}" forge \
     && useradd --uid "${SOLAR_FORGE_UID}" --gid "${SOLAR_FORGE_GID}" --create-home forge \
-    && mkdir /projects && chown forge:forge /projects
+    && mkdir -p /projects /home/forge/.config/solar-forge-engine \
+    && chown -R forge:forge /projects /home/forge/.config
 USER forge
 WORKDIR /projects
 CMD ["/app/.venv/bin/solar-forge-engine"]

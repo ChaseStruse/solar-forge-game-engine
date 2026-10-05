@@ -5,6 +5,7 @@ import ipaddress
 import json
 import socket
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from threading import Event, Thread
 from urllib.parse import urlsplit
@@ -182,6 +183,36 @@ class OllamaProvider:
                 ],
             }
         ).encode()
+        envelope = self._request("POST", "/api/chat", body, context.cancelled)
+        if envelope.get("done") is not True:
+            raise ValueError("Ollama returned an incomplete response.")
+        message = envelope.get("message")
+        content = message.get("content") if isinstance(message, dict) else None
+        if not isinstance(content, str) or len(content.encode()) > MAX_RESPONSE_BYTES:
+            raise ValueError("Ollama proposal is missing or exceeds 16 KiB.")
+        return content
+
+    def models(self, cancelled: Callable[[], bool]) -> tuple[str, ...]:
+        envelope = self._request("GET", "/api/tags", None, cancelled)
+        entries = envelope.get("models")
+        if not isinstance(entries, list) or len(entries) > 128:
+            raise ValueError("Ollama model list must contain at most 128 entries.")
+        names = set()
+        for entry in entries:
+            name = entry.get("name") if isinstance(entry, dict) else None
+            if not isinstance(name, str) or not name.strip() or len(name) > 100:
+                raise ValueError("Ollama returned an invalid model name.")
+            if any(c.isspace() or ord(c) < 32 for c in name):
+                raise ValueError("Ollama returned an invalid model name.")
+            if "cloud" not in name.lower():
+                names.add(name)
+        return tuple(sorted(names))
+
+    def _request(
+        self, method: str, path: str, body: bytes | None, cancelled: Callable[[], bool]
+    ) -> dict[str, object]:
+        if cancelled():
+            raise ValueError("Request canceled.")
         host, port = self.address()
         connection = http.client.HTTPConnection(host, port, timeout=min(2, self.timeout))
         stop = Event()
@@ -195,7 +226,7 @@ class OllamaProvider:
 
             def interrupt() -> None:
                 while not stop.wait(0.1):
-                    if context.cancelled() or time.monotonic() >= deadline:
+                    if cancelled() or time.monotonic() >= deadline:
                         try:
                             transport.shutdown(socket.SHUT_RDWR)
                         except OSError:
@@ -204,12 +235,12 @@ class OllamaProvider:
 
             watcher = Thread(target=interrupt, daemon=True)
             watcher.start()
-            connection.request("POST", "/api/chat", body, {"Content-Type": "application/json"})
+            connection.request(method, path, body, {"Content-Type": "application/json"})
             response = connection.getresponse()
             if response.status != 200:
                 raise ValueError(f"Ollama returned HTTP {response.status}; check server and model.")
             raw = response.read(MAX_ENVELOPE_BYTES + 1)
-            if context.cancelled():
+            if cancelled():
                 raise ValueError("Request canceled.")
             if time.monotonic() >= deadline:
                 raise ValueError("Ollama request timed out.")
@@ -219,15 +250,11 @@ class OllamaProvider:
                 envelope = json.loads(raw)
             except (ValueError, RecursionError) as error:
                 raise ValueError("Ollama returned invalid JSON.") from error
-            if not isinstance(envelope, dict) or envelope.get("done") is not True:
-                raise ValueError("Ollama returned an incomplete response.")
-            message = envelope.get("message")
-            content = message.get("content") if isinstance(message, dict) else None
-            if not isinstance(content, str) or len(content.encode()) > MAX_RESPONSE_BYTES:
-                raise ValueError("Ollama proposal is missing or exceeds 16 KiB.")
-            return content
+            if not isinstance(envelope, dict):
+                raise ValueError("Ollama returned an invalid response object.")
+            return envelope
         except (OSError, http.client.HTTPException) as error:
-            if context.cancelled():
+            if cancelled():
                 raise ValueError("Request canceled.") from error
             if time.monotonic() >= deadline or isinstance(error, TimeoutError):
                 raise ValueError("Ollama request timed out.") from error

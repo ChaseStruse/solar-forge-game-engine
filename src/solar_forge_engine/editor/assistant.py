@@ -2,6 +2,7 @@
 
 from collections.abc import Callable
 from dataclasses import replace
+from pathlib import Path
 
 from PySide6.QtCore import Qt, QThread
 from PySide6.QtWidgets import (
@@ -18,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from solar_forge_engine.ai.demo import Context, DemoProvider, Provider
 from solar_forge_engine.ai.ollama import OllamaProvider
+from solar_forge_engine.ai.preferences import profile_path, read_profile, save_profile
 from solar_forge_engine.ai.proposals import Proposal, decode_proposal
 from solar_forge_engine.core.commands import Document
 
@@ -41,6 +43,27 @@ class ProposalWorker(QThread):
             self.error = str(error)[:1000] or "Provider failed."
 
 
+class ConnectionWorker(QThread):
+    def __init__(self, operation: str, path: Path, provider: OllamaProvider | None = None) -> None:
+        super().__init__()
+        self.operation, self.path, self.provider = operation, path, provider
+        self.loaded: OllamaProvider | None = None
+        self.names: tuple[str, ...] = ()
+        self.error: str | None = None
+
+    def run(self) -> None:
+        try:
+            if self.operation == "load":
+                self.loaded = read_profile(self.path)
+            elif self.provider is not None:
+                if self.operation == "save":
+                    save_profile(self.path, self.provider)
+                else:
+                    self.names = self.provider.models(self.isInterruptionRequested)
+        except Exception as error:
+            self.error = str(error)[:1000] or "Connection operation failed."
+
+
 class AssistantPanel(QWidget):
     def __init__(
         self, context: Callable[[], tuple[Document, str | None]], refresh: Callable[[], None]
@@ -49,7 +72,8 @@ class AssistantPanel(QWidget):
         self.context = context
         self.refresh_editor = refresh
         self.provider: Provider = DemoProvider()
-        self._job: ProposalWorker | None = None
+        self._job: ProposalWorker | ConnectionWorker | None = None
+        self._profile_job: ConnectionWorker | None = None
         self._document: Document | None = None
         self._proposal: Proposal | None = None
         layout = QVBoxLayout(self)
@@ -62,15 +86,27 @@ class AssistantPanel(QWidget):
         settings.setContentsMargins(0, 0, 0, 0)
         self.endpoint = QLineEdit("http://127.0.0.1:11434")
         self.endpoint.setMaxLength(200)
-        self.model = QLineEdit()
+        self.model_picker = QComboBox()
+        self.model_picker.setEditable(True)
+        self.model_picker.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.model_picker.setAccessibleName("Installed local model")
+        model_editor = self.model_picker.lineEdit()
+        assert model_editor is not None
+        self.model = model_editor
         self.model.setMaxLength(100)
         self.model.setPlaceholderText("Installed local model name")
+        self.discover_button = QPushButton("Refresh installed models")
+        self.discover_button.clicked.connect(self.discover_models)
+        self.save_connection_button = QPushButton("Save local connection")
+        self.save_connection_button.clicked.connect(self.save_connection)
         self.timeout = QSpinBox()
         self.timeout.setRange(1, 120)
         self.timeout.setValue(60)
         self.timeout.setSuffix(" s")
         settings.addRow("Local server", self.endpoint)
-        settings.addRow("Model", self.model)
+        settings.addRow("Model", self.model_picker)
+        settings.addRow(self.discover_button)
+        settings.addRow(self.save_connection_button)
         settings.addRow("Deadline", self.timeout)
         settings.addRow(QLabel("Run Ollama with OLLAMA_NO_CLOUD=1 for local-only inference."))
         layout.addWidget(self.connection_settings)
@@ -113,6 +149,75 @@ class AssistantPanel(QWidget):
         self.discard_button.clicked.connect(self.discard)
         layout.addWidget(self.discard_button)
         self.apply_button.setEnabled(False)
+        self._profile_baseline = self._connection_values()
+        load = ConnectionWorker("load", profile_path())
+        self._profile_job = load
+        load.finished.connect(lambda: self._profile_loaded(load))
+        load.start()
+
+    def _connection_values(self) -> tuple[str, str, int]:
+        return self.endpoint.text(), self.model.text(), self.timeout.value()
+
+    def _profile_loaded(self, job: ConnectionWorker) -> None:
+        self._profile_job = None
+        job.deleteLater()
+        if self._job is not None or self._connection_values() != self._profile_baseline:
+            return  # Never overwrite settings entered while preferences were loading.
+        if job.error:
+            self.status.setText(f"Saved connection ignored: {job.error}")
+        elif job.loaded is not None:
+            self.endpoint.setText(job.loaded.endpoint)
+            self.model.setText(job.loaded.model)
+            self.timeout.setValue(job.loaded.timeout)
+
+    def discover_models(self) -> None:
+        self._connection_operation("discover")
+
+    def save_connection(self) -> None:
+        self._connection_operation("save")
+
+    def _connection_operation(self, operation: str) -> None:
+        if self._job is not None:
+            return
+        try:
+            endpoint, model, timeout = self._connection_values()
+            provider = OllamaProvider(
+                endpoint, model if operation == "save" else "discovery", timeout
+            )
+        except ValueError as error:
+            self.status.setText(str(error))
+            return
+        job = ConnectionWorker(operation, profile_path(), provider)
+        self._job = job
+        self._set_busy(True)
+        self.status.setText(
+            "Refreshing installed models…"
+            if operation == "discover"
+            else "Saving local connection…"
+        )
+        job.finished.connect(lambda: self._connection_finished(job))
+        job.start()
+
+    def _connection_finished(self, job: ConnectionWorker) -> None:
+        self._job = None
+        job.deleteLater()
+        self._set_busy(False)
+        if job.operation != "save" and job.isInterruptionRequested():
+            self.status.setText("Connection operation canceled.")
+        elif job.error:
+            self.status.setText(f"Connection operation failed: {job.error}")
+        elif job.operation == "save":
+            self.status.setText("Local connection saved. Startup remains offline; no request sent.")
+        else:
+            selected = self.model.text()
+            self.model_picker.clear()
+            self.model_picker.addItems(list(job.names))
+            self.model_picker.setCurrentText(selected or (job.names[0] if job.names else ""))
+            self.status.setText(
+                f"Found {len(job.names)} local model(s). No models downloaded."
+                if job.names
+                else "No local models found. Install one in Ollama."
+            )
 
     def _provider_changed(self, index: int) -> None:
         self.discard()
@@ -128,7 +233,7 @@ class AssistantPanel(QWidget):
 
     @property
     def busy(self) -> bool:
-        return self._job is not None
+        return self._job is not None or self._profile_job is not None
 
     def generate(self) -> None:
         if self._job is not None:

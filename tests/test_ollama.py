@@ -25,6 +25,13 @@ def server(reply, status=200, wait=None):
             requests.append(
                 (self.path, json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
             )
+            self.respond()
+
+        def do_GET(self):
+            requests.append((self.path, None))
+            self.respond()
+
+        def respond(self):
             started.set()
             if wait is not None:
                 wait.wait(3)

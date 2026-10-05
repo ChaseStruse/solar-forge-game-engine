@@ -230,7 +230,17 @@ the waiting request socket. Model output never runs code or directly modifies fi
 For natural-language proposals, choose **Ollama · loopback** in the Assistant tab,
 enter your installed model name and local server address, and choose a deadline
 (1–120 seconds; default 60). Nothing connects until you press **Propose edits**.
-Settings are session-only. Start your own Ollama server with cloud disabled:
+Use **Refresh installed models** to populate the editable model picker. Discovery
+contacts only the configured server and sends no scene context; cloud-named entries
+are excluded. It neither downloads nor loads models. You can also type a model name.
+
+Choose **Save local connection** to remember the endpoint, model and deadline in
+`$XDG_CONFIG_HOME/solar-forge-engine/assistant.json` (normally under `~/.config`).
+Preferences load in the background; startup remains **Offline demo**, without an
+automatic connection. Invalid preferences show an error and preserve default
+settings and the original file. Saving preferences does not save or change a game
+project. Discovery and preference reads/writes run off the UI thread.
+Start your own Ollama server with cloud disabled:
 
 ```sh
 OLLAMA_NO_CLOUD=1 ollama serve
@@ -262,8 +272,9 @@ docker compose -f compose.yaml -f compose.ollama.yaml up --build desktop
 
 The test container stays isolated and uses temporary loopback HTTP fixtures, with
 no model downloads. Live model inference has not been verified on this machine:
-the installed Ollama server was not running. Enterprise adapters, saved settings,
-model discovery and capability checks remain future work.
+the installed Ollama server was not running. Docker stores saved settings in its
+`preferences` volume, separately from the `projects` volume. Enterprise adapters
+and model capability checks remain future work.
 
 ## Development checks
 

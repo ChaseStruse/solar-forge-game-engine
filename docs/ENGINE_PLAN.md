@@ -545,13 +545,23 @@ are capped at 64 KiB. Proxies, redirects and cloud-named models are rejected;
 offline inference also requires the operator to disable cloud on the Ollama server.
 Default app/test Compose networking remains disabled; `compose.ollama.yaml` is an
 explicit Linux host-network override for the desktop. No services are managed and
-no models are downloaded. Settings remain session-only.
-Verification: 162 tests pass locally (9.13 seconds) and in Docker (11.05 seconds).
+no models are downloaded. Installed-model discovery uses a bounded, cancellable
+GET `/api/tags` request and an editable picker; up to 128 entries are accepted,
+deduplicated and filtered to exclude cloud-named models. Discovery sends no scene
+context and does not load models. An explicit Save local connection action stores
+validated version-one endpoint/model/deadline preferences atomically under the
+user's XDG config directory, outside projects. Loading stays offline, preserves
+settings typed while loading, and reports malformed files without rewriting them.
+Preference I/O runs in workers with 4 KiB reads and regular-file checks. The Docker
+runtime has a separate writable `preferences` volume for non-root persistence.
+Verification: 171 tests pass locally (10.13 seconds) and in Docker (12.11 seconds).
 Ruff, formatting and strict mypy pass. Real loopback HTTP fixtures cover transport,
 schema requests, bad/oversized responses, redirect refusal, cancellation/deadlines,
-review, Apply and Undo. Native Wayland review and opt-in Compose configuration were
-checked. Actual model inference remains unverified: host Ollama was not running.
-Saved connections, model discovery, enterprise adapters, credentials and broader
+review, Apply and Undo, discovery bounds/cancellation, and preference persistence
+and malformed-file preservation. Native Wayland discovery/save/offline reopen and
+runtime non-root volume writes were checked. Actual model inference remains
+unverified: host Ollama was not running.
+Model capability checks, enterprise adapters, credentials and broader
 tool orchestration remain planned. Manual workflows
 remain independent of the assistant. The broader behavior below is the target design.
 
@@ -807,12 +817,13 @@ Completed task checklist:
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
+- [x] Add bounded installed-model discovery and worker-based saved local preferences, preserving offline startup.
 - [ ] Add verified local and enterprise model adapters, timeouts and credential handling.
 
 Next small features, in recommended order:
 
-1. Add local model discovery and saved connection settings, then verify end-to-end
-   inference with an installed model and measure response/context behavior.
+1. Add model capability checks, then verify end-to-end inference with an installed
+   model and measure response/context behavior.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.

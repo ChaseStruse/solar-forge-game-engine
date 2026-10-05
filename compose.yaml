@@ -22,6 +22,8 @@ services:
         target: /tmp/wayland-0
         read_only: true
       - projects:/projects
+      - preferences:/home/forge/.config/solar-forge-engine
 
 volumes:
+  preferences:
   projects:
