@@ -2,7 +2,7 @@
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
 separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, multiple-scene authoring, project-wide sprite reuse, basic project folders, and
-editable coin collector, reviewed asset quarantine, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation are implemented. The remaining architecture and release
+editable coin collector, reviewed asset quarantine and native restoration, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
 ### Implemented foundation checkpoints
@@ -119,6 +119,11 @@ zoom limits, middle-button pan, wheel modifiers, snapped dragging across scales,
 cancellation and fitting distant objects: 97 tests passed locally in 1.53 seconds and in Docker in 1.98 seconds;
 Ruff, formatting and strict mypy passed.
 Native Wayland zoom/pan/drag/undo/Fit passed and the toolbar was visually inspected.
+Quarantine restoration checks cover exact bytes, unchanged scenes, existing targets,
+symlinks, changed files, incomplete scans, failed source removal and worker lifecycle:
+108 tests passed locally in 1.67 seconds and in Docker in 2.17 seconds. Ruff, formatting
+and strict mypy passed. Native Wayland browsing/restoration passed; the dialog was
+visually inspected.
 Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
@@ -131,8 +136,8 @@ This is a small authoring slice, not a completed phase 0 or phase 1. Project ass
 libraries, audio, sandboxed script execution, AI, and native game
 exports are not implemented. Project folders support multiple authored scenes with
 relative sprite references, per-scene recovery and a project-wide sprite palette.
-Reviewed unused-asset scanning and reversible quarantine are implemented. Quarantine
-restore/purge controls and runtime scene transitions remain planned.
+Reviewed unused-asset scanning, reversible quarantine and native browsing/restoration
+are implemented. Permanent purge and runtime scene transitions remain planned.
 The Qt backend remains provisional pending representative sprite workloads and
 native presentation benchmarks.
 See the [README](../README.md) for runnable commands. Later sections distinguish
@@ -330,7 +335,7 @@ compose.yaml
 compose.test.yaml
 ```
 
-Add `ai/`, export modules and quarantine restore/purge controls, `resources/`, external `templates/`,
+Add `ai/`, export modules and quarantine purge controls, `resources/`, external `templates/`,
 and `packaging/` when their features are implemented. The current starter is data in
 [`core/templates.py`](../src/solar_forge_engine/core/templates.py); it contains no
 project scripts. A source-run console launcher and Docker image exist; Arch package
@@ -376,9 +381,14 @@ scene's atomic replacement. Handled failures preserve prior scene data; unused
 assets may remain. Reviewed cleanup protects scenes, backups, recovery, undo/redo and
 palette references, then revalidates the complete scan before quarantine. Unknown or
 incomplete scans abort; handled move failures roll back. Its 512-entry / 32 MiB
-budget keeps scans bounded. Quarantine is reversible and does not reclaim space;
-permanent deletion and a restore UI are not implemented. Recovery uses a single
-bounded embedded snapshot per scene, not an append-only journal.
+budget keeps scans bounded. Quarantine is reversible and does not reclaim space.
+The native quarantine browser restores one selected file through an exclusive hard
+link followed by source removal; existing targets are never overwritten. Changed
+files require a fresh scan. Failed source removal retains both copies. Browsing
+uses workers with 512-entry / 32 MiB limits; unknown entries, symlinks and invalid
+RGBA byte lengths abort. Restoration preserves bytes without inferring dimensions;
+scene loading retains dimension/hash validation. Permanent deletion is not implemented.
+Recovery uses a single bounded embedded snapshot per scene, not an append-only journal.
 This is not a whole-folder atomic transaction or concurrent filesystem sandbox.
 
 Each standalone version-five `.forge.json` file contains scene name,
@@ -425,7 +435,7 @@ sprites into the existing bounded palette. An explicit Refresh action handles
 external changes. Corrupt scenes are skipped with warnings. This is an ephemeral
 catalog of saved-scene references, not a persisted index of all asset files.
 
-**Planned project extensions:** quarantine restore/purge, scene organization,
+**Planned project extensions:** quarantine purge, scene organization,
 and sandboxed Python `scripts/`. The basic `project.json`, `scenes/`, and `assets/`
 layout and relative sprite references are implemented; standalone scenes still
 embed pixels. Ignore generated caches and builds. Use stable IDs and relative asset references, with
@@ -673,7 +683,7 @@ experience; these milestones are gates, not promised delivery dates.
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
-| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Quarantine restore/purge, scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
+| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Quarantine purge, scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
 | 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Asset libraries/animation, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
 | 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
@@ -708,14 +718,15 @@ Completed task checklist:
 - [x] Add single-object viewport dragging, cancellation, and optional grid snapping.
 - [x] Add pointer-centered wheel zoom, toolbar/keyboard zoom, middle-button pan and Fit scene for distant objects.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
-- [ ] Add quarantine restore/purge controls and stronger recovery guarantees.
+- [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
+- [ ] Add quarantine purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [ ] Connect the assistant through a fake provider, then verified real adapters.
 
 Next small features, in recommended order:
 
-1. Add native quarantine browsing and safe restore controls, retaining the rule
-   that existing asset files are never overwritten. Permanent purge remains separate.
+1. Add project startup-scene selection with validated, atomic manifest updates,
+   so reopening a project uses the scene chosen by its creator.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.

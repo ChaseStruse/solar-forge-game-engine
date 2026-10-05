@@ -46,6 +46,7 @@ from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
+from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryWriter
 from solar_forge_engine.editor.viewport import SceneView
 from solar_forge_engine.project.assets import save_project_scene
@@ -156,8 +157,14 @@ class EditorWindow(QMainWindow):
         self.cleanup_assets_button = QPushButton("Review unused assets")
         self.cleanup_assets_button.clicked.connect(self.review_unused_assets)
         asset_layout.addWidget(self.cleanup_assets_button)
+        self.quarantine_button = QPushButton("Browse quarantined assets")
+        self.quarantine_button.clicked.connect(self.browse_quarantine)
+        asset_layout.addWidget(self.quarantine_button)
         self.asset_list.itemDoubleClicked.connect(lambda item: self.add_asset())
-        self._dock("Assets", asset_panel, Qt.DockWidgetArea.LeftDockWidgetArea)
+        asset_scroll = QScrollArea()
+        asset_scroll.setWidgetResizable(True)
+        asset_scroll.setWidget(asset_panel)
+        self._dock("Assets", asset_scroll, Qt.DockWidgetArea.LeftDockWidgetArea)
 
         scene_panel = QWidget()
         scene_layout = QVBoxLayout(scene_panel)
@@ -392,6 +399,7 @@ class EditorWindow(QMainWindow):
         self.refresh_assets_button.setEnabled(
             self.project is not None and self._asset_index_job is None
         )
+        self.quarantine_button.setEnabled(self.project is not None and self._cleanup_job is None)
         self.cleanup_assets_button.setEnabled(
             self.project is not None and not self.dirty and self._cleanup_job is None
         )
@@ -607,6 +615,16 @@ class EditorWindow(QMainWindow):
         if not self._closing and self.project is not None and self.project.root != job.project.root:
             self.refresh_project_assets()
 
+    def browse_quarantine(self) -> None:
+        if self.project is None or self._cleanup_job is not None:
+            return
+        dialog = QuarantineDialog(self.project, self)
+        dialog.exec()
+        if dialog.restored:
+            self.log.append("Quarantined assets restored; scene data was not changed.")
+            self.refresh_project_assets()
+        dialog.deleteLater()
+
     def review_unused_assets(self) -> None:
         if self.project is None or self.dirty or self._cleanup_job is not None:
             return
@@ -615,6 +633,7 @@ class EditorWindow(QMainWindow):
         context = (self.document, self.document.revision)
         self._cleanup_job = job
         self.cleanup_assets_button.setEnabled(False)
+        self.quarantine_button.setEnabled(False)
         job.finished.connect(lambda: self._cleanup_finished(job, context))
         job.start()
 
@@ -666,6 +685,7 @@ class EditorWindow(QMainWindow):
                 self.log.append("No unused managed assets found.")
         else:
             self.log.append("Cleanup review expired because the editor state changed.")
+        self.quarantine_button.setEnabled(self.project is not None and self._cleanup_job is None)
         self.cleanup_assets_button.setEnabled(
             self.project is not None and not self.dirty and self._cleanup_job is None
         )

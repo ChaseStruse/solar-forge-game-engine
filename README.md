@@ -109,9 +109,20 @@ Saved scenes, upgrade backups, recovery snapshots, and current undo/redo and pal
 sprites are protected. The scan checks at most 512 files/directories and 32 MiB;
 invalid, unknown, symlinked, or unreadable entries stop cleanup. The worker rechecks
 file contents and references before moving anything and rolls back handled move failures.
-Quarantine keeps files for manual restoration to `assets/` without overwriting existing
-files. It does not reclaim disk space or permanently delete files. A restore/purge UI,
-concurrent-edit guarantees, and power-loss guarantees remain future work.
+Choose **Browse quarantined assets** in the scrollable Assets panel, select a file,
+and choose **Restore selected asset** to return its exact bytes to `assets/`.
+The browser shows batch paths and byte sizes; **Refresh quarantine** picks up external
+changes. Scanning and restoration run in workers with the same 512-entry / 32 MiB
+scan limits. Unknown entries, symbolic links and invalid/oversized RGBA files stop
+scans. A changed file requires a fresh review, and any existing target blocks restore,
+even if its bytes match. Scene data and undo history remain unchanged. Restored unused
+files do not automatically appear in the sprite palette, which indexes saved scenes.
+
+Quarantine does not reclaim disk space or permanently delete files. If removing the
+quarantined copy fails after restoration, both copies remain. Raw files carry no
+image dimensions; restoration preserves their bytes, while project loading still
+validates sprite dimensions and content hashes. Permanent purge, concurrent-edit
+guarantees, and power-loss guarantees remain future work.
 
 Project edits automatically produce a recovery snapshot after two seconds without
 another applied edit. Serialization and writing run in a worker; the normal scene
