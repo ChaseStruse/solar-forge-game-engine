@@ -1,10 +1,9 @@
 """Optional PipeWire preview of validated project PCM, with background library I/O."""
 
-import subprocess
 from pathlib import Path
 from typing import Literal
 
-from PySide6.QtCore import QProcess, QThread, QTimer
+from PySide6.QtCore import Qt, QThread
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QDialog,
@@ -19,8 +18,8 @@ from PySide6.QtWidgets import (
 
 from solar_forge_engine.project.audio import Sound, import_wav, list_sounds, load_sound
 from solar_forge_engine.project.workspace import Project
+from solar_forge_engine.runtime.audio import SoundPlayer
 
-PIPEWIRE_PLAYER = "/usr/bin/pw-play"
 Operation = Literal["scan", "import", "preview"]
 
 
@@ -33,30 +32,17 @@ class SoundWorker(QThread):
         self.entries: tuple[Sound, ...] = ()
         self.sound: Sound | None = None
         self.pcm = b""
-        self.raw_option = False
         self.error: str | None = None
 
     def run(self) -> None:
         try:
             if self.operation == "preview":
                 self.sound, self.pcm = load_sound(self.project, self.target)
-                # Older PipeWire uses raw stdin automatically; newer versions need --raw.
-                probe = subprocess.run(
-                    [PIPEWIRE_PLAYER, "--help"],
-                    input=b"",
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    timeout=2,
-                    check=False,
-                )
-                if probe.returncode != 0:
-                    raise ValueError("The PipeWire player could not report its supported options.")
-                self.raw_option = b"--raw" in probe.stdout
             else:
                 if self.operation == "import":
                     self.sound = import_wav(self.project, Path(self.target))
                 self.entries = list_sounds(self.project)
-        except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+        except (OSError, ValueError) as error:
             self.error = str(error)
 
 
@@ -66,11 +52,7 @@ class SoundsDialog(QDialog):
         self.project = project
         self.entries: tuple[Sound, ...] = ()
         self._job: SoundWorker | None = None
-        self._pcm = b""
         self._closing = False
-        self._stopped = False
-        self._failed = False
-        self._diagnostic = b""
         self.setWindowTitle(f"Sounds — {project.name}")
         self.resize(620, 380)
         layout = QVBoxLayout(self)
@@ -85,6 +67,7 @@ class SoundsDialog(QDialog):
         layout.addWidget(self.files)
         self.status = QLabel()
         self.status.setWordWrap(True)
+        self.status.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self.status)
         row = QHBoxLayout()
         self.import_button = QPushButton("Import WAV…")
@@ -102,15 +85,11 @@ class SoundsDialog(QDialog):
         close = QPushButton("Close")
         close.clicked.connect(self.reject)
         layout.addWidget(close)
-        self.process = QProcess(self)
-        self.process.started.connect(self._send_pcm)
-        self.process.finished.connect(self._play_finished)
-        self.process.errorOccurred.connect(self._play_error)
-        self.process.readyReadStandardError.connect(self._read_error)
-        self.process.readyReadStandardOutput.connect(self._drain_output)
-        self._kill_timer = QTimer(self)
-        self._kill_timer.setSingleShot(True)
-        self._kill_timer.timeout.connect(self.process.kill)
+        self.playback = SoundPlayer(self)
+        self.process = self.playback.process
+        self.playback.message.connect(self.status.setText)
+        self.playback.changed.connect(self._update_actions)
+        self.playback.finished.connect(self._play_finished)
         self.import_button.clicked.connect(self.choose_import)
         self.preview_button.clicked.connect(self.preview)
         self.stop_button.clicked.connect(self.stop)
@@ -119,7 +98,7 @@ class SoundsDialog(QDialog):
         self._start("scan")
 
     def _playing(self) -> bool:
-        return self.process.state() != QProcess.ProcessState.NotRunning
+        return self.playback.active
 
     def _update_actions(self) -> None:
         idle = self._job is None and not self._playing()
@@ -166,26 +145,8 @@ class SoundsDialog(QDialog):
                 self.files.clear()
         elif job.operation == "preview":
             assert job.sound is not None
-            self._pcm = job.pcm
-            self._diagnostic = b""
-            self._stopped = self._failed = False
-            self.process.setProgram(PIPEWIRE_PLAYER)
-            self.process.setArguments(
-                (["--raw"] if job.raw_option else [])
-                + [
-                    "--rate",
-                    str(job.sound.rate),
-                    "--channels",
-                    str(job.sound.channels),
-                    "--format",
-                    "u8" if job.sound.width == 1 else "s16",
-                    "--volume",
-                    "0.25",
-                    "-",
-                ]
-            )
             self.status.setText(f"Previewing {job.sound.name}…")
-            self.process.start()
+            self.playback.play(job.pcm, job.sound.rate, job.sound.channels, job.sound.width)
         else:
             self.entries = job.entries
             self.files.clear()
@@ -199,53 +160,14 @@ class SoundsDialog(QDialog):
             self.status.setText(f"{len(self.entries)} project sounds. Select a clip to preview.")
         self._update_actions()
 
-    def _send_pcm(self) -> None:
-        self.process.write(self._pcm)
-        self._pcm = b""
-        self.process.closeWriteChannel()
-
-    def _read_error(self) -> None:
-        raw = self.process.readAllStandardError().data()
-        self._diagnostic = (self._diagnostic + raw)[-2048:]
-
-    def _drain_output(self) -> None:
-        self.process.readAllStandardOutput()
-
-    def _play_error(self, error: QProcess.ProcessError) -> None:
-        self._failed = True
-        self._pcm = b""
-        self.status.setText(
-            "Preview unavailable. Install pipewire-audio on Arch and ensure PipeWire is running. "
-            f"{self.process.errorString()}"
-        )
-        if error == QProcess.ProcessError.FailedToStart:
-            self._update_actions()
-            if self._closing:
-                super().reject()
-
-    def _play_finished(self, code: int, status: QProcess.ExitStatus) -> None:
-        self._kill_timer.stop()
-        self._pcm = b""
-        self._read_error()
-        if self._stopped:
-            self.status.setText("Preview stopped.")
-        elif not self._failed:
-            if code == 0 and status == QProcess.ExitStatus.NormalExit:
-                self.status.setText("Preview finished.")
-            else:
-                detail = self._diagnostic.decode("utf-8", errors="replace").strip()
-                self.status.setText(
-                    f"PipeWire preview failed: {detail or 'audio output unavailable'}"
-                )
+    def _play_finished(self) -> None:
         self._update_actions()
         if self._closing:
             super().reject()
 
     def stop(self) -> None:
         if self._playing():
-            self._stopped = True
-            self.process.terminate()
-            self._kill_timer.start(250)
+            self.playback.stop()
 
     def _selection_changed(self) -> None:
         self.stop()

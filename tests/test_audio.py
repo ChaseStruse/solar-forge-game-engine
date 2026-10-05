@@ -8,11 +8,11 @@ import pytest
 from PySide6.QtCore import QProcess
 
 from solar_forge_engine.core.scene import Scene
-from solar_forge_engine.editor import audio as audio_ui
 from solar_forge_engine.editor.audio import SoundsDialog
 from solar_forge_engine.project import audio
 from solar_forge_engine.project.audio import decode_wav, import_wav, list_sounds, load_sound
 from solar_forge_engine.project.workspace import create_project, open_project
+from solar_forge_engine.runtime import audio as audio_ui
 
 
 def wav_bytes(*, frames=800, rate=8000, channels=1, width=2):

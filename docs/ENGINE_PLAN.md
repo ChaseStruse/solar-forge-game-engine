@@ -152,8 +152,11 @@ Gameplay references/triggers, sound renaming/deletion and concurrent-directory e
 remain open. Sprite cleanup does not touch audio. Native Wayland import and real
 PipeWire preview completed with exit zero and unchanged scene bytes. The same flow
 passed in the Wayland desktop container with its optional audio socket; the default
-container imported clips and reported unavailable playback without a socket. Worker
-capability probing accommodates Arch and Debian PipeWire stdin differences.
+container imported clips and reported unavailable playback without a socket. Asynchronous
+capability probing accommodates Arch and Debian PipeWire stdin differences. A shared
+runtime playback component now owns process discovery, one-voice playback and bounded
+shutdown; the editor imports/scans in workers and reuses this component. The refactor
+passed 13 focused audio tests, lint/type checks and real native Wayland playback.
 Audio verification: 228 tests pass locally (16.62 seconds) and in Docker (19.48 seconds),
 with Ruff, formatting and strict mypy passing. Tests cover malformed/unsafe/bounded
 input, conflicts, deduplication, moved projects, both stdin modes, unavailable playback
