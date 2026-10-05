@@ -5,13 +5,14 @@ import hashlib
 import json
 import os
 import re
-import tempfile
+import stat
 from pathlib import Path
 
 from solar_forge_engine.core.scene import FORMAT_VERSION, MAX_ENTITIES, Scene
 from solar_forge_engine.core.sprite import MAX_PIXEL_BYTES, Sprite
 from solar_forge_engine.project.storage import (
     MAX_FILE_BYTES,
+    atomic_write,
     load_scene,
     read_scene_bytes,
     save_scene_data,
@@ -36,9 +37,13 @@ def digest(width: int, height: int, raw: bytes) -> str:
 
 
 def read_asset(path: Path) -> bytes:
-    if not path.is_file():
-        raise ValueError(f"Sprite asset is missing or is not a regular file: {path.name}")
-    with path.open("rb") as handle:
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except FileNotFoundError as error:
+        raise ValueError(f"Sprite asset is missing: {path.name}") from error
+    with os.fdopen(descriptor, "rb") as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise ValueError(f"Sprite asset is not a regular file: {path.name}")
         raw = handle.read(MAX_PIXEL_BYTES + 1)
     if len(raw) > MAX_PIXEL_BYTES:
         raise ValueError("Sprite asset exceeds its pixel-data limit.")
@@ -51,19 +56,11 @@ def store_asset(path: Path, raw: bytes) -> None:
         if read_asset(path) != raw:
             raise ValueError(f"Existing sprite asset is damaged: {path.name}")
         return
-    with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".sprite-", delete=False) as handle:
-        temporary = Path(handle.name)
-        try:
-            handle.write(raw)
-            handle.flush()
-            os.fsync(handle.fileno())
-            try:
-                os.link(temporary, path)
-            except FileExistsError:
-                if read_asset(path) != raw:
-                    raise ValueError(f"Existing sprite asset is damaged: {path.name}") from None
-        finally:
-            temporary.unlink(missing_ok=True)
+    try:
+        atomic_write(path, raw, exclusive=True)
+    except FileExistsError:
+        if read_asset(path) != raw:
+            raise ValueError(f"Existing sprite asset is damaged: {path.name}") from None
 
 
 def save_project_scene(

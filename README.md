@@ -438,6 +438,8 @@ through publication without creating lock sidecars; competing saves keep your ed
 and report that you can retry. Locks release when the writer exits. This targets
 local Linux filesystems; arbitrary tools can ignore advisory locks, and network
 filesystem, manifest, asset-directory and full power-loss guarantees remain open.
+New sprite files and their directory entries flush before the scene is published;
+sprite reads reject links and FIFOs without waiting on them.
 
 ## Native game export
 

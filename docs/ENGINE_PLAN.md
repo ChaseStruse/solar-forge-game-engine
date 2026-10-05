@@ -209,6 +209,14 @@ external edits/removal, unsafe targets, late changes, event-loop responsiveness,
 close guarding and file/directory flushes.
 With process contention and termination regressions added, 261 tests pass locally
 (20.91 seconds) and in Docker (24.85 seconds), with Ruff, formatting and mypy passing.
+New sprite assets now use the shared exclusive atomic writer, flushing their file
+and containing directory before a scene can reference them. Sprite reads use
+bounded no-follow/nonblocking descriptors and reject non-regular files. Regressions
+verify directory-flush ordering and timeout-bounded FIFO/symlink rejection. These
+changes improve local save integrity without claiming whole-project power-loss safety.
+Verification: 31 focused storage/sprite/UI checks pass locally; the independent
+Docker image passes Ruff, formatting, mypy and all 264 tests (68.94 seconds).
+Native Wayland worker save, external-conflict preservation, Save As and close also pass.
 
 Scene → Rename scene title now edits the active title through `SetSceneName`, with
 validation, revision protection and undo/redo. Saving retains the project's file,

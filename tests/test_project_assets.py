@@ -1,5 +1,9 @@
 import base64
 import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QProcess
@@ -107,3 +111,49 @@ def test_embedded_project_scene_upgrade_preserves_original_bytes(tmp_path):
     backup = project.scene_path().with_name(project.scene_path().name + ".v9.bak")
     assert backup.read_bytes() == previous
     assert open_project(root)[1] == original
+
+
+@pytest.mark.parametrize("kind", ["fifo", "symlink"])
+def test_sprite_reader_rejects_unsafe_file_without_waiting(tmp_path, kind):
+    path = tmp_path / "asset.rgba"
+    if kind == "fifo":
+        os.mkfifo(path)
+    else:
+        outside = tmp_path / "outside.rgba"
+        outside.write_bytes(b"private bytes")
+        path.symlink_to(outside)
+    script = """
+import sys
+from pathlib import Path
+from solar_forge_engine.project.assets import read_asset
+try:
+    read_asset(Path(sys.argv[1]))
+except (OSError, ValueError):
+    sys.exit(0)
+sys.exit(1)
+"""
+    result = subprocess.run(
+        [sys.executable, "-I", "-c", script, str(path)],
+        capture_output=True,
+        timeout=3,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_sprite_directory_flush_precedes_scene_publication(tmp_path, monkeypatch):
+    project = create_project(tmp_path / "Game", Scene())
+    flushed = []
+    original = os.fsync
+
+    def record(descriptor):
+        flushed.append(Path(os.readlink(f"/proc/self/fd/{descriptor}")))
+        original(descriptor)
+
+    monkeypatch.setattr("solar_forge_engine.project.storage.os.fsync", record)
+    save_project_scene(project.root, project.scene_path(), textured_scene())
+    asset_directory_flush = flushed.index(project.root / "assets")
+    scene_temporary_flush = next(
+        index for index, path in enumerate(flushed) if path.parent == project.root / "scenes"
+    )
+    assert asset_directory_flush < scene_temporary_flush
+    assert open_project(project.root)[1] == textured_scene()
