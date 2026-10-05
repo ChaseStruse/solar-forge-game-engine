@@ -80,6 +80,22 @@ do not justify renderer complexity or prove the complete 60 fps presentation gat
 Benchmarks and resource bounds were exercised locally and in the offline Docker
 test image. Ruff, formatting and strict mypy pass; no runtime code changed here.
 
+Native viewport instrumentation now separates update CPU, paint CPU, queued paint
+delay and completion cadence using the shared moving-sprite fixture. Synthetic
+Qt-posted clicks measure selection and subsequent paint separately, excluding
+hardware, compositor delivery and Inspector refresh. The benchmark records actual
+viewport dimensions, DPR and screen refresh, limits runtime to 15 seconds, and
+reports 120 measured paints and 50 measured clicks after warmup.
+On native Wayland at DPR 1.25 / reported 165 Hz, the 1,000-texture run measured
+paint CPU p95 5.888 ms, update CPU p95 2.328 ms, latest-update-to-paint-start p95
+7.961 ms, click-to-selection p95 0.521 ms and click-to-paint p95 6.820 ms.
+Paint completion cadence was median 16.154 ms / p95 20.535 ms, exceeding the
+16.7 ms cadence target; the renderer gate remains open. Profiling deferred scene
+updates and scheduling is next; compositor presentation still needs independent
+evidence. The [raw native report](performance/2026-10-05-native.json) records
+shared/unique results and scope. Both benchmark paths passed native/offscreen and
+Docker execution checks, plus Ruff, formatting and strict mypy. Runtime code is unchanged.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -903,6 +919,7 @@ Completed task checklist:
 - [x] Import bounded PNG sprites with portable pixels and shared cached native rendering.
 - [x] Benchmark a transparent shared-texture sprite fixture.
 - [x] Benchmark distinct sprite textures, canvas construction and isolated native warm startup.
+- [x] Instrument native viewport paint cadence, update/paint CPU and synthetic selection latency.
 - [ ] Close the complete renderer/sandbox/packaging foundation gates.
 - [x] Add validated project-folder creation/opening around existing scenes.
 - [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
@@ -936,7 +953,8 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Measure native frame pacing/presentation and input latency to close remaining renderer gates.
+1. Profile deferred scene updates and native paint scheduling to reduce cadence spikes.
+   Compositor-presented frame timing and hardware input latency remain unverified.
    Continue measuring larger-context model behavior before broadening scene tools.
 2. Continue scene organization and project integrity work; stronger concurrent-edit
    and power-loss recovery guarantees remain open.

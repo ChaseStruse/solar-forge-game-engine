@@ -1,0 +1,132 @@
+{
+  "date": "2026-10-05",
+  "scope": "Native QWidget paint CPU, paint completion cadence, and synthetic Qt mouse-event response. No compositor presentation, hardware input, or full Inspector refresh claim. Fusion style; desktop theme plugin disabled; 16 ms timer requests, not vsync.",
+  "reference_host": {
+    "cpu": "11th Gen Intel(R) Core(TM) i9-11900H @ 2.50GHz",
+    "logical_cpus": 16
+  },
+  "results": {
+    "native-shared": {
+      "fixture": "1000 moving 16x16 sprites; SceneView; 1040x620 logical window",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "unique_textures": 1,
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_window_size": [
+        997,
+        598
+      ],
+      "actual_viewport_size": [
+        995,
+        596
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "requested_updates": 130,
+      "coalesced_updates": 0,
+      "paint_cpu": {
+        "median_ms": 4.432,
+        "p95_ms": 4.858,
+        "max_ms": 5.514
+      },
+      "update_cpu": {
+        "median_ms": 1.585,
+        "p95_ms": 1.762,
+        "max_ms": 2.018
+      },
+      "latest_update_to_paint_start": {
+        "median_ms": 5.996,
+        "p95_ms": 6.577,
+        "max_ms": 7.428
+      },
+      "update_to_paint_completion": {
+        "median_ms": 11.99,
+        "p95_ms": 12.895,
+        "max_ms": 14.244
+      },
+      "paint_completion_interval": {
+        "median_ms": 15.852,
+        "p95_ms": 20.73,
+        "max_ms": 22.497
+      },
+      "input": "Qt-posted mouse click; excludes hardware, compositor, Inspector",
+      "warmup_clicks": 5,
+      "measured_clicks": 50,
+      "event_to_selection": {
+        "median_ms": 0.388,
+        "p95_ms": 0.512,
+        "max_ms": 0.544
+      },
+      "event_to_paint_completion": {
+        "median_ms": 6.0,
+        "p95_ms": 6.413,
+        "max_ms": 6.47
+      }
+    },
+    "native-unique": {
+      "fixture": "1000 moving 16x16 sprites; SceneView; 1040x620 logical window",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "unique_textures": 1000,
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_window_size": [
+        997,
+        598
+      ],
+      "actual_viewport_size": [
+        995,
+        596
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "requested_updates": 130,
+      "coalesced_updates": 0,
+      "paint_cpu": {
+        "median_ms": 5.062,
+        "p95_ms": 5.888,
+        "max_ms": 7.148
+      },
+      "update_cpu": {
+        "median_ms": 1.785,
+        "p95_ms": 2.328,
+        "max_ms": 2.811
+      },
+      "latest_update_to_paint_start": {
+        "median_ms": 6.509,
+        "p95_ms": 7.961,
+        "max_ms": 8.752
+      },
+      "update_to_paint_completion": {
+        "median_ms": 13.327,
+        "p95_ms": 15.655,
+        "max_ms": 17.085
+      },
+      "paint_completion_interval": {
+        "median_ms": 16.154,
+        "p95_ms": 20.535,
+        "max_ms": 23.007
+      },
+      "input": "Qt-posted mouse click; excludes hardware, compositor, Inspector",
+      "warmup_clicks": 5,
+      "measured_clicks": 50,
+      "event_to_selection": {
+        "median_ms": 0.421,
+        "p95_ms": 0.521,
+        "max_ms": 0.598
+      },
+      "event_to_paint_completion": {
+        "median_ms": 6.087,
+        "p95_ms": 6.82,
+        "max_ms": 7.557
+      }
+    }
+  }
+}

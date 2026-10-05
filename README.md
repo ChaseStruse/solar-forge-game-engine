@@ -381,6 +381,22 @@ RSS after startup workers settle. No models are loaded. Samples are bounded to
 measure a cold filesystem cache or first compositor-presented frame. See the
 [recorded reference measurements](docs/performance/2026-10-05.json).
 
+Measure the native viewport's paint cadence and synthetic mouse response:
+
+```sh
+QT_QPA_PLATFORM=wayland QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_native.py --unique-textures 1000
+```
+
+Keep the temporary benchmark window visible until it closes (normally a few
+seconds; 15-second limit). It uses the same 1,000-sprite fixture, 10 warmup/120
+measured paints and 5 warmup/50 measured clicks. Reports separate update CPU,
+paint CPU, queued paint delay, completion intervals and Qt-posted click response,
+along with actual viewport dimensions, scaling and screen refresh rate.
+`--unique-textures 1` compares shared sprites; offscreen mode checks tooling only.
+Synthetic clicks exclude hardware input, compositor delivery and Inspector refresh.
+Qt paint completion does not establish when pixels reach the screen. The
+[native reference report](docs/performance/2026-10-05-native.json) retains those limits.
+
 ## Docker
 
 Run the native window from a Linux Wayland session:
