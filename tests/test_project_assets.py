@@ -140,8 +140,9 @@ sys.exit(1)
     assert result.returncode == 0, result.stderr
 
 
-def test_sprite_directory_flush_precedes_scene_publication(tmp_path, monkeypatch):
-    project = create_project(tmp_path / "Game", Scene())
+@pytest.mark.parametrize("reuse", [False, True])
+def test_sprite_directory_flush_precedes_scene_publication(tmp_path, monkeypatch, reuse):
+    project = create_project(tmp_path / "Game", textured_scene() if reuse else Scene())
     flushed = []
     original = os.fsync
 

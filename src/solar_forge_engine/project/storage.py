@@ -126,6 +126,7 @@ def _publish_scene_data(
                 raise ValueError(
                     "Legacy scene backup already exists. Use Save As to keep both copies."
                 ) from error
+            flush_directory(path.parent)
     atomic_write(path, raw, exclusive=exclusive, expected_fingerprint=expected_fingerprint)
 
 
@@ -154,11 +155,16 @@ def atomic_write(
             os.link(temporary, path)
         else:
             os.replace(temporary, path)
-        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
+        flush_directory(path.parent)
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
+
+
+def flush_directory(path: Path) -> None:
+    """Flush directory entries after publication or before dependent writes."""
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)

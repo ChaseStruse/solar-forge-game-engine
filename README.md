@@ -440,6 +440,8 @@ local Linux filesystems; arbitrary tools can ignore advisory locks, and network
 filesystem, manifest, asset-directory and full power-loss guarantees remain open.
 New sprite files and their directory entries flush before the scene is published;
 sprite reads reject links and FIFOs without waiting on them.
+Reused sprite entries and migration-backup entries also flush before scene replacement;
+a failed migration-backup flush preserves the original scene.
 Recovery publication and cleanup use the same folder guard; new snapshots publish
 exclusively, existing snapshots carry a final byte-revision check, and deletion
 flushes its directory. Multi-session ownership of recovery snapshots remains open.

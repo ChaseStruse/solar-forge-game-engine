@@ -224,6 +224,13 @@ containing directory after removal. Focused regressions preserve snapshots durin
 manual publication and late external changes; 269 tests pass locally (9.95 seconds)
 and in Docker (11.32 seconds), with Ruff, formatting and mypy passing. This coordinates
 publication, not ownership of one recovery slot between multiple editing sessions.
+Migration backups now flush their directory before the original scene can be
+replaced; a failed backup-directory flush leaves the original unchanged. Project
+saves also flush reused sprite directory entries before scene publication, covering
+an asset concurrently linked by another writer. Directory flushing is shared with
+atomic publication and recovery cleanup. Standalone/project migration ordering,
+failure preservation and new/reused asset ordering regressions pass; all 274 tests
+pass in Docker (11.40 seconds), with Ruff, formatting and mypy passing.
 
 Scene → Rename scene title now edits the active title through `SetSceneName`, with
 validation, revision protection and undo/redo. Saving retains the project's file,

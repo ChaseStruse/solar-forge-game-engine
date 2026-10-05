@@ -8,7 +8,12 @@ from pathlib import Path
 
 from solar_forge_engine.core.scene import Scene
 from solar_forge_engine.project.assets import load_project_scene
-from solar_forge_engine.project.storage import MAX_FILE_BYTES, atomic_write, scene_write_guard
+from solar_forge_engine.project.storage import (
+    MAX_FILE_BYTES,
+    atomic_write,
+    flush_directory,
+    scene_write_guard,
+)
 from solar_forge_engine.project.workspace import Project
 
 
@@ -126,8 +131,4 @@ def _clear_recovery(project: Project, baseline: Scene | None) -> None:
             raise ValueError("Recovery snapshot changed during cleanup; retained without deleting.")
     path = recovery_path(project)
     path.unlink(missing_ok=True)
-    descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
+    flush_directory(path.parent)

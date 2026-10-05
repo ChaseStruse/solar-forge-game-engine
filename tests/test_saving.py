@@ -1,9 +1,11 @@
 import hashlib
+import json
 import os
 import selectors
 import stat
 import subprocess
 import sys
+from pathlib import Path
 from threading import Event, get_ident
 
 import pytest
@@ -17,6 +19,57 @@ from solar_forge_engine.project import storage
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.storage import load_scene, save_scene
 from solar_forge_engine.project.workspace import create_project
+
+
+@pytest.mark.parametrize("project_mode", [False, True])
+@pytest.mark.parametrize("fail_directory", [False, True])
+def test_upgrade_backup_directory_flushes_before_original_replacement(
+    tmp_path, monkeypatch, project_mode, fail_directory
+):
+    if project_mode:
+        project = create_project(tmp_path / "Game", Scene())
+        path = project.scene_path()
+        version = 8
+    else:
+        path = tmp_path / "scene.forge.json"
+        save_scene(path, Scene())
+        version = 7
+    data = json.loads(path.read_bytes())
+    data["format_version"] = version
+    del data["coin_sound"]
+    path.write_text(json.dumps(data))
+    previous = path.read_bytes()
+    backup = path.with_name(f"{path.name}.v{version}.bak")
+    flushed = []
+    original = os.fsync
+
+    def record(descriptor):
+        target = Path(os.readlink(f"/proc/self/fd/{descriptor}"))
+        flushed.append(target)
+        if fail_directory and target == path.parent:
+            raise OSError("backup directory flush unavailable")
+        original(descriptor)
+
+    monkeypatch.setattr(storage.os, "fsync", record)
+
+    def save():
+        if project_mode:
+            save_project_scene(project.root, path, Scene("Upgraded"))
+        else:
+            save_scene(path, Scene("Upgraded"))
+
+    if fail_directory:
+        with pytest.raises(OSError, match="backup directory flush"):
+            save()
+        assert path.read_bytes() == previous
+        assert not list(path.parent.glob(".forge-*"))
+    else:
+        save()
+        temporary_flush = next(
+            index for index, target in enumerate(flushed) if target.name.startswith(".forge-")
+        )
+        assert flushed.index(backup) < flushed.index(path.parent) < temporary_flush
+    assert backup.read_bytes() == previous
 
 
 @pytest.mark.parametrize("project_mode", [False, True])

@@ -13,6 +13,7 @@ from solar_forge_engine.core.sprite import MAX_PIXEL_BYTES, Sprite
 from solar_forge_engine.project.storage import (
     MAX_FILE_BYTES,
     atomic_write,
+    flush_directory,
     load_scene,
     read_scene_bytes,
     save_scene_data,
@@ -93,6 +94,9 @@ def save_project_scene(
     for target, raw in assets.items():
         target.parent.mkdir(exist_ok=True)
         store_asset(target, raw)
+    if assets:
+        # Also covers reuse of an asset another writer linked before its directory flush.
+        flush_directory(root / "assets")
     save_scene_data(path, data, exclusive=exclusive, expected_fingerprint=expected_fingerprint)
 
 
