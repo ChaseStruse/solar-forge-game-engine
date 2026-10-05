@@ -1,7 +1,15 @@
 """View-only object search and role filtering, independent of scene commands."""
 
 from PySide6.QtCore import QModelIndex, QSignalBlocker, Qt, Signal
-from PySide6.QtWidgets import QComboBox, QLabel, QLineEdit, QTreeWidget, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QTreeWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from solar_forge_engine.core.scene import Role
 
@@ -26,7 +34,10 @@ class SceneObjects(QWidget):
             self.role.addItem(role.value.capitalize(), role.value)
         self.role.setAccessibleName("Filter scene objects by role")
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Scene objects")
+        self.tree.setHeaderLabels(["Scene objects", "Drag"])
+        self.tree.header().setStretchLastSection(False)
+        self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.tree.setAccessibleName("Scene objects")
         self.tree.setUniformRowHeights(True)
         self.hint = QLabel()
@@ -36,6 +47,19 @@ class SceneObjects(QWidget):
             layout.addWidget(widget)
         self.search.textChanged.connect(lambda _: self.filter_changed.emit())
         self.role.currentIndexChanged.connect(lambda _: self.filter_changed.emit())
+
+    def set_locked(self, ids: frozenset[str]) -> None:
+        for index in range(self.tree.topLevelItemCount()):
+            row = self.tree.topLevelItem(index)
+            if row is not None:
+                entity_id = row.data(0, Qt.ItemDataRole.UserRole)
+                locked = entity_id in ids
+                row.setText(1, "Locked" if locked else "")
+                row.setToolTip(
+                    0,
+                    f"ID: {entity_id}\nRole: {row.data(0, ROLE_DATA)}\n"
+                    f"Viewport drag: {'locked' if locked else 'enabled'}",
+                )
 
     def apply_filter(self, selected_id: str | None) -> None:
         query = self.search.text().strip().casefold()

@@ -26,6 +26,7 @@ class SceneView(QGraphicsView):
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.NoAnchor)
         self.setSceneRect(-200_000, -200_000, 400_000, 400_000)
         self._pan: QPoint | None = None
+        self.locked_ids: frozenset[str] = frozenset()
         self.snap_enabled = False
         self.grid_size = 16
         self._item: QGraphicsItem | None = None
@@ -63,6 +64,10 @@ class SceneView(QGraphicsView):
         else:
             super().wheelEvent(event)
 
+    def set_locked(self, ids: frozenset[str]) -> None:
+        self.cancel_drag()
+        self.locked_ids = ids
+
     def set_grid(self, enabled: bool, size: int) -> None:
         self.cancel_drag()
         self.snap_enabled = enabled
@@ -93,6 +98,9 @@ class SceneView(QGraphicsView):
         if not item.isSelected() or len(self.scene().selectedItems()) != 1:
             self.scene().clearSelection()
             item.setSelected(True)
+        if str(item.data(0)) in self.locked_ids:
+            event.accept()
+            return
         self._item = item
         self._origin = item.pos()
         self._press = event.position().toPoint()

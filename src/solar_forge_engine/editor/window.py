@@ -80,6 +80,7 @@ class EditorWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.document = Document()
+        self._lock_document = self.document
         self.path: Path | None = None
         self.project: Project | None = None
         self.saved_scene = self.document.scene
@@ -197,6 +198,12 @@ class EditorWindow(QMainWindow):
         self.name_field = QLineEdit()
         self.name_field.setMaxLength(100)
         form.addRow("&Name", self.name_field)
+        self.lock_drag_check = QCheckBox("Lock viewport dragging")
+        self.lock_drag_check.setToolTip(
+            "Session-only drag protection. Inspector and assistant edits still work."
+        )
+        self.lock_drag_check.toggled.connect(self.set_selected_lock)
+        form.addRow(self.lock_drag_check)
         self.numbers: dict[str, QDoubleSpinBox] = {}
         for key, label in (("x", "X"), ("y", "Y"), ("width", "Width"), ("height", "Height")):
             field = QDoubleSpinBox()
@@ -289,6 +296,14 @@ class EditorWindow(QMainWindow):
         find_object = scene_menu.addAction("Find object")
         find_object.setShortcut("Ctrl+L")
         find_object.triggered.connect(self.find_object)
+        self.lock_action = scene_menu.addAction("Lock viewport dragging")
+        self.lock_action.setCheckable(True)
+        self.lock_action.setShortcut("Ctrl+Shift+L")
+        self.lock_action.toggled.connect(self.set_selected_lock)
+        lock_decorations = scene_menu.addAction("Lock decorations against dragging")
+        lock_decorations.triggered.connect(self.lock_decorations)
+        self.unlock_all_action = scene_menu.addAction("Unlock all viewport dragging")
+        self.unlock_all_action.triggered.connect(lambda: self._set_viewport_locks(frozenset()))
 
         def action(label: str, shortcut: QKeySequence.StandardKey | str) -> QAction:
             item = QAction(label, self)
@@ -423,6 +438,10 @@ class EditorWindow(QMainWindow):
         self._drag_context = (self.document, self.document.revision)
 
     def _commit_drag(self, entity_id: str, x: float, y: float) -> None:
+        if entity_id in self.view.locked_ids:
+            self.log.append("Drag canceled because the object is locked.")
+            self.refresh()
+            return
         if self._drag_context != (self.document, self.document.revision):
             self.log.append("Drag canceled because the scene changed.")
             self.refresh()
@@ -431,6 +450,10 @@ class EditorWindow(QMainWindow):
 
     def refresh(self) -> None:
         self.assistant.scene_changed()
+        if self.document is not self._lock_document:
+            self._lock_document = self.document
+            self.view.set_locked(frozenset())
+            self._drag_context = None
         self.view.cancel_drag()
         key = (self.document, self.document.revision)
         if key != self._recovery_key:
@@ -473,6 +496,7 @@ class EditorWindow(QMainWindow):
                 if entity.id == self.selected_id:
                     self.tree.setCurrentItem(row)
                     item.setSelected(True)
+        self.objects.set_locked(self.view.locked_ids)
         self.objects.apply_filter(self.selected_id)
         self._refresh_assets()
         self._update_inspector()
@@ -491,7 +515,39 @@ class EditorWindow(QMainWindow):
             f"{'Unsaved changes' if self.dirty else 'Ready'}"
         )
 
+    def _update_lock_controls(self) -> None:
+        self.unlock_all_action.setEnabled(bool(self.view.locked_ids))
+        locked = self.selected_id in self.view.locked_ids
+        with QSignalBlocker(self.lock_action), QSignalBlocker(self.lock_drag_check):
+            self.lock_action.setEnabled(self.selected_id is not None)
+            self.lock_action.setChecked(locked)
+            self.lock_drag_check.setChecked(locked)
+
+    def _set_viewport_locks(self, ids: frozenset[str]) -> None:
+        self.view.set_locked(ids)
+        self._drag_context = None
+        self.objects.set_locked(ids)
+        self._update_lock_controls()
+
+    def set_selected_lock(self, locked: bool) -> None:
+        if self.selected_id is None:
+            return
+        ids = self.view.locked_ids
+        self._set_viewport_locks(ids | {self.selected_id} if locked else ids - {self.selected_id})
+
+    def lock_decorations(self) -> None:
+        self._set_viewport_locks(
+            self.view.locked_ids
+            | {
+                entity.id
+                for entity in self.document.scene.entities
+                if entity.role == Role.DECORATION
+            }
+        )
+        self.log.append("Decorations locked against viewport dragging for this scene session.")
+
     def _update_inspector(self) -> None:
+        self._update_lock_controls()
         self._update_asset_actions()
         self.inspector.setEnabled(self.selected_id is not None)
         self.delete_action.setEnabled(self.selected_id is not None)

@@ -173,6 +173,16 @@ selection, Inspector edits and the game unchanged. A selected object outside the
 filter is identified below the list. Clear search and choose **All roles** to see
 everything again. Filters stay active across scene changes during this session.
 
+Select an object and enable **Lock viewport dragging** in the Inspector, or press
+**Ctrl+Shift+L**. The Scene list marks it **Locked**. Locked objects remain
+selectable; deliberate Inspector and assistant edits still work. From the Scene
+menu, **Lock decorations against dragging** protects backgrounds in one step and
+**Unlock all viewport dragging** clears every lock. Changing locks cancels an
+in-progress drag without moving the object and preserves unapplied Inspector fields.
+Locks are session-only, create no undo step, and do not change scene files or Play.
+They survive undo/redo in the current scene but reset when opening, creating or
+switching scenes. Saving locks across sessions remains planned.
+
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
 an animated courier, flickering reactor, industrial pixel art, and twelve energy
 cores to recover. WASD/arrows move; Pause and Restart control playback. All 187
