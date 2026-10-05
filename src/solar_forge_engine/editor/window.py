@@ -6,8 +6,8 @@ from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, Qt
-from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QKeySequence
+from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, QSize, Qt
+from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QComboBox,
     QDockWidget,
@@ -18,6 +18,8 @@ from PySide6.QtWidgets import (
     QGraphicsView,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QMainWindow,
     QMessageBox,
     QPushButton,
@@ -25,6 +27,7 @@ from PySide6.QtWidgets import (
     QToolBar,
     QTreeWidget,
     QTreeWidgetItem,
+    QVBoxLayout,
     QWidget,
 )
 
@@ -36,12 +39,13 @@ from solar_forge_engine.core.commands import (
     SetEntity,
 )
 from solar_forge_engine.core.scene import Entity, Role, Scene
+from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
 from solar_forge_engine.project.workspace import Project, create_project, open_project
-from solar_forge_engine.runtime.rendering import render_scene
+from solar_forge_engine.runtime.rendering import render_scene, sprite_pixmap
 
 STYLE = """
 QMainWindow, QWidget { background: #20232a; color: #e9edf2; }
@@ -50,14 +54,14 @@ QToolBar { spacing: 6px; padding: 6px; }
 QToolButton { padding: 6px 10px; border-radius: 4px; }
 QToolButton:hover { background: #4c3b20; }
 QDockWidget::title { background: #292d36; padding: 8px; }
-QLineEdit, QDoubleSpinBox, QTreeWidget, QTextEdit {
+QLineEdit, QDoubleSpinBox, QTreeWidget, QListWidget, QTextEdit {
     background: #191c22; border: 1px solid #464d5b; border-radius: 4px; padding: 5px;
 }
 QPushButton { background: #343b48; border: 1px solid #596170; padding: 8px 12px; }
 QPushButton:hover { border-color: #f4b544; }
 QPushButton:focus, QLineEdit:focus, QDoubleSpinBox:focus { border: 2px solid #f4b544; }
 QWidget:disabled { color: #9098a6; }
-QTreeWidget::item:selected { background: #4c3b20; color: #ffffff; }
+QTreeWidget::item:selected, QListWidget::item:selected { background: #4c3b20; color: #ffffff; }
 QStatusBar { background: #292d36; }
 """
 SCENE_FILTER = "Solar Forge scene (*.forge.json)"
@@ -94,6 +98,29 @@ class EditorWindow(QMainWindow):
         self._dock("Scene", self.tree, Qt.DockWidgetArea.LeftDockWidgetArea)
         self.tree.currentItemChanged.connect(self._tree_selected)
         self.canvas.selectionChanged.connect(self._canvas_selected)
+
+        self.asset_sprites: list[Sprite] = []
+        self._known_assets: set[Sprite] = set()
+        self._asset_document: Document | None = None
+        self._asset_bytes = 0
+        asset_panel = QWidget()
+        asset_layout = QVBoxLayout(asset_panel)
+        self.asset_hint = QLabel("Import a PNG to build your sprite palette.")
+        self.asset_hint.setWordWrap(True)
+        asset_layout.addWidget(self.asset_hint)
+        self.asset_list = QListWidget()
+        self.asset_list.setIconSize(QSize(48, 48))
+        self.asset_list.setAccessibleName("Reusable scene sprites")
+        asset_layout.addWidget(self.asset_list)
+        self.add_asset_button = QPushButton("Add to scene")
+        self.add_asset_button.clicked.connect(self.add_asset)
+        asset_layout.addWidget(self.add_asset_button)
+        self.apply_asset_button = QPushButton("Apply to selected object")
+        self.apply_asset_button.clicked.connect(self.apply_asset)
+        asset_layout.addWidget(self.apply_asset_button)
+        self.asset_list.currentItemChanged.connect(self._update_asset_actions)
+        self.asset_list.itemDoubleClicked.connect(lambda item: self.add_asset())
+        self._dock("Assets", asset_panel, Qt.DockWidgetArea.LeftDockWidgetArea)
 
         self.inspector = QWidget()
         form = QFormLayout(self.inspector)
@@ -230,6 +257,7 @@ class EditorWindow(QMainWindow):
                 if entity.id == self.selected_id:
                     self.tree.setCurrentItem(row)
                     item.setSelected(True)
+        self._refresh_assets()
         self._update_inspector()
         self.undo_action.setEnabled(self.document.can_undo)
         self.redo_action.setEnabled(self.document.can_redo)
@@ -246,6 +274,7 @@ class EditorWindow(QMainWindow):
         )
 
     def _update_inspector(self) -> None:
+        self._update_asset_actions()
         self.inspector.setEnabled(self.selected_id is not None)
         self.delete_action.setEnabled(self.selected_id is not None)
         self.duplicate_action.setEnabled(self.selected_id is not None)
@@ -323,19 +352,105 @@ class EditorWindow(QMainWindow):
                 height=sprite.height,
                 sprite=sprite,
             )
-            command = CreateEntity(entity)
-            candidate = command.apply(self.document.scene)
-            if len(json.dumps(candidate.to_data(), indent=2).encode("utf-8")) + 1 > MAX_FILE_BYTES:
-                raise ValueError("The imported sprite would exceed the 4 MiB scene limit.")
         except (OSError, ValueError) as error:
             self._error(f"Could not import sprite: {error}")
             return False
-        if not self.execute(command):
+        if not self._add_sprite_entity(entity):
+            return False
+        self.log.append(f"Imported {path.name}")
+        return True
+
+    def _execute_sprite(self, command: Command) -> bool:
+        try:
+            candidate = command.apply(self.document.scene)
+            if len(json.dumps(candidate.to_data(), indent=2).encode("utf-8")) + 1 > MAX_FILE_BYTES:
+                raise ValueError("This sprite edit would exceed the 4 MiB scene limit.")
+        except ValueError as error:
+            self._error(str(error))
+            return False
+        return self.execute(command)
+
+    def _add_sprite_entity(self, entity: Entity) -> bool:
+        if not self._execute_sprite(CreateEntity(entity)):
             return False
         self.selected_id = entity.id
         self.refresh()
-        self.log.append(f"Imported {path.name}")
         return True
+
+    def _refresh_assets(self) -> None:
+        if self._asset_document is not self.document:
+            self.asset_list.clear()
+            self.asset_sprites.clear()
+            self._known_assets.clear()
+            self._asset_bytes = 0
+            self._asset_document = self.document
+        limited = False
+        for entity in self.document.scene.entities:
+            sprite = entity.sprite
+            if sprite is None or sprite in self._known_assets:
+                continue
+            size = sprite.width * sprite.height * 4
+            if len(self.asset_sprites) >= 128 or self._asset_bytes + size > MAX_FILE_BYTES:
+                limited = True
+                continue
+            row = QListWidgetItem(
+                QIcon(sprite_pixmap(sprite)),
+                f"{entity.name} · {sprite.width} × {sprite.height}",
+            )
+            row.setData(Qt.ItemDataRole.UserRole, len(self.asset_sprites))
+            row.setToolTip(entity.name)
+            self.asset_list.addItem(row)
+            self.asset_sprites.append(sprite)
+            self._known_assets.add(sprite)
+            self._asset_bytes += size
+        if limited:
+            hint = "Palette limit reached (128 sprites / 4 MiB)."
+        elif self.asset_sprites:
+            hint = "Double-click to add. Sprites stay available until another scene opens."
+        else:
+            hint = "Import a PNG to build your sprite palette."
+        self.asset_hint.setText(hint)
+        self._update_asset_actions()
+
+    def _update_asset_actions(self) -> None:
+        chosen = self.asset_list.currentItem() is not None
+        self.add_asset_button.setEnabled(chosen)
+        self.apply_asset_button.setEnabled(chosen and self.selected_id is not None)
+
+    def add_asset(self) -> None:
+        row = self.asset_list.currentItem()
+        if row is None:
+            return
+        sprite = self.asset_sprites[row.data(Qt.ItemDataRole.UserRole)]
+        offset = (len(self.document.scene.entities) % 8) * 24
+        self._add_sprite_entity(
+            Entity(
+                str(uuid4()),
+                name="Sprite",
+                x=100 + offset,
+                y=100 + offset,
+                width=sprite.width,
+                height=sprite.height,
+                sprite=sprite,
+            )
+        )
+
+    def apply_asset(self) -> None:
+        row = self.asset_list.currentItem()
+        if row is not None and self.selected_id is not None:
+            sprite = self.asset_sprites[row.data(Qt.ItemDataRole.UserRole)]
+            self._execute_sprite(
+                SetEntity(
+                    self.selected_id,
+                    {
+                        "sprite": {
+                            "width": sprite.width,
+                            "height": sprite.height,
+                            "pixels": sprite.pixels,
+                        }
+                    },
+                )
+            )
 
     def clear_sprite(self) -> None:
         if self.selected_id is not None:

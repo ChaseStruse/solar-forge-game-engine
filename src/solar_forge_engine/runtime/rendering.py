@@ -10,6 +10,12 @@ from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.runtime.simulation import WORLD_HEIGHT, WORLD_WIDTH
 
 
+def sprite_pixmap(sprite: Sprite) -> QPixmap:
+    raw = base64.b64decode(sprite.pixels)
+    image = QImage(raw, sprite.width, sprite.height, QImage.Format.Format_RGBA8888)
+    return QPixmap.fromImage(image.copy())
+
+
 def render_scene(
     canvas: QGraphicsScene, scene: Scene, *, selectable: bool = False
 ) -> dict[str, QGraphicsItem]:
@@ -23,9 +29,7 @@ def render_scene(
         if entity.sprite is not None:
             sprite = entity.sprite
             if sprite not in pixmaps:
-                raw = base64.b64decode(sprite.pixels)
-                image = QImage(raw, sprite.width, sprite.height, QImage.Format.Format_RGBA8888)
-                pixmaps[sprite] = QPixmap.fromImage(image.copy())
+                pixmaps[sprite] = sprite_pixmap(sprite)
             sprite_item = canvas.addPixmap(pixmaps[sprite])
             sprite_item.setShapeMode(QGraphicsPixmapItem.ShapeMode.BoundingRectShape)
             sprite_item.setTransform(

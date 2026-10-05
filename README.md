@@ -63,7 +63,14 @@ Older embedded project scenes load unchanged; saving upgrades them after keeping
 an exact `.v1.bak`, `.v2.bak`, or `.v3.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
-sprite removal. Asset browsing, cleanup, and multiple scenes are future work.
+sprite removal. Disk-wide asset browsing, cleanup, and multiple scenes are future work.
+
+The **Assets** panel previews unique sprites from the loaded scene and imports in
+this session. Double-click or choose **Add to scene** to create a new object;
+**Apply to selected object** preserves its geometry and gameplay role. Both actions
+support undo/redo. Sprites remain in the palette after undo/removal until another
+scene is opened or created. The palette is capped at 128 sprites and 4 MiB of pixel
+data; it does not scan unused files in `assets/`.
 
 Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score
