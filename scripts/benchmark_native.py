@@ -31,13 +31,28 @@ def main() -> None:
     parser.add_argument(
         "--unique-textures", type=int, default=1000, help="Textures, from 1 to 1000"
     )
+    parser.add_argument("--moving-items", type=int, default=1000, help="Moving objects, 1 to 1000")
+    parser.add_argument("--scene-index", choices=("bsp", "none"), default="bsp")
+    parser.add_argument(
+        "--viewport-update", choices=("minimal", "bounding", "smart", "full"), default="minimal"
+    )
+    parser.add_argument(
+        "--force-repaint", action="store_true", help="Repaint the full viewport each update"
+    )
     args = parser.parse_args()
     if not 1 <= args.unique_textures <= 1000:
         parser.error("--unique-textures must be from 1 to 1000")
+    if not 1 <= args.moving_items <= 1000:
+        parser.error("--moving-items must be from 1 to 1000")
     app = QApplication([])
     app.setStyle("Fusion")
     scene = moving_scene(args.unique_textures)
     canvas = QGraphicsScene()
+    canvas.setItemIndexMethod(
+        QGraphicsScene.ItemIndexMethod.NoIndex
+        if args.scene_index == "none"
+        else QGraphicsScene.ItemIndexMethod.BspTreeIndex
+    )
     canvas.setSceneRect(0, 0, 1024, 576)
     items = render_scene(canvas, scene, selectable=True)
     paints: list[float] = []
@@ -83,6 +98,14 @@ def main() -> None:
                 QTimer.singleShot(10, post_input if input_count < 55 else finish)
 
     view = BenchView()
+    view.setViewportUpdateMode(
+        {
+            "minimal": SceneView.ViewportUpdateMode.MinimalViewportUpdate,
+            "bounding": SceneView.ViewportUpdateMode.BoundingRectViewportUpdate,
+            "smart": SceneView.ViewportUpdateMode.SmartViewportUpdate,
+            "full": SceneView.ViewportUpdateMode.FullViewportUpdate,
+        }[args.viewport_update]
+    )
     view.setScene(canvas)
     view.setSceneRect(canvas.sceneRect())
     view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -96,9 +119,10 @@ def main() -> None:
         if frame_started is None:
             frame_started = time.perf_counter()
         updates += 1
-        for entity in scene.entities:
+        for entity in scene.entities[: args.moving_items]:
             items[entity.id].setPos(entity.x + updates % 8, entity.y)
-        view.viewport().update()
+        if args.force_repaint:
+            view.viewport().update()
         update_finished = time.perf_counter()
         if paint_count >= 10:
             update_cpu.append((update_finished - started) * 1000)
@@ -111,7 +135,8 @@ def main() -> None:
             selection_seen = True
             if input_count >= 5:
                 input_to_selection.append((time.perf_counter() - input_started) * 1000)
-            view.viewport().update()
+            if args.force_repaint:
+                view.viewport().update()
 
     def post_input() -> None:
         nonlocal input_started, selection_seen, expected_id
@@ -150,6 +175,10 @@ def main() -> None:
                     "qt": qt_version,
                     "platform": platform.platform(),
                     "unique_textures": args.unique_textures,
+                    "moving_items": args.moving_items,
+                    "scene_index": args.scene_index,
+                    "viewport_update": args.viewport_update,
+                    "forced_repaint": args.force_repaint,
                     "screen_refresh_hz": screen.refreshRate(),
                     "device_pixel_ratio": view.devicePixelRatioF(),
                     "actual_window_size": [view.width(), view.height()],

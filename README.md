@@ -397,6 +397,16 @@ Synthetic clicks exclude hardware input, compositor delivery and Inspector refre
 Qt paint completion does not establish when pixels reach the screen. The
 [native reference report](docs/performance/2026-10-05-native.json) retains those limits.
 
+For profiling, vary `--moving-items` from 1 to 1,000 and compare
+`--viewport-update minimal`, `bounding`, `smart`, or `full`. `--scene-index bsp`
+or `none` compares scene indexing. Updates now use Qt's automatic dirty regions;
+`--force-repaint` reproduces the earlier full-viewport request on every update.
+Reports include these settings so results remain comparable. The
+[repaint-policy comparison](docs/performance/2026-10-05-repaint-policies.json)
+shows why engine defaults still use minimal updates: full repainting helps heavy
+motion but increases work for ordinary one-object updates. These switches affect
+only the benchmark, not your projects or editor preferences.
+
 ## Docker
 
 Run the native window from a Linux Wayland session:

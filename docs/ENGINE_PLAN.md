@@ -96,6 +96,23 @@ evidence. The [raw native report](performance/2026-10-05-native.json) records
 shared/unique results and scope. Both benchmark paths passed native/offscreen and
 Docker execution checks, plus Ruff, formatting and strict mypy. Runtime code is unchanged.
 
+Repaint profiling now compares 1, 32 and 1,000 moving objects with minimal,
+bounding-rectangle, smart and full update modes, and optionally BSP/no indexing.
+The default benchmark uses natural Qt dirty-region updates; `--force-repaint`
+reproduces the earlier forced whole-viewport request. Every report records workload
+and policy settings. Single-run native comparisons measured one-object paint p95
+0.230 ms with minimal updates versus 5.321 ms with full updates. For 1,000 moving
+objects, full updates reduced queued-paint p95 from 6.932 to 1.288 ms and cadence
+p95 from 24.460 to 17.057 ms. Bounding/smart modes did not provide a clear global
+replacement, and disabling indexing did not resolve the earlier queue delay.
+Engine defaults remain unchanged: these findings warrant animation-heavy Play
+measurements before choosing a selective policy. The complete 16.7 ms cadence
+and compositor gates remain open. The
+[policy comparison report](performance/2026-10-05-repaint-policies.json) retains
+natural and exploratory forced-update results, without introducing timing tests.
+Native Wayland comparisons, offline Docker mode checks, invalid workload bounds,
+Ruff, formatting and strict mypy were verified.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -920,6 +937,7 @@ Completed task checklist:
 - [x] Benchmark a transparent shared-texture sprite fixture.
 - [x] Benchmark distinct sprite textures, canvas construction and isolated native warm startup.
 - [x] Instrument native viewport paint cadence, update/paint CPU and synthetic selection latency.
+- [x] Profile repaint/index policies across light/heavy motion with natural dirty-region updates.
 - [ ] Close the complete renderer/sandbox/packaging foundation gates.
 - [x] Add validated project-folder creation/opening around existing scenes.
 - [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
@@ -953,7 +971,7 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Profile deferred scene updates and native paint scheduling to reduce cadence spikes.
+1. Measure animation-heavy Play workloads before selecting an adaptive repaint policy.
    Compositor-presented frame timing and hardware input latency remain unverified.
    Continue measuring larger-context model behavior before broadening scene tools.
 2. Continue scene organization and project integrity work; stronger concurrent-edit
