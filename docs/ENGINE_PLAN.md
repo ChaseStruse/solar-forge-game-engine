@@ -186,6 +186,21 @@ and in the native Wayland desktop container with optional audio forwarding. Full
 formatting and strict mypy. Arbitrary script execution, multi-voice mixing, music and
 abrupt process-kill cleanup guarantees remain deferred.
 
+Manual scene saves now move serialization, validation and disk I/O into a worker.
+A nested Qt event loop preserves the existing synchronous Save-before-switch contract
+while processing paints/timers; authoring controls stay disabled until completion.
+Close and reentrant Save are guarded. Known saved documents are compared with their
+saved baseline, and observed byte revisions are checked again before publication.
+External edits/removal, malformed files, links and FIFOs leave external data and
+current edits intact; Save As remains available. New targets publish exclusively.
+File and containing-directory flushes improve metadata durability. These checks
+are not cross-process locking; asset-directory, manifest and full power-loss guarantees
+remain open. Native Wayland save/conflict/Save As and clean close were verified.
+Save verification: 250 tests pass locally (18.04 seconds) and in Docker (21.60 seconds),
+with Ruff, formatting and strict mypy passing. Regression checks cover observed
+external edits/removal, unsafe targets, late changes, event-loop responsiveness,
+close guarding and file/directory flushes.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -1036,7 +1051,8 @@ Completed task checklist:
 - [x] Add bounded looping sprite-sheet animation, first-frame editor rendering, and deterministic Play timing/restart.
 - [x] Ship Ember Run: an animated, playable forge showcase and compact editable two-scene example.
 - [x] Add worker-based single-file quarantine purge with fresh review, default-No confirmation and revalidation.
-- [ ] Add stronger recovery guarantees.
+- [x] Add background manual saving, observed external-edit checks and directory flushing.
+- [ ] Add stronger concurrent-edit and power-loss recovery guarantees.
 - [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
 - [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.
 - [ ] Add Python game scripting and native game export.

@@ -6,7 +6,7 @@ from dataclasses import asdict, replace
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QElapsedTimer, QProcess, QSignalBlocker, QSize, Qt, QTimer
+from PySide6.QtCore import QElapsedTimer, QEventLoop, QProcess, QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -57,13 +57,13 @@ from solar_forge_engine.editor.locks import LockPersistence
 from solar_forge_engine.editor.objects import ROLE_DATA, SceneObjects
 from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryCleaner, RecoveryWriter
+from solar_forge_engine.editor.saving import SceneSaver
 from solar_forge_engine.editor.startup import StartupWriter
 from solar_forge_engine.editor.theme import STYLE, ForgeWorkspace
 from solar_forge_engine.editor.viewport import SceneView
-from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
 from solar_forge_engine.project.recovery import clear_recovery, read_recovery
-from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
+from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene
 from solar_forge_engine.project.workspace import (
     Project,
     create_project,
@@ -87,6 +87,7 @@ class EditorWindow(QMainWindow):
         self.document = Document()
         self._lock_document = self.document
         self.path: Path | None = None
+        self._saved_path: Path | None = None
         self.project: Project | None = None
         self.saved_scene = self.document.scene
         self.selected_id: str | None = None
@@ -135,6 +136,7 @@ class EditorWindow(QMainWindow):
         self._asset_index_job: AssetIndexer | None = None
         self._closing = False
         self._cleanup_job: CleanupWorker | None = None
+        self._save_job: SceneSaver | None = None
         self._asset_bytes = 0
         asset_panel = QWidget()
         asset_layout = QVBoxLayout(asset_panel)
@@ -1139,6 +1141,8 @@ class EditorWindow(QMainWindow):
             self.preview.waitForFinished(1000)
 
     def save(self, checked: bool = False, *, choose_path: bool = False) -> bool:
+        if self._save_job is not None:
+            return False
         path = self.path
         if path is None or choose_path:
             filename, _ = QFileDialog.getSaveFileName(
@@ -1150,20 +1154,42 @@ class EditorWindow(QMainWindow):
             if not filename:
                 return False
             path = Path(filename)
-        try:
-            if self.project is not None and not choose_path:
+        document, snapshot = self.document, self.document.scene
+        root = self.project.root if self.project is not None and not choose_path else None
+        baseline = self.saved_scene if self._saved_path == path and not choose_path else None
+        if root is not None:
+            assert self.project is not None
+            try:
                 path = self.project.scene_path()
-                save_project_scene(self.project.root, path, self.document.scene)
-            else:
-                save_scene(path, self.document.scene)
-        except (OSError, ValueError) as error:
-            self._error(f"Could not save scene: {error}")
+            except ValueError as error:
+                self._error(f"Could not save scene: {error}")
+                return False
+        job = SceneSaver(path, snapshot, root, baseline)
+        self._save_job = job
+        enabled = self.isEnabled()
+        self.setEnabled(False)
+        self.log.append(f"Saving {path.name}…")
+        loop = QEventLoop(self)
+        job.finished.connect(loop.quit)
+        job.start()
+        loop.exec()
+        job.wait()
+        self._save_job = None
+        self.setEnabled(enabled)
+        job.deleteLater()
+        loop.deleteLater()
+        if job.error:
+            self._error(f"Could not save scene: {job.error}")
+            return False
+        if self.document is not document:
+            self.log.append(f"Saved {path.name}; the active document changed during saving.")
             return False
         self._clear_recovery()
         self.path = path
+        self._saved_path = path
         if choose_path:
             self.project = None
-        self.saved_scene = self.document.scene
+        self.saved_scene = snapshot
         self.log.append(f"Saved {path.name}")
         self.refresh()
         return True
@@ -1180,6 +1206,7 @@ class EditorWindow(QMainWindow):
         self._close_preview()
         self.saved_scene = scene
         self.path = path
+        self._saved_path = path
         self.selected_id = None
         self.refresh()
         self.fit_scene()
@@ -1201,6 +1228,7 @@ class EditorWindow(QMainWindow):
             return False
         self.project = project
         self.path = project.scene_path()
+        self._saved_path = self.path
         self.saved_scene = self.document.scene
         self.refresh()
         self.refresh_project_assets()
@@ -1239,6 +1267,7 @@ class EditorWindow(QMainWindow):
         self.document = Document(scene)
         self.project = project
         self.path = project.scene_path()
+        self._saved_path = self.path
         self.saved_scene = scene
         self.selected_id = None
         self.refresh()
@@ -1490,6 +1519,10 @@ class EditorWindow(QMainWindow):
         QMessageBox.warning(self, "Scene could not be changed", message)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self._save_job is not None:
+            self.log.append("Finishing the scene save; close again shortly.")
+            event.ignore()
+            return
         if self.assistant.busy:
             self.assistant.discard()
             self.log.append("Finishing assistant request; close again shortly.")

@@ -10,7 +10,12 @@ from pathlib import Path
 
 from solar_forge_engine.core.scene import FORMAT_VERSION, MAX_ENTITIES, Scene
 from solar_forge_engine.core.sprite import MAX_PIXEL_BYTES, Sprite
-from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene_data
+from solar_forge_engine.project.storage import (
+    MAX_FILE_BYTES,
+    load_scene,
+    read_scene_bytes,
+    save_scene_data,
+)
 
 PROJECT_SCENE_VERSION = 10
 
@@ -61,7 +66,14 @@ def store_asset(path: Path, raw: bytes) -> None:
             temporary.unlink(missing_ok=True)
 
 
-def save_project_scene(root: Path, path: Path, scene: Scene, *, exclusive: bool = False) -> None:
+def save_project_scene(
+    root: Path,
+    path: Path,
+    scene: Scene,
+    *,
+    exclusive: bool = False,
+    expected_fingerprint: str | None = None,
+) -> None:
     data = scene.to_data()
     # Keep snapshots bounded for the standalone scene and data-only Play contracts.
     if len(json.dumps(data, indent=2).encode()) + 1 > MAX_FILE_BYTES:
@@ -84,14 +96,13 @@ def save_project_scene(root: Path, path: Path, scene: Scene, *, exclusive: bool 
     for target, raw in assets.items():
         target.parent.mkdir(exist_ok=True)
         store_asset(target, raw)
-    save_scene_data(path, data, exclusive=exclusive)
+    save_scene_data(path, data, exclusive=exclusive, expected_fingerprint=expected_fingerprint)
 
 
 def load_project_scene(root: Path, path: Path) -> Scene:
-    with path.open("rb") as handle:
-        raw = handle.read(MAX_FILE_BYTES + 1)
-    if len(raw) > MAX_FILE_BYTES:
-        raise ValueError("Scene files must be smaller than 4 MiB.")
+    raw = read_scene_bytes(path)
+    if raw is None:
+        raise FileNotFoundError(f"Project scene is missing: {path.name}")
     try:
         data = json.loads(raw)
     except (ValueError, UnicodeDecodeError, RecursionError) as error:

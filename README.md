@@ -83,9 +83,9 @@ Animation settings support undo, duplication and portable project/standalone sav
 Removing or replacing a sprite clears its animation settings in the same undoable
 edit. Named clips, partial-sheet sequences and one-shot animations remain future work.
 
-Save to a `.forge.json` file. Version-seven files contain the entire scene,
-roles, movement/animation settings, and optional sprite pixels. Versions one, two,
-three and five still load. Before upgrading an older file, its exact bytes are retained
+Save to a `.forge.json` file. Version-nine files contain the entire scene,
+roles, movement/animation settings, sprite pixels and optional collection sound.
+Versions one, two, three, five and seven still load. Before upgrading an older file, its exact bytes are retained
 in `<filename>.v<old-version>.bak`. Existing backups are never overwritten;
 use Save As if that backup name is occupied. Scene files remain limited to 4 MiB;
 embedded sprites count toward that limit. Files never execute scripts.
@@ -422,6 +422,15 @@ for sparse animation. The editor's redraw policy is unchanged. Reports verify
 changing animation frames and unchanged authored data; the
 [Play animation comparison](docs/performance/2026-10-05-play-animation.json)
 records observed improvements and the remaining cadence/presentation limits.
+
+Manual Save now publishes through a worker while Qt continues processing events.
+Editing is disabled until the write finishes, and closing waits for that operation.
+A saved document changed or removed externally is preserved; Save fails with your
+edits retained, and Save As can keep them in a separate file. A second byte revision
+check precedes atomic replacement. New targets publish exclusively. Regular-file
+reads reject symbolic links/FIFOs and stay bounded. File and directory flushes improve
+publication durability; concurrent-edit locking and full crash/power-loss guarantees
+remain open.
 
 ## Project sounds
 

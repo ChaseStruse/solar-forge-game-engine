@@ -1,7 +1,9 @@
 """Bounded JSON reads and same-directory atomic scene writes."""
 
+import hashlib
 import json
 import os
+import stat
 import tempfile
 from pathlib import Path
 
@@ -10,11 +12,31 @@ from solar_forge_engine.core.scene import Scene
 MAX_FILE_BYTES = 4 * 1024 * 1024
 
 
-def load_scene(path: Path) -> Scene:
-    with path.open("rb") as handle:
+def read_scene_bytes(path: Path) -> bytes | None:
+    """Read a bounded regular file without following links or waiting on a FIFO."""
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except FileNotFoundError:
+        return None
+    with os.fdopen(descriptor, "rb") as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise ValueError("Scene files must be regular files.")
         raw = handle.read(MAX_FILE_BYTES + 1)
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Scene files must be smaller than 4 MiB.")
+    return raw
+
+
+def check_file_revision(path: Path, expected_fingerprint: str) -> None:
+    current = read_scene_bytes(path)
+    if current is None or hashlib.sha256(current).hexdigest() != expected_fingerprint:
+        raise ValueError("The scene file changed during saving. Use Save As or reopen it.")
+
+
+def load_scene(path: Path) -> Scene:
+    raw = read_scene_bytes(path)
+    if raw is None:
+        raise FileNotFoundError(f"Scene file is missing: {path.name}")
     try:
         data = json.loads(raw)
         if isinstance(data, dict) and data.get("format_version") in (4, 6, 8, 10):
@@ -24,12 +46,24 @@ def load_scene(path: Path) -> Scene:
         raise ValueError("This file is not a valid UTF-8 JSON scene.") from error
 
 
-def save_scene(path: Path, scene: Scene) -> None:
-    save_scene_data(path, scene.to_data())
+def save_scene(
+    path: Path, scene: Scene, *, exclusive: bool = False, expected_fingerprint: str | None = None
+) -> None:
+    save_scene_data(
+        path, scene.to_data(), exclusive=exclusive, expected_fingerprint=expected_fingerprint
+    )
 
 
-def save_scene_data(path: Path, data: dict[str, object], *, exclusive: bool = False) -> None:
+def save_scene_data(
+    path: Path,
+    data: dict[str, object],
+    *,
+    exclusive: bool = False,
+    expected_fingerprint: str | None = None,
+) -> None:
     """Write validated scene data, preserving supported originals before upgrades."""
+    if expected_fingerprint is not None:
+        check_file_revision(path, expected_fingerprint)
     if path.is_symlink():
         raise ValueError("Choose a regular file instead of saving through a symbolic link.")
     raw = (json.dumps(data, indent=2, allow_nan=False) + "\n").encode("utf-8")
@@ -38,8 +72,9 @@ def save_scene_data(path: Path, data: dict[str, object], *, exclusive: bool = Fa
     if exclusive and path.exists():
         raise FileExistsError("A scene with this filename already exists.")
     if path.exists():
-        with path.open("rb") as handle:
-            previous = handle.read(MAX_FILE_BYTES + 1)
+        previous = read_scene_bytes(path)
+        if previous is None:
+            raise ValueError("The scene disappeared during saving.")
         try:
             previous_data = json.loads(previous) if len(previous) <= MAX_FILE_BYTES else None
         except ValueError, UnicodeDecodeError, RecursionError:
@@ -64,10 +99,12 @@ def save_scene_data(path: Path, data: dict[str, object], *, exclusive: bool = Fa
                 raise ValueError(
                     "Legacy scene backup already exists. Use Save As to keep both copies."
                 ) from error
-    atomic_write(path, raw, exclusive=exclusive)
+    atomic_write(path, raw, exclusive=exclusive, expected_fingerprint=expected_fingerprint)
 
 
-def atomic_write(path: Path, raw: bytes, *, exclusive: bool = False) -> None:
+def atomic_write(
+    path: Path, raw: bytes, *, exclusive: bool = False, expected_fingerprint: str | None = None
+) -> None:
     """Publish bytes through a flushed same-directory temporary file."""
     if path.is_symlink():
         raise ValueError("Do not write through symbolic links.")
@@ -78,10 +115,17 @@ def atomic_write(path: Path, raw: bytes, *, exclusive: bool = False) -> None:
             handle.write(raw)
             handle.flush()
             os.fsync(handle.fileno())
+        if expected_fingerprint is not None:
+            check_file_revision(path, expected_fingerprint)
         if exclusive:
             os.link(temporary, path)
         else:
             os.replace(temporary, path)
+        directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
     finally:
         if temporary is not None:
             temporary.unlink(missing_ok=True)
