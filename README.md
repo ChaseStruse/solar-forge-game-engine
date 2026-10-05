@@ -27,6 +27,17 @@ uv run --frozen solar-forge-engine
 ```
 
 Choose **Add rectangle**, edit the **Inspector**, and press **Apply changes**.
+Drag an object in the viewport to move it. The preview leaves scene data unchanged
+until release, which creates one undo step and updates the Inspector. **Esc** cancels;
+changing focus or refreshing the scene also cancels an unfinished drag. Clicks alone
+do not move objects. Dragging supports rectangles, coins and sprites, one object at a time.
+
+Use **Snap to grid** (Ctrl+Shift+G) and **Grid spacing** in the viewport toolbar
+for nearest-grid positioning. Spacing is 1–256 scene units (default 16); snapping
+starts disabled. The visible grid applies only to dragging, leaving typed Inspector
+positions unchanged. Grid preferences are session-only. Use **Fit scene** (F) to
+frame the workspace; scroll the Inspector to reach all controls in smaller windows.
+
 Select an object and choose **Duplicate object** (Ctrl+D) to create a selected copy
 24 units to the right and down. Copies preserve size, color and gameplay role,
 use a new ID, and support undo/redo. Duplication uses applied properties.

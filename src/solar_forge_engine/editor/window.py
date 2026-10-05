@@ -15,7 +15,6 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QGraphicsScene,
-    QGraphicsView,
     QInputDialog,
     QLabel,
     QLineEdit,
@@ -24,6 +23,8 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QSpinBox,
     QTextEdit,
     QToolBar,
     QTreeWidget,
@@ -46,6 +47,7 @@ from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.recovery import RecoveryWriter
+from solar_forge_engine.editor.viewport import SceneView
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
 from solar_forge_engine.project.recovery import clear_recovery, read_recovery
@@ -109,7 +111,11 @@ class EditorWindow(QMainWindow):
 
         self.canvas = QGraphicsScene(self)
         self.canvas.setSceneRect(-64, -64, 1152, 704)
-        self.view = QGraphicsView(self.canvas)
+        self.view = SceneView()
+        self.view.setScene(self.canvas)
+        self._drag_context: tuple[Document, int] | None = None
+        self.view.drag_started.connect(self._drag_started)
+        self.view.position_committed.connect(self._commit_drag)
         self.view.setBackgroundBrush(QBrush(QColor("#15181e")))
         self.view.setAccessibleName("2D scene viewport")
         self.setCentralWidget(self.view)
@@ -218,7 +224,10 @@ class EditorWindow(QMainWindow):
         self.apply_button = QPushButton("Apply changes")
         self.apply_button.clicked.connect(self.apply_inspector)
         form.addRow(self.apply_button)
-        self._dock("Inspector", self.inspector, Qt.DockWidgetArea.RightDockWidgetArea)
+        inspector_scroll = QScrollArea()
+        inspector_scroll.setWidgetResizable(True)
+        inspector_scroll.setWidget(self.inspector)
+        self._dock("Inspector", inspector_scroll, Qt.DockWidgetArea.RightDockWidgetArea)
 
         self.log = QTextEdit()
         self.log.setReadOnly(True)
@@ -280,6 +289,28 @@ class EditorWindow(QMainWindow):
         fit = scene_menu.addAction("Fit scene")
         fit.setShortcut("F")
         fit.triggered.connect(self.fit_scene)
+        self.addToolBarBreak()
+        viewport_toolbar = QToolBar("Viewport tools")
+        viewport_toolbar.setMovable(False)
+        self.addToolBar(viewport_toolbar)
+        viewport_toolbar.addAction(fit)
+        self.snap_action = scene_menu.addAction("Snap to grid")
+        self.snap_action.setCheckable(True)
+        self.snap_action.setShortcut("Ctrl+Shift+G")
+        self.snap_action.setToolTip("Snap dragged object positions to the visible grid")
+        viewport_toolbar.addAction(self.snap_action)
+        self.grid_field = QSpinBox()
+        self.grid_field.setRange(1, 256)
+        self.grid_field.setValue(16)
+        self.grid_field.setSuffix(" px")
+        self.grid_field.setAccessibleName("Grid spacing")
+        self.grid_field.setToolTip("Grid spacing in scene units; affects viewport dragging only")
+        self.grid_field.setKeyboardTracking(False)
+        viewport_toolbar.addWidget(QLabel("Grid spacing"))
+        viewport_toolbar.addWidget(self.grid_field)
+        self.snap_action.toggled.connect(self._update_grid)
+        self.grid_field.valueChanged.connect(self._update_grid)
+        self._update_grid()
         toolbar.addSeparator()
         self.play_action = action("▶ Play", "F5")
         self.play_action.setToolTip(
@@ -289,6 +320,9 @@ class EditorWindow(QMainWindow):
         self.stop_action = action("■ Stop", "Shift+F5")
         self.stop_action.triggered.connect(self.stop_preview)
         self.stop_action.setEnabled(False)
+        for item in (self.play_action, self.stop_action):
+            toolbar.removeAction(item)
+            viewport_toolbar.addAction(item)
         scene_menu.addActions([self.play_action, self.stop_action])
         self.refresh()
 
@@ -302,7 +336,21 @@ class EditorWindow(QMainWindow):
         dock.setWidget(widget)
         self.addDockWidget(area, dock)
 
+    def _update_grid(self) -> None:
+        self.view.set_grid(self.snap_action.isChecked(), self.grid_field.value())
+
+    def _drag_started(self) -> None:
+        self._drag_context = (self.document, self.document.revision)
+
+    def _commit_drag(self, entity_id: str, x: float, y: float) -> None:
+        if self._drag_context != (self.document, self.document.revision):
+            self.log.append("Drag canceled because the scene changed.")
+            self.refresh()
+            return
+        self.execute(SetEntity(entity_id, {"x": x, "y": y}))
+
     def refresh(self) -> None:
+        self.view.cancel_drag()
         key = (self.document, self.document.revision)
         if key != self._recovery_key:
             was_same_document = (

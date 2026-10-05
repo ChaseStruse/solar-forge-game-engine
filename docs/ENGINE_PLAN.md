@@ -2,7 +2,7 @@
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
 separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, multiple-scene authoring, project-wide sprite reuse, basic project folders, and
-editable coin collector, reviewed asset quarantine, and configurable movement/input are implemented. The remaining architecture and release
+editable coin collector, reviewed asset quarantine, configurable movement/input, and viewport dragging/grid snapping are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
 ### Implemented foundation checkpoints
@@ -109,7 +109,12 @@ in 1.46 seconds. Ruff, formatting, and strict mypy passed; native Wayland review
 cleanup and quarantine were verified. Movement checks cover invalid commands,
 legacy embedded/project upgrades with exact backups, undo/redo, duplication, persistence,
 preset filtering, normalized speed and restart: 84 tests passed locally in 1.13 seconds
-and in Docker in 1.50 seconds. Quality checks and native Wayland authoring/playback passed.
+and in Docker in 1.50 seconds. Quality checks and native Wayland authoring/playback passed. Viewport checks add
+rectangle/sprite previews, single-step undo/redo and save/reopen, snapping versus clicks,
+cancellation and revision conflicts: 92 tests passed locally in 1.39 seconds and
+in Docker in 1.83 seconds; Ruff, formatting and strict mypy passed.
+Native Wayland dragging/snapping/undo passed; the final toolbar and scrollable
+Inspector layout were visually inspected.
 Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
@@ -195,7 +200,7 @@ press Play, navigate around walls, collect all five coins, restart, and save/reo
 the scene. A focused route test verifies the starter can be completed without crossing
 walls. PNG sprites can be imported, sized, duplicated, saved and played. Scenes
 can be copied into a new project folder and reopened through its manifest.
-Sprite dragging, sound effects, AI changes, and native export remain pending. The five-person usability exercise has not run.
+Sprite dragging is implemented; sound effects, AI changes, and native export remain pending. The five-person usability exercise has not run.
 
 ## 3. Scope and editor design
 
@@ -219,8 +224,10 @@ Implemented scope is intentionally narrower than the v0.1 requirements above:
   create/switch/refresh. Saved-scene sprite indexing and reviewed unused-asset scans
   run in workers; approved unused sprites move into reversible quarantine.
 - Scene editing: create/delete, name, X/Y, width/height, hex color, role, and undo/redo.
-  Inspector changes require Apply. No drag gizmos, rotation, snapping, hierarchy,
-  or layer controls yet. Selected-object duplication is implemented with Ctrl+D.
+  Inspector changes require Apply. Viewport dragging commits one validated position
+  edit on release; Escape, focus loss, refresh or changed revision cancels the preview.
+  Optional 1–256-unit grid snapping applies to drags; its settings are session-only.
+  No resize/rotation gizmos, hierarchy or layer controls yet. Selected-object duplication is implemented with Ctrl+D.
 - Rendering: native rectangles and circular coin visuals, selection, tooltips, and
   fit-to-view, and imported PNG sprites with cached native pixmaps and transparency.
   No atlases, animation, camera tooling, or game UI editor.
@@ -692,6 +699,7 @@ Completed task checklist:
 - [x] Add bounded multiple-scene creation/browsing and safe switching with per-scene recovery.
 - [x] Add asynchronous saved-scene project sprite indexing and cross-scene reuse.
 - [x] Add undoable per-object movement speed and WASD/arrows presets with compatible scene upgrades.
+- [x] Add single-object viewport dragging, cancellation, and optional grid snapping.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [ ] Add quarantine restore/purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
@@ -699,8 +707,8 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add viewport object dragging and optional grid snapping through the validated
-   command layer, with one undo step per drag. This is the next usability priority.
+1. Add viewport zoom and pan controls so larger scenes remain easy to navigate.
+   Preserve pointer accuracy, grid snapping and Fit scene behavior across zoom levels.
 2. Add richer scene organization and quarantine restore/purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.
