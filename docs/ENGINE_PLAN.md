@@ -11,6 +11,17 @@ scene sharing assets; the built-in template is accessible in native and Docker b
 The architecture and release milestones below remain planned work; unmeasured
 performance budgets remain targets.
 
+UI direction: the native editor now uses a copper/ember palette, a hand-drawn
+vector forge emblem, a scene header, and an actionable welcome card. Empty scenes
+offer showcase, create-object and open-project paths; populated scenes retain
+viewport editing. Project Scenes shares the Scene dock's tabs, giving the Inspector
+more vertical room; Play and Apply receive primary accents. All docks remain
+movable and floatable. No animation timers or new dependencies were added.
+Native Wayland create/undo, welcome transitions and showcase opening were checked;
+142 regression tests pass in Docker, with Ruff, formatting and strict mypy passing.
+Next UI work: group Inspector properties and make asset browsing easier to scan.
+Previews: `docs/screenshots/editor-welcome.png` and `editor-workshop.png`.
+
 Showcase verification: the complete twelve-core route avoids walls, distributed
 scenes match their built-in templates, and Play leaves authoring unchanged.
 All 142 tests passed locally (2.41 seconds) and in Docker (3.07 seconds), with

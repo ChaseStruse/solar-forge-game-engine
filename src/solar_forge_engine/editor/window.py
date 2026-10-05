@@ -53,6 +53,7 @@ from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryWriter
 from solar_forge_engine.editor.startup import StartupWriter
+from solar_forge_engine.editor.theme import STYLE, ForgeWorkspace
 from solar_forge_engine.editor.viewport import SceneView
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
@@ -72,23 +73,6 @@ from solar_forge_engine.project.workspace import (
 )
 from solar_forge_engine.runtime.rendering import render_scene, sprite_pixmap
 
-STYLE = """
-QMainWindow, QWidget { background: #20232a; color: #e9edf2; }
-QMenuBar, QMenu, QToolBar { background: #292d36; }
-QToolBar { spacing: 6px; padding: 6px; }
-QToolButton { padding: 6px 10px; border-radius: 4px; }
-QToolButton:hover { background: #4c3b20; }
-QDockWidget::title { background: #292d36; padding: 8px; }
-QLineEdit, QDoubleSpinBox, QTreeWidget, QListWidget, QTextEdit {
-    background: #191c22; border: 1px solid #464d5b; border-radius: 4px; padding: 5px;
-}
-QPushButton { background: #343b48; border: 1px solid #596170; padding: 8px 12px; }
-QPushButton:hover { border-color: #f4b544; }
-QPushButton:focus, QLineEdit:focus, QDoubleSpinBox:focus { border: 2px solid #f4b544; }
-QWidget:disabled { color: #9098a6; }
-QTreeWidget::item:selected, QListWidget::item:selected { background: #4c3b20; color: #ffffff; }
-QStatusBar { background: #292d36; }
-"""
 SCENE_FILTER = "Solar Forge scene (*.forge.json)"
 
 
@@ -123,9 +107,13 @@ class EditorWindow(QMainWindow):
         self._drag_context: tuple[Document, int] | None = None
         self.view.drag_started.connect(self._drag_started)
         self.view.position_committed.connect(self._commit_drag)
-        self.view.setBackgroundBrush(QBrush(QColor("#15181e")))
+        self.view.setBackgroundBrush(QBrush(QColor("#101720")))
         self.view.setAccessibleName("2D scene viewport")
-        self.setCentralWidget(self.view)
+        self.workspace = ForgeWorkspace(self.view)
+        self.workspace.showcase_button.clicked.connect(self.new_showcase)
+        self.workspace.create_button.clicked.connect(self.add_rectangle)
+        self.workspace.open_button.clicked.connect(self.choose_open_project)
+        self.setCentralWidget(self.workspace)
 
         self.tree = QTreeWidget()
         self.tree.setHeaderLabel("Scene objects")
@@ -265,6 +253,7 @@ class EditorWindow(QMainWindow):
         self.clear_sprite_button.clicked.connect(self.clear_sprite)
         form.addRow(self.clear_sprite_button)
         self.apply_button = QPushButton("Apply changes")
+        self.apply_button.setObjectName("primary")
         self.apply_button.clicked.connect(self.apply_inspector)
         form.addRow(self.apply_button)
         inspector_scroll = QScrollArea()
@@ -403,6 +392,18 @@ class EditorWindow(QMainWindow):
             toolbar.removeAction(item)
             viewport_toolbar.addAction(item)
         scene_menu.addActions([self.play_action, self.stop_action])
+        play_button = viewport_toolbar.widgetForAction(self.play_action)
+        if play_button is not None:
+            play_button.setObjectName("launch")
+        scene_dock = self.findChild(QDockWidget, "Scene")
+        project_dock = self.findChild(QDockWidget, "Project scenes")
+        if scene_dock is not None and project_dock is not None:
+            self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, project_dock)
+            self.tabifyDockWidget(scene_dock, project_dock)
+            scene_dock.raise_()
+        activity_dock = self.findChild(QDockWidget, "Activity")
+        if activity_dock is not None:
+            self.resizeDocks([activity_dock], [90], Qt.Orientation.Vertical)
         self.refresh()
 
     @property
@@ -463,13 +464,6 @@ class EditorWindow(QMainWindow):
         with QSignalBlocker(self.tree), QSignalBlocker(self.canvas):
             self.tree.clear()
             items = render_scene(self.canvas, self.document.scene, selectable=True)
-            if not items:
-                welcome = self.canvas.addText(
-                    "SOLAR FORGE\n\nAdd a rectangle to start your scene.\n"
-                    "Select it, edit its properties, then press Play."
-                )
-                welcome.setDefaultTextColor(QColor("#d6bd89"))
-                welcome.setPos(260, 190)
             for entity in self.document.scene.entities:
                 row = QTreeWidgetItem([entity.name])
                 row.setData(0, Qt.ItemDataRole.UserRole, entity.id)
@@ -488,6 +482,7 @@ class EditorWindow(QMainWindow):
         title = self.path.name if self.path else "Untitled scene"
         if self.project is not None:
             title = f"{self.project.name} / {title}"
+        self.workspace.update_scene(self.document.scene.name, len(ids), self.dirty)
         self.setWindowTitle(f"{'* ' if self.dirty else ''}{title} — Solar Forge Game Engine")
         self.statusBar().showMessage(
             f"{len(ids)} objects · Revision {self.document.revision} · "

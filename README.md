@@ -157,6 +157,11 @@ Invalid or stale snapshots are retained and reported in Activity instead of
 replacing saved work. This protects against application crashes; power-loss
 persistence and concurrent editing from multiple engine instances are not guaranteed.
 
+The native editor's ember-themed welcome screen offers direct actions to explore
+the demo, create an object, or open a project. Scene and Project Scenes share tabs;
+the Inspector and Assistant remain beside the viewport. Panels can be moved or
+floated. [Preview the workspace](docs/screenshots/editor-workshop.png).
+
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
 an animated courier, flickering reactor, industrial pixel art, and twelve energy
 cores to recover. WASD/arrows move; Pause and Restart control playback. All 187
