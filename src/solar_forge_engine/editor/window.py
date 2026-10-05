@@ -1,16 +1,17 @@
 """First editor workflow: create, inspect, undo, save and reopen a scene."""
 
+import json
+import sys
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QModelIndex, QSignalBlocker, Qt
-from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QKeySequence, QPen
+from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, Qt
+from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QKeySequence
 from PySide6.QtWidgets import (
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
     QFormLayout,
-    QGraphicsItem,
     QGraphicsScene,
     QGraphicsView,
     QLineEdit,
@@ -32,11 +33,15 @@ from solar_forge_engine.core.commands import (
     SetEntity,
 )
 from solar_forge_engine.core.scene import Entity
-from solar_forge_engine.project.storage import load_scene, save_scene
+from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
+from solar_forge_engine.runtime.rendering import render_scene
 
 STYLE = """
 QMainWindow, QWidget { background: #20232a; color: #e9edf2; }
 QMenuBar, QMenu, QToolBar { background: #292d36; }
+QToolBar { spacing: 6px; padding: 6px; }
+QToolButton { padding: 6px 10px; border-radius: 4px; }
+QToolButton:hover { background: #4c3b20; }
 QDockWidget::title { background: #292d36; padding: 8px; }
 QLineEdit, QDoubleSpinBox, QTreeWidget, QTextEdit {
     background: #191c22; border: 1px solid #464d5b; border-radius: 4px; padding: 5px;
@@ -58,6 +63,13 @@ class EditorWindow(QMainWindow):
         self.path: Path | None = None
         self.saved_scene = self.document.scene
         self.selected_id: str | None = None
+        self.preview = QProcess(self)
+        self._stopping_preview = False
+        self.preview.finished.connect(self._preview_finished)
+        self.preview.errorOccurred.connect(self._preview_error)
+        self.preview.readyReadStandardError.connect(self._preview_output)
+        self.preview.readyReadStandardOutput.connect(self._preview_ready)
+        self.preview.started.connect(self._preview_started)
         self.resize(1280, 800)
         self.setStyleSheet(STYLE)
 
@@ -143,6 +155,14 @@ class EditorWindow(QMainWindow):
         fit = scene_menu.addAction("Fit scene")
         fit.setShortcut("F")
         fit.triggered.connect(self.fit_scene)
+        toolbar.addSeparator()
+        self.play_action = action("▶ Play", "F5")
+        self.play_action.setToolTip("Play the scene; WASD or arrows move the selected object")
+        self.play_action.triggered.connect(self.play)
+        self.stop_action = action("■ Stop", "Shift+F5")
+        self.stop_action.triggered.connect(self.stop_preview)
+        self.stop_action.setEnabled(False)
+        scene_menu.addActions([self.play_action, self.stop_action])
         self.refresh()
 
     @property
@@ -161,31 +181,28 @@ class EditorWindow(QMainWindow):
             self.selected_id = None
         with QSignalBlocker(self.tree), QSignalBlocker(self.canvas):
             self.tree.clear()
-            self.canvas.clear()
-            border = self.canvas.addRect(0, 0, 1024, 576, QPen(QColor("#596170")))
-            border.setZValue(-1)
+            items = render_scene(self.canvas, self.document.scene, selectable=True)
+            if not items:
+                welcome = self.canvas.addText(
+                    "SOLAR FORGE\n\nAdd a rectangle to start your scene.\n"
+                    "Select it, edit its properties, then press Play."
+                )
+                welcome.setDefaultTextColor(QColor("#d6bd89"))
+                welcome.setPos(260, 190)
             for entity in self.document.scene.entities:
                 row = QTreeWidgetItem([entity.name])
                 row.setData(0, Qt.ItemDataRole.UserRole, entity.id)
                 self.tree.addTopLevelItem(row)
-                item = self.canvas.addRect(
-                    0,
-                    0,
-                    entity.width,
-                    entity.height,
-                    QPen(QColor("#ffffff")),
-                    QBrush(QColor(entity.color)),
-                )
-                item.setPos(entity.x, entity.y)
-                item.setData(0, entity.id)
-                item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
-                item.setToolTip(entity.name)
+                item = items[entity.id]
                 if entity.id == self.selected_id:
                     self.tree.setCurrentItem(row)
                     item.setSelected(True)
         self._update_inspector()
         self.undo_action.setEnabled(self.document.can_undo)
         self.redo_action.setEnabled(self.document.can_redo)
+        self.play_action.setEnabled(
+            bool(ids) and self.preview.state() == QProcess.ProcessState.NotRunning
+        )
         title = self.path.name if self.path else "Untitled scene"
         self.setWindowTitle(f"{'* ' if self.dirty else ''}{title} — Solar Forge Game Engine")
         self.statusBar().showMessage(
@@ -264,6 +281,70 @@ class EditorWindow(QMainWindow):
     def fit_scene(self) -> None:
         self.view.fitInView(self.canvas.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
+    def play(self) -> None:
+        if (
+            not self.document.scene.entities
+            or self.preview.state() != QProcess.ProcessState.NotRunning
+        ):
+            return
+        snapshot = json.dumps(self.document.scene.to_data(), allow_nan=False).encode("utf-8")
+        if len(snapshot) > MAX_FILE_BYTES:
+            self._error("The scene is too large to preview (4 MiB limit).")
+            return
+        controlled_id = self.selected_id or self.document.scene.entities[0].id
+        self._stopping_preview = False
+        self.preview.setProgram(sys.executable)
+        self.preview.setArguments(
+            ["-I", "-m", "solar_forge_engine.runtime", "--control", controlled_id]
+        )
+        self.preview.start()
+        self.preview.write(snapshot)
+        self.preview.closeWriteChannel()
+        self.play_action.setEnabled(False)
+        self.stop_action.setEnabled(True)
+
+    def _preview_started(self) -> None:
+        self.log.append("Play started · WASD / arrows move the selected object · Esc closes")
+
+    def _preview_finished(self, exit_code: int, status: QProcess.ExitStatus) -> None:
+        detail = f" (exit {exit_code})" if exit_code and not self._stopping_preview else ""
+        self.log.append(f"Play stopped{detail}. Authored scene retained.")
+        self.stop_action.setEnabled(False)
+        self.play_action.setEnabled(bool(self.document.scene.entities))
+
+    def _preview_error(self, error: QProcess.ProcessError) -> None:
+        if self._stopping_preview and error == QProcess.ProcessError.Crashed:
+            return
+        self.log.append(f"Preview process: {self.preview.errorString()}")
+        if self.preview.state() == QProcess.ProcessState.NotRunning:
+            self.stop_action.setEnabled(False)
+            self.play_action.setEnabled(bool(self.document.scene.entities))
+
+    def _preview_output(self) -> None:
+        message = bytes(self.preview.readAllStandardError().data()).decode(
+            "utf-8", errors="replace"
+        )
+        self.log.append(message[:4000])
+
+    def _preview_ready(self) -> None:
+        message = bytes(self.preview.readAllStandardOutput().data()).decode(
+            "utf-8", errors="replace"
+        )
+        self.log.append(message[:4000].strip())
+
+    def stop_preview(self) -> None:
+        if self.preview.state() != QProcess.ProcessState.NotRunning:
+            self._stopping_preview = True
+            self.preview.terminate()
+
+    def _close_preview(self) -> None:
+        if self.preview.state() == QProcess.ProcessState.NotRunning:
+            return
+        self.stop_preview()
+        if not self.preview.waitForFinished(1000):
+            self.preview.kill()
+            self.preview.waitForFinished(1000)
+
     def save(self, checked: bool = False, *, choose_path: bool = False) -> bool:
         path = self.path
         if path is None or choose_path:
@@ -295,6 +376,7 @@ class EditorWindow(QMainWindow):
             self._error(f"Could not open scene: {error}")
             return False
         self.document = Document(scene)
+        self._close_preview()
         self.saved_scene = scene
         self.path = path
         self.selected_id = None
@@ -312,6 +394,7 @@ class EditorWindow(QMainWindow):
 
     def new_scene(self) -> None:
         if self._confirm_discard():
+            self._close_preview()
             self.document = Document()
             self.saved_scene = self.document.scene
             self.path = None
@@ -340,6 +423,7 @@ class EditorWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._confirm_discard():
+            self._close_preview()
             event.accept()
         else:
             event.ignore()

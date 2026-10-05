@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project --no-cache
 COPY src ./src
 RUN uv sync --frozen --no-dev --no-cache
 RUN groupadd --gid "${SOLAR_FORGE_GID}" forge \

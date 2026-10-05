@@ -10,11 +10,11 @@ Solar Forge combines a clear visual editor, editable game code, and an assistant
 that works through inspectable, undoable actions. Manual development and exported
 games should work without an AI service.
 
-**Status: first editor foundation.** Create rectangles, select them in the viewport
+**Status: editor and built-in native playback.** Create rectangles, select them in the viewport
 or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
-documents. New/Open/Close protect unsaved changes. This is not yet a playable game
-engine: gameplay, assets, project folders, AI, sandboxed previews, and exports follow
-in later small features.
+documents. New/Open/Close protect unsaved changes. Play opens a separate native
+window with keyboard movement. Assets, collisions, project folders, AI, sandboxed
+Python scripts, and exports follow in later small features.
 
 ## Run on Linux
 
@@ -29,18 +29,37 @@ Choose **Add rectangle**, edit the **Inspector**, and press **Apply changes**.
 Save to a `.forge.json` file. These version-one files contain the entire scene;
 the project-folder format in the plan is future work. Files never execute scripts.
 
+Select an object and press **Play** (F5). **WASD/arrows** move that object within
+the 1024×576 play area at 240 units/second; diagonals keep the same speed. Without
+a selection, the first object is controlled. Use **Pause**, **Restart**, **Esc**,
+or the editor's **Stop** (Shift+F5). Playback uses the last applied scene snapshot;
+unsaved scene edits are included, but unapplied Inspector fields are not.
+Playback changes never modify the authored scene. Opening/New/closing the editor
+stops its preview process. This data-only preview runs built-in behavior and does
+not execute project scripts or claim to sandbox arbitrary Python.
+
 ## Development checks
 
 ```sh
 uv sync --frozen --extra test
-uv run --frozen --extra test ruff check src tests
-uv run --frozen --extra test ruff format --check src tests
+uv run --frozen --extra test ruff check src tests scripts
+uv run --frozen --extra test ruff format --check src tests scripts
 uv run --frozen --extra test mypy
 QT_QPA_PLATFORM=offscreen uv run --frozen --extra test pytest -q
 ```
 
 Offscreen tests do not establish real Wayland/GPU compatibility. Qt Widgets uses
 the smaller PySide6 Essentials distribution; optional add-on modules are deferred.
+
+For a repeatable software rendering fixture:
+
+```sh
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_rendering.py
+```
+
+It measures 1,000 moving rectangles rendered into a 1024×576 image, reporting
+median/p95 update-and-render time after warmup. It does not measure textured sprites,
+compositor presentation, input latency, or GPU performance.
 
 ## Docker
 

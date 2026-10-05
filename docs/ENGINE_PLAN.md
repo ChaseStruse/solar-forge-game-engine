@@ -14,17 +14,27 @@ performance numbers remain targets, not measured guarantees.
 - Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
 - Separate non-root Docker desktop/test images and independent headless test Compose;
   the native app forwards its window through Wayland and keeps networking disabled.
+- Native Play process receiving a bounded, validated JSON snapshot over stdin;
+  shared rectangle renderer, fixed-step keyboard movement, pause, restart and Stop.
+  Authored scenes remain unchanged. Isolated Python startup ignores working-directory
+  packages and Python path environment overrides; no project Python code executes.
+- Repeatable 1,000-moving-rectangle software benchmark at 1024×576: 10 warmup frames,
+  120 measured frames. Initial Arch host run: median 4.805 ms, p95 4.953 ms, Python
+  3.14.7 / Qt 6.11.2 / offscreen QImage rendering. This does not establish sprite,
+  compositor or GPU budgets; the complete backend selection gate remains open.
 
-Verification: 12 focused tests pass locally and in the test container. Ruff checks,
-formatting, and strict mypy pass. Both native and container windows were briefly
-launched successfully on the Arch host's Wayland session. An intentional failure in
-a disposable test container returned exit status 1. This is startup/workflow evidence,
-not a graphics benchmark, sandbox validation, or complete desktop compatibility audit.
+Verification: the foundation had 12 focused tests; playback adds movement,
+keyboard/pause/restart, and subprocess lifecycle checks for 15 tests total. Ruff,
+formatting, and strict mypy pass. Native and container Play startup/shutdown were
+verified on the Arch host's Wayland session, with authored scene data unchanged.
+An intentionally failing test previously returned exit status 1 in the independent
+test container. This does not validate an arbitrary-code sandbox or establish full
+compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project folders,
-assets, gameplay, sandboxed script execution, AI, and native game exports are not
+assets, collisions, sandboxed script execution, AI, and native game exports are not
 implemented. A single scene file deliberately precedes multi-file project persistence.
-The Qt backend is provisional until the rendering benchmark passes. See the README
+The Qt backend remains provisional pending sprite and native presentation benchmarks. See the README
 for commands that are actually runnable; later commands below are design targets.
 
 **Fixed platform decision:** native Arch Linux desktop, Python application and game

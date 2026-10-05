@@ -6,13 +6,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --extra test --no-dev --no-install-project --no-cache
 COPY src ./src
 RUN uv sync --frozen --extra test --no-dev --no-cache
 COPY tests ./tests
+COPY scripts ./scripts
 RUN useradd --create-home forge \
     && mkdir /tmp/forge-tests && chown forge:forge /tmp/forge-tests
 USER forge
 ENV QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME="" QT_STYLE_OVERRIDE=Fusion
 ENV XDG_CONFIG_HOME=/tmp/forge-tests/config XDG_CACHE_HOME=/tmp/forge-tests/cache
 ENV XDG_DATA_HOME=/tmp/forge-tests/data
-CMD ["sh", "-c", ".venv/bin/ruff check --no-cache src tests && .venv/bin/ruff format --check --no-cache src tests && .venv/bin/mypy --cache-dir=/tmp/forge-tests/mypy && .venv/bin/pytest -q -p no:cacheprovider"]
+CMD ["sh", "-c", ".venv/bin/ruff check --no-cache src tests scripts && .venv/bin/ruff format --check --no-cache src tests scripts && .venv/bin/mypy --cache-dir=/tmp/forge-tests/mypy && .venv/bin/pytest -q -p no:cacheprovider"]
