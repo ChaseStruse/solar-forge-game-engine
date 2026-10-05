@@ -198,6 +198,7 @@ class EditorWindow(QMainWindow):
         self._startup_project: Project | None = None
         self._startup_job: StartupWriter | None = None
         self.startup_label = QLabel("Startup scene: no project")
+        self.startup_label.setTextFormat(Qt.TextFormat.PlainText)
         self.startup_label.setWordWrap(True)
         scene_layout.insertWidget(0, self.startup_label)
         self.startup_button = QPushButton("Set selected as startup scene")

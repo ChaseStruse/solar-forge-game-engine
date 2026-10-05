@@ -104,9 +104,11 @@ class PlayerWindow(QMainWindow):
             InputPreset.WASD: "WASD",
             InputPreset.ARROWS: "arrows",
         }[preset]
-        toolbar.addWidget(
-            QLabel(f"  {self.simulation.controlled.name} · {key_label} · Esc closes   ")
+        self.controls_label = QLabel(
+            f"  {self.simulation.controlled.name} · {key_label} · Esc closes   "
         )
+        self.controls_label.setTextFormat(Qt.TextFormat.PlainText)
+        toolbar.addWidget(self.controls_label)
         self.pause_button = QPushButton("Pause")
         self.pause_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.pause_button.clicked.connect(self.toggle_pause)
@@ -118,6 +120,7 @@ class PlayerWindow(QMainWindow):
         self.score_label = QLabel()
         toolbar.addWidget(self.score_label)
         self.audio_label = QLabel()
+        self.audio_label.setTextFormat(Qt.TextFormat.PlainText)
         if scene.coin_sound is not None:
             toolbar.addWidget(self.audio_label)
             self.audio_label.setAccessibleName("Game sound status")

@@ -233,6 +233,12 @@ plus Ruff, formatting and strict mypy. Tests cover actual archive movement/colle
 portable sprites/audio, isolated imports/environment overrides, invalid snapshots,
 exclusive output publication and immutable background export snapshots.
 
+Game metadata and audio diagnostics now render as literal Qt text, and the startup
+scene label also avoids interpreting filename markup. A regression fixture confirmed
+that AutoText loaded an `<img>` path from an object name while PlainText did not.
+This prevents game/project text from implicitly loading image resources through
+those labels. Ten focused runtime/export checks, Ruff and strict mypy passed.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
