@@ -1168,16 +1168,22 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Package native runtime dependencies and verify the independent game export
+1. Add a complete Python scripting workflow: write, attach, play and debug a simple
+   object behavior. Provide a native code panel with project-owned `.py` files,
+   a small API for movement/input/collision/collection events, script attachment,
+   file/line error navigation, reliable restart and script inclusion in native exports.
+   Isolation is part of this feature: verify a native and container-compatible
+   restriction backend, resource limits, bounded IPC and termination before executing
+   imported/generated Python behaviors. Keep authoring independent of model services.
+   The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
+   boundary checks; the unchanged Docker policy denies user namespaces. Those probes
+   do not yet prove safe arbitrary script execution. Deliver this playable workflow
+   before dependency bundling or enterprise model integration.
+2. Package native runtime dependencies and verify the independent game export
    on clean Arch. Measure bundle size and startup, preserving the lightweight option.
    The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB
    Qt subset with actual copies; interpreter bundling, notices and clean-machine
    dependency verification remain open.
-2. Prove a native and container-compatible sandbox before enabling imported/generated
-   Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
-   The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
-   boundary checks; the unchanged Docker policy denies user namespaces. A compatible
-   restriction backend, resource limits and hostile-code/lifecycle checks remain open.
 3. Add multi-session recovery ownership and strengthen whole-project crash/power-loss
    guarantees. Current publication coordination does not make a project-folder
    transaction or reserve a recovery slot for one editing session.
