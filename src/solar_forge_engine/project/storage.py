@@ -14,6 +14,10 @@ from solar_forge_engine.core.limits import MAX_FILE_BYTES as MAX_FILE_BYTES
 from solar_forge_engine.core.scene import Scene
 
 
+class PublicationBusy(ValueError):
+    """A cooperating metadata writer currently holds the publication guard."""
+
+
 def read_regular_bytes(path: Path, maximum: int) -> bytes | None:
     """Read at most maximum + 1 bytes; missing files return None, unsafe files fail."""
     try:
@@ -85,7 +89,9 @@ def publication_guard(path: Path) -> Iterator[None]:
         try:
             fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as error:
-            raise ValueError("Another save is in progress in this folder. Retry saving.") from error
+            raise PublicationBusy(
+                "Another save is in progress in this folder. Retry saving."
+            ) from error
         yield
     finally:
         os.close(descriptor)

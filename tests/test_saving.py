@@ -14,11 +14,66 @@ from PySide6.QtWidgets import QFileDialog
 
 from solar_forge_engine.core.scene import Scene
 from solar_forge_engine.editor import saving
+from solar_forge_engine.editor.recovery import RecoveryCleaner
 from solar_forge_engine.editor.window import EditorWindow
-from solar_forge_engine.project import storage
-from solar_forge_engine.project.assets import save_project_scene
+from solar_forge_engine.project import recovery, storage
+from solar_forge_engine.project.assets import load_project_scene, save_project_scene
 from solar_forge_engine.project.storage import load_scene, save_scene
 from solar_forge_engine.project.workspace import create_project
+
+
+@pytest.mark.parametrize("external_change", [False, True])
+def test_manual_save_retries_brief_recovery_lock_without_refreshing_revision(
+    tmp_path, qtbot, monkeypatch, external_change
+):
+    project = create_project(tmp_path / "Game", Scene())
+    editor = EditorWindow()
+    qtbot.addWidget(editor)
+    errors = []
+    monkeypatch.setattr(editor, "_error", errors.append)
+    monkeypatch.setattr(editor, "_confirm_discard", lambda: True)
+    assert editor.load_workspace(project.root)
+    editor.add_rectangle()
+    edited = editor.document.scene
+    recovery.write_recovery(project, edited, editor.saved_scene)
+    started, release = Event(), Event()
+    original = recovery.flush_directory
+
+    def held(path):
+        started.set()
+        assert release.wait(3)
+        original(path)
+
+    monkeypatch.setattr(recovery, "flush_directory", held)
+    cleaner = RecoveryCleaner(project, editor.saved_scene)
+    cleaner.start()
+    qtbot.waitUntil(started.is_set)
+    heartbeat = []
+    external = json.dumps(Scene("External edit").to_data()).encode()
+
+    def finish_cleanup():
+        heartbeat.append(True)
+        if external_change:
+            project.scene_path().write_bytes(external)
+        release.set()
+
+    QTimer.singleShot(100, finish_cleanup)
+    try:
+        assert editor.save() is not external_change
+        assert heartbeat and editor.document.scene == edited
+        if external_change:
+            assert errors and "changed during saving" in errors[-1]
+            assert project.scene_path().read_bytes() == external
+            assert editor.dirty
+        else:
+            assert not errors and not editor.dirty
+            assert load_project_scene(project.root, project.scene_path()) == edited
+    finally:
+        release.set()
+        assert cleaner.wait(1000)
+        cleaner.deleteLater()
+        editor.saved_scene = editor.document.scene
+        editor.close()
 
 
 @pytest.mark.parametrize("project_mode", [False, True])

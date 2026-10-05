@@ -11,6 +11,8 @@ def test_scene_rename_undo_and_save_keep_project_paths_and_startup(tmp_path, qtb
     manifest = (project.root / "project.json").read_bytes()
     editor = EditorWindow()
     qtbot.addWidget(editor)
+    errors = []
+    monkeypatch.setattr(editor, "_error", errors.append)
     assert editor.load_workspace(project.root)
     monkeypatch.setattr(QInputDialog, "getText", lambda *args, **kwargs: ("Solar meadow", True))
     editor.rename_scene()
@@ -20,11 +22,9 @@ def test_scene_rename_undo_and_save_keep_project_paths_and_startup(tmp_path, qtb
     editor.undo()
     assert editor.document.scene.name == "Untitled scene"
     editor.redo()
-    assert editor.save()
+    assert editor.save(), errors
     assert open_project(project.root)[1].name == "Solar meadow"
     assert (project.root / "project.json").read_bytes() == manifest
-    errors = []
-    monkeypatch.setattr(editor, "_error", errors.append)
     revision = editor.document.revision
     monkeypatch.setattr(QInputDialog, "getText", lambda *args, **kwargs: ("", True))
     editor.rename_scene()

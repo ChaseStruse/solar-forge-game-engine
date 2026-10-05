@@ -245,6 +245,14 @@ Activity now uses native plain-text controls and literal append operations, reta
 the existing bounded history and theme. Error dialogs and quarantine review also
 force literal text. A regression opens an HTML-like scene title and an error with
 an image reference, proving the text survives and the referenced image is not rendered.
+Manual Save now retries only transient publication-lock contention in its worker,
+up to 25 attempts with 20 ms pauses. The original observed byte revision remains
+fixed across retries; external changes still stop saving. The Qt event loop keeps
+processing events while a brief recovery cleanup finishes. Deterministic overlap
+checks cover successful saving and preservation of an external edit made during
+the wait. Final combined verification: 283 tests pass locally (10.42 seconds) and
+in Docker (12.50 seconds), with Ruff, formatting and strict mypy passing. Native
+Wayland worker save, conflict preservation, Save As and clean close also pass.
 
 Scene → Rename scene title now edits the active title through `SetSceneName`, with
 validation, revision protection and undo/redo. Saving retains the project's file,
@@ -1141,6 +1149,9 @@ Completed task checklist:
 - [x] Add worker-based single-file quarantine purge with fresh review, default-No confirmation and revalidation.
 - [x] Add background manual saving, observed external-edit checks and directory flushing.
 - [x] Coordinate concurrent engine scene saves with nonblocking publication locks and process-exit recovery.
+- [x] Coordinate recovery and startup metadata publication; flush migration backups, reused sprites and project creation.
+- [x] Handle brief recovery/save overlap without losing revision checks or blocking Qt.
+- [x] Preserve literal project text in Activity and error dialogs.
 - [ ] Add stronger concurrent-edit and power-loss recovery guarantees.
 - [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
 - [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.
@@ -1157,18 +1168,19 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Continue scene organization and project integrity work; stronger concurrent-edit
-   and power-loss recovery guarantees remain open.
-2. Package native runtime dependencies and verify the independent game export
+1. Package native runtime dependencies and verify the independent game export
    on clean Arch. Measure bundle size and startup, preserving the lightweight option.
    The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB
    Qt subset with actual copies; interpreter bundling, notices and clean-machine
    dependency verification remain open.
-3. Prove a native and container-compatible sandbox before enabling imported/generated
+2. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
    The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
    boundary checks; the unchanged Docker policy denies user namespaces. A compatible
    restriction backend, resource limits and hostile-code/lifecycle checks remain open.
+3. Add multi-session recovery ownership and strengthen whole-project crash/power-loss
+   guarantees. Current publication coordination does not make a project-folder
+   transaction or reserve a recovery slot for one editing session.
 4. Connect local and enterprise provider adapters after the initial fake-provider
    workflow and scene-edit review are verified. Script-edit tools depend on the
    sandboxed execution path.

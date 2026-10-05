@@ -7,7 +7,12 @@ from PySide6.QtCore import QThread
 
 from solar_forge_engine.core.scene import Scene
 from solar_forge_engine.project.assets import load_project_scene, save_project_scene
-from solar_forge_engine.project.storage import load_scene, read_scene_bytes, save_scene
+from solar_forge_engine.project.storage import (
+    PublicationBusy,
+    load_scene,
+    read_scene_bytes,
+    save_scene,
+)
 
 
 class SceneSaver(QThread):
@@ -32,20 +37,30 @@ class SceneSaver(QThread):
                         "The saved scene changed externally. Use Save As or reopen it."
                     )
             fingerprint = hashlib.sha256(previous).hexdigest() if previous is not None else None
-            if self.root:
-                save_project_scene(
-                    self.root,
-                    self.path,
-                    self.scene,
-                    exclusive=previous is None,
-                    expected_fingerprint=fingerprint,
-                )
-            else:
-                save_scene(
-                    self.path,
-                    self.scene,
-                    exclusive=previous is None,
-                    expected_fingerprint=fingerprint,
-                )
+            for attempt in range(25):
+                try:
+                    self._publish(previous is None, fingerprint)
+                    break
+                except PublicationBusy:
+                    if attempt == 24:
+                        raise
+                    self.msleep(20)
         except (OSError, ValueError) as error:
             self.error = str(error)
+
+    def _publish(self, exclusive: bool, fingerprint: str | None) -> None:
+        if self.root:
+            save_project_scene(
+                self.root,
+                self.path,
+                self.scene,
+                exclusive=exclusive,
+                expected_fingerprint=fingerprint,
+            )
+        else:
+            save_scene(
+                self.path,
+                self.scene,
+                exclusive=exclusive,
+                expected_fingerprint=fingerprint,
+            )
