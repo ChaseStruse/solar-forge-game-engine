@@ -49,6 +49,7 @@ from solar_forge_engine.core.showcase import ember_run
 from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.assistant import AssistantPanel
+from solar_forge_engine.editor.audio import SoundsDialog
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.locks import LockPersistence
@@ -413,6 +414,8 @@ class EditorWindow(QMainWindow):
         import_sprite = action("Import PNG", "Ctrl+Shift+I")
         import_sprite.triggered.connect(self.choose_sprite)
         scene_menu.addAction(import_sprite)
+        self.sounds_action = scene_menu.addAction("Project sounds…")
+        self.sounds_action.triggered.connect(self.browse_sounds)
         self.duplicate_action = action("Duplicate object", "Ctrl+D")
         self.duplicate_action.triggered.connect(self.duplicate_selected)
         self.delete_action = action("Delete object", "Ctrl+Delete")
@@ -545,6 +548,7 @@ class EditorWindow(QMainWindow):
         self.refresh_assets_button.setEnabled(
             self.project is not None and self._asset_index_job is None
         )
+        self.sounds_action.setEnabled(self.project is not None)
         self.quarantine_button.setEnabled(self.project is not None and self._cleanup_job is None)
         self.cleanup_assets_button.setEnabled(
             self.project is not None and not self.dirty and self._cleanup_job is None
@@ -854,6 +858,13 @@ class EditorWindow(QMainWindow):
         job.deleteLater()
         if not self._closing and self.project is not None and self.project.root != job.project.root:
             self.refresh_project_assets()
+
+    def browse_sounds(self) -> None:
+        if self.project is None:
+            return
+        dialog = SoundsDialog(self.project, self)
+        dialog.exec()
+        dialog.deleteLater()
 
     def browse_quarantine(self) -> None:
         if self.project is None or self._cleanup_job is not None:

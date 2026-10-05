@@ -423,6 +423,26 @@ changing animation frames and unchanged authored data; the
 [Play animation comparison](docs/performance/2026-10-05-play-animation.json)
 records observed improvements and the remaining cadence/presentation limits.
 
+## Project sounds
+
+Open a project, then choose **Scene → Project sounds…**. Import WAV clips, select
+one to preview, and use Stop to interrupt playback. Selection changes and closing
+also stop playback. Import and validation run in workers; scenes and undo history
+are unchanged. Clips are copied into `audio/` with readable names and content hashes,
+deduplicated and kept portable when the project moves. Source metadata is stripped.
+
+Supported clips: uncompressed PCM WAV, mono/stereo, 8/16 bit, 8–48 kHz, up to
+30 seconds and 4 MiB per file. The library allows 128 clips / 32 MiB. Unsafe paths,
+malformed files and changed fingerprints are rejected without overwriting files.
+Import is a library operation, not an undoable scene edit; gameplay sound triggers,
+renaming and deletion are not implemented yet. Audio files are outside sprite cleanup.
+Concurrent external editing of the audio directory is not supported.
+
+Native preview uses `/usr/bin/pw-play` from Arch's `pipewire-audio` package and an
+active user PipeWire session. Validated PCM samples go over stdin at 25% volume;
+source paths are never passed to the player. No Qt multimedia add-ons are needed.
+Import remains available when playback is unavailable, with errors shown in the dialog.
+
 ## Docker
 
 Run the native window from a Linux Wayland session:
@@ -436,6 +456,17 @@ Scene files saved under `/projects` persist in the Compose `projects` volume.
 project folder, bind it to `/projects` in a local `compose.override.yaml`. On hosts
 whose numeric UID/GID are not 1000, set `SOLAR_FORGE_UID` and `SOLAR_FORGE_GID` to
 the values from `id -u` and `id -g` before building. The app runs without networking.
+
+Audio forwarding is optional. With PipeWire running, use the specific socket override:
+
+```sh
+docker compose -f compose.yaml -f compose.audio.yaml up --build desktop
+```
+
+The override mounts only `$XDG_RUNTIME_DIR/pipewire-0`; match the image UID/GID to
+the host. Images include the PipeWire client; the default desktop configuration
+has no audio socket and reports preview unavailable. Neither configuration adds
+network access. The headless test image needs no audio session or socket.
 
 Run lint, formatting, type checks and tests in the independent headless image:
 

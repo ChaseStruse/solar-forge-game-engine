@@ -136,6 +136,30 @@ The actual dense Play benchmark also completed in Docker offscreen mode with
 changing frames and unchanged authored data. Its cadence p95 was 31.233 ms,
 reinforcing that host timing gains are not a container/compositor guarantee.
 
+Project sounds now support worker-based WAV import, bounded library scanning and
+native PipeWire preview through Scene → Project sounds. Canonical PCM clips retain
+readable, content-addressed filenames in a portable `audio/` folder; imports deduplicate
+without changing scenes, undo history or project formats. Limits are mono/stereo,
+8/16 bit, 8–48 kHz, 30 seconds / 4 MiB per clip and 128 clips / 32 MiB per library.
+No-follow regular-file reads, format/hash validation and exclusive publication reject
+unsafe inputs and preserve conflicting files. Source metadata is stripped. Preview
+passes validated raw PCM over stdin to the fixed system PipeWire client at 25% volume;
+selection changes and closing stop playback, including a bounded kill fallback.
+PipeWire is optional for native import; no Qt multimedia add-on or Python dependency
+was added. Both Docker images include its client, while `compose.audio.yaml` optionally
+forwards only the user PipeWire socket. Default networking/display isolation is preserved.
+Gameplay references/triggers, sound renaming/deletion and concurrent-directory editing
+remain open. Sprite cleanup does not touch audio. Native Wayland import and real
+PipeWire preview completed with exit zero and unchanged scene bytes. The same flow
+passed in the Wayland desktop container with its optional audio socket; the default
+container imported clips and reported unavailable playback without a socket. Worker
+capability probing accommodates Arch and Debian PipeWire stdin differences.
+Audio verification: 228 tests pass locally (16.62 seconds) and in Docker (19.48 seconds),
+with Ruff, formatting and strict mypy passing. Tests cover malformed/unsafe/bounded
+input, conflicts, deduplication, moved projects, both stdin modes, unavailable playback
+and termination of an unresponsive player. These checks establish successful playback
+processes, not subjective audio quality or broad device/compositor compatibility.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -806,8 +830,9 @@ Keep a direct native launcher available as well.
 | Optional model service | Local inference, separate model storage | Explicit enablement; not part of normal tests |
 
 The desktop and test services are implemented. The app currently mounts the current
-Wayland socket and a persistent `/projects` volume; it has no configuration volume,
-audio forwarding, explicit GPU device mapping, or model service. Both runtime
+Wayland socket, persistent `/projects` and user-preferences volumes. Audio forwarding
+is opt-in through `compose.audio.yaml`; explicit GPU mapping and model services remain
+unimplemented. Both runtime
 services have networking disabled. Dependency installation precedes source copying
 so code-only rebuilds reuse the dependency layer. Test-only packages stay in the
 test image. The default test command runs Ruff, formatting, mypy, and pytest.
@@ -986,7 +1011,8 @@ Completed task checklist:
 - [x] Ship Ember Run: an animated, playable forge showcase and compact editable two-scene example.
 - [x] Add worker-based single-file quarantine purge with fresh review, default-No confirmation and revalidation.
 - [ ] Add stronger recovery guarantees.
-- [ ] Deliver assets, audio, Python game scripting and native game export.
+- [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
+- [ ] Add gameplay sound references/triggers, Python game scripting and native game export.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
 - [x] Add bounded installed-model discovery and worker-based saved local preferences, preserving offline startup.
@@ -995,7 +1021,8 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add a minimal audio workflow, starting with WAV import and native preview.
+1. Connect imported sounds to a small gameplay event workflow, starting with coin
+   collection and restart-safe playback. Keep references portable and edits undoable.
    Compositor-presented frame timing and hardware input latency remain unverified;
    continue performance checks alongside the next runtime features.
    Continue measuring larger-context model behavior before broadening scene tools.

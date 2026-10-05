@@ -1,0 +1,11 @@
+# Optional local PipeWire access. Match the desktop image UID/GID to the host.
+services:
+  desktop:
+    environment:
+      PIPEWIRE_RUNTIME_DIR: /tmp
+      PIPEWIRE_REMOTE: pipewire-0
+    volumes:
+      - type: bind
+        source: ${XDG_RUNTIME_DIR:?Set XDG_RUNTIME_DIR}/pipewire-0
+        target: /tmp/pipewire-0
+        read_only: true
