@@ -54,9 +54,21 @@ so moving/deleting the original image does not affect playback. **Remove sprite*
 restores geometric rendering and can be undone. Sprite color is not tinted;
 role and rectangular collision bounds still determine gameplay.
 
-Save to a `.forge.json` file. Version-five files contain the entire scene,
-roles, movement settings, and optional sprite pixels. Versions one, two,
-and three still load. Before upgrading an older file, its exact bytes are retained
+To animate an imported PNG sheet, select its object, enable **Loop sprite sheet in
+Play**, and set **Frame columns**, **Frame rows**, and **Frames/second**, then apply.
+Frames must be equal-sized cells that divide the full image evenly. Sheets remain
+limited to 256×256 pixels; animations allow at most 256 frames and 1–60 frames/second.
+All cells loop from left to right, then top to bottom. The editor displays the first
+frame; Play animates every visible configured sprite. Pause and focus loss freeze
+animation; Restart returns it to the first frame. Authored size and rectangular
+collision bounds stay unchanged, so adjust Width/Height for the desired frame size.
+Animation settings support undo, duplication and portable project/standalone saves.
+Removing or replacing a sprite clears its animation settings in the same undoable
+edit. Named clips, partial-sheet sequences and one-shot animations remain future work.
+
+Save to a `.forge.json` file. Version-seven files contain the entire scene,
+roles, movement/animation settings, and optional sprite pixels. Versions one, two,
+three and five still load. Before upgrading an older file, its exact bytes are retained
 in `<filename>.v<old-version>.bak`. Existing backups are never overwritten;
 use Save As if that backup name is occupied. Scene files remain limited to 4 MiB;
 embedded sprites count toward that limit. Files never execute scripts.
@@ -88,12 +100,12 @@ invalid or failed updates leave the manifest intact. Startup selection is a proj
 setting outside scene undo/redo. Ordinary scene switching still leaves that setting
 unchanged and does not introduce runtime scene transitions.
 
-Project saves write version-six scene files with relative sprite references to
+Project saves write version-eight scene files with relative sprite references to
 `assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;
 files are validated by size, dimensions, and content hash when opened. Move the
 entire folder to keep the project portable. Standalone Save As still embeds pixels
-in version-five scenes, and Play receives resolved data without reading asset paths.
-Older embedded scenes and version-four project scenes load with default movement
+in version-seven scenes, and Play receives resolved data without reading asset paths.
+Older embedded scenes and version-four/six project scenes load with default movement
 settings; saving upgrades them after keeping an exact version-specific `.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or

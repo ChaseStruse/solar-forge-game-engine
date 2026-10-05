@@ -49,7 +49,23 @@ def read_recovery(project: Project, baseline: Scene) -> Scene | None:
         raise ValueError("Invalid recovery snapshot fields.")
     if type(data["format_version"]) is not int or data["format_version"] != 1:
         raise ValueError("Unsupported recovery format version.")
-    if data["base_hash"] != fingerprint(baseline):
+    hashes = {fingerprint(baseline)}
+    snapshot = data["scene"]
+    if (
+        isinstance(snapshot, dict)
+        and type(snapshot.get("format_version")) is int
+        and snapshot["format_version"] == 5
+        and all(entity.animation is None for entity in baseline.entities)
+    ):
+        # Previous releases hashed canonical v5 data without animation fields.
+        legacy = Scene.from_data(baseline.to_data()).to_data()
+        legacy["format_version"] = 5
+        entries = legacy["entities"]
+        assert isinstance(entries, list)
+        for entry in entries:
+            del entry["animation"]
+        hashes.add(hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest())
+    if not isinstance(data["base_hash"], str) or data["base_hash"] not in hashes:
         raise ValueError(
             "Recovery snapshot is from an older saved scene; retained without restoring."
         )

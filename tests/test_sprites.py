@@ -97,6 +97,7 @@ def test_legacy_scene_upgrade_preserves_bytes_and_existing_backup(tmp_path, vers
     data = Scene(entities=(Entity("wall"),)).to_data()
     data["format_version"] = version
     for entry in data["entities"]:
+        del entry["animation"]
         del entry["move_speed"]
         del entry["input_preset"]
         del entry["sprite"]
@@ -115,4 +116,4 @@ def test_legacy_scene_upgrade_preserves_bytes_and_existing_backup(tmp_path, vers
     save_scene(path, loaded)
     assert backup.read_bytes() == original
     assert load_scene(path) == loaded
-    assert json.loads(path.read_bytes())["format_version"] == 5
+    assert json.loads(path.read_bytes())["format_version"] == 7

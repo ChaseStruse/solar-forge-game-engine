@@ -5,9 +5,10 @@ import re
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 
+from solar_forge_engine.core.animation import Animation
 from solar_forge_engine.core.sprite import Sprite
 
-FORMAT_VERSION = 5
+FORMAT_VERSION = 7
 MAX_ENTITIES = 10_000
 
 
@@ -56,6 +57,7 @@ class Entity:
     sprite: Sprite | None = None
     move_speed: float = 240
     input_preset: InputPreset = InputPreset.BOTH
+    animation: Animation | None = None
 
     def __post_init__(self) -> None:
         if not 0 <= number(self.move_speed, "Movement speed") <= 2000:
@@ -64,6 +66,14 @@ class Entity:
             raise ValueError("Unknown input preset.")
         if self.sprite is not None and not isinstance(self.sprite, Sprite):
             raise ValueError("Invalid sprite data.")
+        if self.animation is not None:
+            if not isinstance(self.animation, Animation) or self.sprite is None:
+                raise ValueError("Animation requires a sprite and valid animation settings.")
+            if (
+                self.sprite.width % self.animation.columns
+                or self.sprite.height % self.animation.rows
+            ):
+                raise ValueError("Sprite dimensions must divide evenly into the animation grid.")
         if not isinstance(self.role, Role):
             raise ValueError("Unknown entity role.")
         if not isinstance(self.id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.id):
@@ -90,10 +100,14 @@ class Entity:
             "sprite",
             "move_speed",
             "input_preset",
+            "animation",
         }
         if not isinstance(value, dict) or set(value) != fields:
             raise ValueError("Invalid entity fields.")
         return cls(
+            animation=Animation.from_data(value["animation"])
+            if value["animation"] is not None
+            else None,
             move_speed=number(value["move_speed"], "Movement speed"),
             input_preset=InputPreset(text(value["input_preset"], "Input preset")),
             id=text(value["id"], "Entity ID", 64),
@@ -140,9 +154,9 @@ class Scene:
         if not isinstance(value, dict) or set(value) != {"format_version", "name", "entities"}:
             raise ValueError("Invalid scene document fields.")
         version = value["format_version"]
-        if type(version) is not int or version not in (1, 2, 3, FORMAT_VERSION):
+        if type(version) is not int or version not in (1, 2, 3, 5, FORMAT_VERSION):
             raise ValueError(
-                "Unsupported scene format version; this editor supports versions 1, 2, 3 and 5."
+                "Unsupported scene format version; this editor supports versions 1, 2, 3, 5 and 7."
             )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
@@ -164,5 +178,9 @@ class Scene:
             entries = [
                 {**entry, "move_speed": 240, "input_preset": "wasd_arrows"} for entry in entries
             ]
+        if version in (1, 2, 3, 5):
+            if any(not isinstance(entry, dict) or "animation" in entry for entry in entries):
+                raise ValueError("Invalid legacy animation fields.")
+            entries = [{**entry, "animation": None} for entry in entries]
         entities = [Entity.from_data(entry) for entry in entries]
         return cls(name=text(value["name"], "Scene name"), entities=tuple(entities))

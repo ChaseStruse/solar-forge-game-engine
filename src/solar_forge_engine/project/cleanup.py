@@ -81,12 +81,12 @@ def plan_cleanup(project: Project, protected: set[Sprite]) -> CleanupPlan:
                 ):
                     raise ValueError("Cleanup cannot validate a recovery snapshot.")
                 scene = Scene.from_data(data["scene"])
-            elif re.fullmatch(r".+\.forge\.json(?:\.v[12345]\.bak)?", name):
+            elif re.fullmatch(r".+\.forge\.json(?:\.v[1234567]\.bak)?", name):
                 reference = path.relative_to(project.root).as_posix()
                 # Validate the full parent chain even for backup files.
                 replace(
                     project,
-                    scene=re.sub(r"\.v[12345]\.bak$", "", reference)
+                    scene=re.sub(r"\.v[1234567]\.bak$", "", reference)
                     if name.endswith(".bak")
                     else reference,
                 ).scene_path()

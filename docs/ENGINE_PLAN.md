@@ -2,7 +2,7 @@
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
 separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, multiple-scene authoring, project-wide sprite reuse, basic project folders, and
-editable coin collector, reviewed asset quarantine and native restoration, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation and project startup-scene selection are implemented. The remaining architecture and release
+editable coin collector, reviewed asset quarantine and native restoration, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation and project startup-scene selection and sprite-sheet animation are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
 ### Implemented foundation checkpoints
@@ -13,7 +13,7 @@ milestones below are planned work; unmeasured performance budgets remain targets
 - Duplicate Object (Ctrl+D) copies applied properties and gameplay roles with a
   fresh ID and a 24-unit offset, selects the copy, and uses the shared create command.
   Names and positions remain within schema limits. Undo/redo and save/reopen are verified.
-- Version-five `.forge.json` scene documents with version-one/two/three loading support,
+- Version-seven `.forge.json` scene documents with version-one/two/three/five loading support,
   bounded/validated reads, atomic writes, and unsaved-change protection on New/Open/Close.
 - Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
 - Separate non-root Docker desktop/test images and independent headless test Compose;
@@ -24,7 +24,7 @@ milestones below are planned work; unmeasured performance budgets remain targets
   packages and Python path environment overrides; no project Python code executes.
 - Editable coin-collector starter: Player/Wall/Coin/Decoration roles, static
   axis-aligned wall collisions, coin triggers, score/completion HUD, and restart.
-  Version-five scenes persist roles, sprites and movement settings; legacy scenes load without changing
+  Version-seven scenes persist roles, sprites, movement and animation settings; legacy scenes load without changing
   disk data. Save creates a non-overwriting `.v1.bak` or `.v2.bak` before upgrading.
 - PNG sprite import (Ctrl+Shift+I), embedded bounded RGBA data, transparency,
   inspector sizing/removal, and cached native pixmaps shared by editor and player.
@@ -38,7 +38,7 @@ milestones below are planned work; unmeasured performance budgets remain targets
   the newly created folder. Standalone scenes and embedded sprites remain supported.
 - Version-four project scenes use relative `assets/<hash>.rgba` sprite references;
   opening verifies dimensions, bounded bytes and content hashes, then resolves them
-  into portable version-five scene data. Identical sprites share a file. Play does
+  into portable version-seven scene data. Identical sprites share a file. Play does
   not read project paths. Assets publish before atomic scene replacement; failed
   saves can leave unused assets, while previous scenes and their references survive.
   Embedded project upgrades preserve exact `.v1.bak`, `.v2.bak` or `.v3.bak` bytes.
@@ -129,6 +129,13 @@ external settings changes, failed atomic writes and preservation of active unsav
 edits/history: 115 tests passed locally in 1.74 seconds and in Docker in 2.28 seconds. Native Wayland selection
 and reopen passed; the project panel was inspected. Ruff, formatting and strict
 mypy passed.
+Animation checks cover bounded metadata, grid validation, edit/undo/duplication,
+portable sprites, legacy backups and recovery, frame timing, pause and restart:
+125 tests passed locally in 1.82 seconds and in Docker in 2.39 seconds;
+Ruff, formatting and strict mypy passed. Native Wayland animation/pause/restart
+passed and rendering was visually inspected. Older scenes remain static; saves
+upgrade standalone scenes to version seven and project scenes to version eight.
+Version-five recovery fingerprints remain compatible when baseline animation is absent.
 Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
@@ -246,7 +253,10 @@ Implemented scope is intentionally narrower than the v0.1 requirements above:
   Navigation settings are session-only. No resize/rotation gizmos, hierarchy or layer controls yet. Selected-object duplication is implemented with Ctrl+D.
 - Rendering: native rectangles and circular coin visuals, selection, tooltips, and
   fit-to-view, and imported PNG sprites with cached native pixmaps and transparency.
-  No atlases, animation, camera tooling, or game UI editor.
+  Equal-cell sprite sheets loop in row order at 1–60 fps, up to 256 frames; the
+  editor shows frame zero. Play caches shared frame pixmaps, freezes on pause/focus
+  loss, and restarts at frame zero. Sprite geometry/collision bounds remain unchanged.
+  No named clips, partial sequences, game camera tooling, or game UI editor.
 - Gameplay: 1024×576 arena, per-object movement speed (0–2,000 units/second)
   and WASD/arrows presets; defaults remain 240 units/second with both key sets,
   normalized diagonals, static axis-aligned walls, rectangular coin trigger bounds,
@@ -368,7 +378,7 @@ Arch needs its own ABI/build baseline. [Qt deployment guidance](https://doc.qt.i
 
 **Current persistence:** a version-one `project.json` manifest identifies one
 relative scene inside `scenes/`; `assets/` contains immutable content-addressed
-RGBA sprite pixels referenced by version-six project scenes.
+RGBA sprite pixels referenced by version-eight project scenes.
 Manifest reads are limited to 16 KiB, strictly validated, and never execute code.
 Opening and saving revalidate paths against traversal and symlinks. Creation requires
 a new folder, copies the current scene, preserves the source file, and cleans up
@@ -396,11 +406,11 @@ scene loading retains dimension/hash validation. Permanent deletion is not imple
 Recovery uses a single bounded embedded snapshot per scene, not an append-only journal.
 This is not a whole-folder atomic transaction or concurrent filesystem sandbox.
 
-Each standalone version-five `.forge.json` file contains scene name,
+Each standalone version-seven `.forge.json` file contains scene name,
 stable entity IDs, geometry, color, explicit Role values and optional embedded
-sprites (dimensions plus base64 RGBA pixels), movement speed and keyboard preset.
+sprites (dimensions plus base64 RGBA pixels), movement speed and keyboard preset, plus optional sprite-sheet animation settings.
 Legacy scenes default to 240 units/second and WASD/arrows. Version-four project
-scenes remain supported; project saves now write version six. Version-one scenes
+scenes remain supported; project saves now write version eight; version-six project scenes remain supported. Version-one scenes
 load in memory with Decoration roles. Loading does not rewrite the original; saving
 over a legacy scene first creates a version-specific `.v<old-version>.bak`
 as appropriate to the target format.
@@ -693,7 +703,7 @@ experience; these milestones are gates, not promised delivery dates.
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
 | 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Quarantine purge, scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
-| 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Asset libraries/animation, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
+| 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Expanded asset libraries/animation clips, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
 | 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
@@ -729,14 +739,15 @@ Completed task checklist:
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
+- [x] Add bounded looping sprite-sheet animation, first-frame editor rendering, and deterministic Play timing/restart.
 - [ ] Add quarantine purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [ ] Connect the assistant through a fake provider, then verified real adapters.
 
 Next small features, in recommended order:
 
-1. Add bounded sprite-sheet animation to authoring and built-in Play, preserving
-   portable scene data and deterministic restart behavior.
+1. Add a minimal assistant panel with a deterministic fake provider and validated,
+   undoable scene-edit proposals. Begin the LLM workflow without enabling project scripts.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.
@@ -744,9 +755,9 @@ Next small features, in recommended order:
    outside the editor on clean Arch.
 4. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
-5. Add the assistant's bounded scene tools through deterministic fake-provider fixtures,
-   using the existing validated command/revision layer, before connecting local and
-   enterprise providers. Script-edit tools depend on the sandboxed execution path.
+5. Connect local and enterprise provider adapters after the initial fake-provider
+   workflow and scene-edit review are verified. Script-edit tools depend on the
+   sandboxed execution path.
 
 Continue committing coherent small features. Do not repeat finished scaffolding or
 replace the working native approach while closing the remaining milestone gates.

@@ -9,6 +9,7 @@ from uuid import uuid4
 from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDockWidget,
     QDoubleSpinBox,
@@ -33,6 +34,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from solar_forge_engine.core.animation import Animation
 from solar_forge_engine.core.commands import (
     Command,
     CreateEntity,
@@ -239,6 +241,24 @@ class EditorWindow(QMainWindow):
         form.addRow("Movement keys", self.input_field)
         self.sprite_label = QLabel()
         form.addRow("Sprite", self.sprite_label)
+        self.animation_check = QCheckBox("Loop sprite sheet in Play")
+        form.addRow("Animation", self.animation_check)
+        self.animation_fields: dict[str, QSpinBox] = {}
+        for key, label, limit, default in (
+            ("columns", "Frame columns", 256, 1),
+            ("rows", "Frame rows", 256, 1),
+            ("fps", "Frames/second", 60, 8),
+        ):
+            animation_field = QSpinBox()
+            animation_field.setRange(1, limit)
+            animation_field.setValue(default)
+            animation_field.setKeyboardTracking(False)
+            form.addRow(label, animation_field)
+            self.animation_fields[key] = animation_field
+        self.animation_check.setToolTip(
+            "Equal-sized frames in row order; the editor displays the first frame."
+        )
+        self.animation_check.toggled.connect(self._update_animation_fields)
         self.clear_sprite_button = QPushButton("Remove sprite")
         self.clear_sprite_button.clicked.connect(self.clear_sprite)
         form.addRow(self.clear_sprite_button)
@@ -473,6 +493,12 @@ class EditorWindow(QMainWindow):
             f"{entity.sprite.width} × {entity.sprite.height} pixels" if entity.sprite else "None"
         )
         self.clear_sprite_button.setEnabled(entity.sprite is not None)
+        self.animation_check.setEnabled(entity.sprite is not None)
+        self.animation_check.setChecked(entity.animation is not None)
+        settings = entity.animation or Animation()
+        for key, animation_field in self.animation_fields.items():
+            animation_field.setValue(getattr(settings, key))
+        self._update_animation_fields()
         self.role_field.setCurrentIndex(self.role_field.findData(entity.role.value))
         self.speed_field.setValue(entity.move_speed)
         self.input_field.setCurrentIndex(self.input_field.findData(entity.input_preset.value))
@@ -480,6 +506,10 @@ class EditorWindow(QMainWindow):
         self.color_field.setText(entity.color)
         for key, field in self.numbers.items():
             field.setValue(getattr(entity, key))
+
+    def _update_animation_fields(self) -> None:
+        for field in self.animation_fields.values():
+            field.setEnabled(self.animation_check.isEnabled() and self.animation_check.isChecked())
 
     def _tree_selected(self) -> None:
         row = self.tree.currentItem()
@@ -735,18 +765,19 @@ class EditorWindow(QMainWindow):
                 SetEntity(
                     self.selected_id,
                     {
+                        "animation": None,
                         "sprite": {
                             "width": sprite.width,
                             "height": sprite.height,
                             "pixels": sprite.pixels,
-                        }
+                        },
                     },
                 )
             )
 
     def clear_sprite(self) -> None:
         if self.selected_id is not None:
-            self.execute(SetEntity(self.selected_id, {"sprite": None}))
+            self.execute(SetEntity(self.selected_id, {"sprite": None, "animation": None}))
 
     def apply_inspector(self) -> None:
         if self.selected_id is not None:
@@ -756,6 +787,9 @@ class EditorWindow(QMainWindow):
                 "role": self.role_field.currentData(),
                 "move_speed": self.speed_field.value(),
                 "input_preset": self.input_field.currentData(),
+                "animation": {key: field.value() for key, field in self.animation_fields.items()}
+                if self.animation_check.isChecked()
+                else None,
                 **{key: field.value() for key, field in self.numbers.items()},
             }
             self.execute(SetEntity(self.selected_id, changes))

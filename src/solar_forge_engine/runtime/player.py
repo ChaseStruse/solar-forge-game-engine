@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 )
 
 from solar_forge_engine.core.scene import InputPreset, Scene
-from solar_forge_engine.runtime.rendering import render_scene
+from solar_forge_engine.runtime.rendering import SpriteAnimator, render_scene
 from solar_forge_engine.runtime.simulation import FIXED_STEP, WORLD_HEIGHT, WORLD_WIDTH, Simulation
 
 LEFT = {Qt.Key.Key_A, Qt.Key.Key_Left}
@@ -53,6 +53,8 @@ class PlayerWindow(QMainWindow):
         self.canvas = QGraphicsScene(self)
         self.canvas.setSceneRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
         self.items = render_scene(self.canvas, scene)
+        self.animator = SpriteAnimator(scene, self.items)
+        self._ticks = 0
         self.view = GameView(self.canvas)
         self.view.setBackgroundBrush(QBrush(QColor("#15181e")))
         self.view.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -91,6 +93,7 @@ class PlayerWindow(QMainWindow):
         self.items[self.simulation.controlled.id].setPos(self.simulation.x, self.simulation.y)
         for coin in self.simulation.coins:
             self.items[coin.id].setVisible(coin.id not in self.simulation.collected)
+        self.animator.update(self._ticks)
         if self.simulation.coins:
             suffix = " · All coins collected!" if self.simulation.won else ""
             self.score_label.setText(
@@ -110,6 +113,7 @@ class PlayerWindow(QMainWindow):
         vertical = int(bool(self.keys & self.down)) - int(bool(self.keys & self.up))
         while self._accumulator >= FIXED_STEP:
             self.simulation.step(horizontal, vertical)
+            self._ticks += 1
             self._accumulator -= FIXED_STEP
         self._sync_position()
 
@@ -124,6 +128,7 @@ class PlayerWindow(QMainWindow):
         self.paused = False
         self.pause_button.setText("Pause")
         self.simulation = Simulation(self.simulation.scene, self.simulation.controlled.id)
+        self._ticks = 0
         self.keys.clear()
         self._accumulator = 0
         self._last_tick = time.monotonic()

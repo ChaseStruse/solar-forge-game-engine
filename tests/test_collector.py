@@ -69,6 +69,7 @@ def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     data = Scene(entities=(Entity("rectangle"),)).to_data()
     data["format_version"] = 1
     for entity in data["entities"]:
+        del entity["animation"]
         del entity["move_speed"]
         del entity["input_preset"]
         del entity["role"]
@@ -80,7 +81,7 @@ def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     assert upgraded.entity("rectangle").role == Role.DECORATION
     save_scene(path, upgraded)
     assert (tmp_path / "old.forge.json.v1.bak").read_bytes() == original
-    assert json.loads(path.read_text())["format_version"] == 5
+    assert json.loads(path.read_text())["format_version"] == 7
     assert load_scene(path) == upgraded
 
 
