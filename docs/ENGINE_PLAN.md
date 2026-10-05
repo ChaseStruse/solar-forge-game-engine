@@ -67,6 +67,19 @@ Recovery verification: 214 tests pass locally (15.76 seconds) and in Docker
 (18.46 seconds); Ruff, formatting and strict mypy pass. Native Wayland corrupt-file
 preservation, manual saving and worker shutdown were verified.
 
+Repeatable benchmark tooling now measures 1–1,000 distinct sprite textures and
+initial canvas construction, plus warm-process launch to first Qt paint using
+isolated preferences. Five native Wayland samples measured median 712.168 ms for
+the welcome screen and 747.704 ms for Ember Run; startup RSS was 136.352 and
+137.734 MiB respectively. The 1,000-texture software fixture measured median
+3.958 ms / p95 4.321 ms, with 35.126 ms canvas construction; shared-texture p95
+was 3.871 ms. The raw [reference report](performance/2026-10-05.json) records
+versions, fixture sizes, sample times, CPU and limitations. Native presentation,
+cold-cache startup, input latency and GPU budgets remain open; these measurements
+do not justify renderer complexity or prove the complete 60 fps presentation gate.
+Benchmarks and resource bounds were exercised locally and in the offline Docker
+test image. Ruff, formatting and strict mypy pass; no runtime code changed here.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -451,7 +464,7 @@ src/solar_forge_engine/
     runtime/            Simulation, shared renderer and native player entry point
     project/            Scene I/O, upgrade backup, PNG normalization, folders, assets, recovery
     __main__.py         Native editor entry point
-scripts/                Software rendering benchmark
+scripts/                Software rendering and isolated warm-startup benchmarks
 tests/                  Scene, editor, player, collector, sprite and project checks
 docs/                   This plan
 Dockerfile.run
@@ -824,10 +837,14 @@ Recorded evidence so far: the initial software rectangle fixture reported median
 one 16×16 transparent RGBA texture, 10 warmup/120 measured frames, 1024×576 QImage,
 Python 3.14.7 / Qt 6.11.2 on Arch) reported median 3.622 ms and p95 3.910 ms.
 The rectangle comparison reported median 5.361 ms and p95 5.645 ms. These are
-software rendering measurements, not native presentation or many-texture workloads.
+software rendering measurements, not native presentation. Updated distinct-texture
+and native first-paint results are recorded near the top and in the linked reference
+report; the complete renderer gate remains open.
 The 30-test suite passed locally in 1.26 seconds and in Docker in 1.57 seconds;
-pytest timings exclude lint, type checks, image builds and downloads. Startup,
-editor-action latency, memory, distribution and export budgets remain unmeasured.
+pytest timings exclude lint, type checks, image builds and downloads. Warm startup
+to first Qt paint and RSS after startup workers settle are now measured. Cold-cache
+startup, editor-action latency, steady-state idle memory, distribution and export
+budgets remain unmeasured.
 Do not treat the software fixture as proof of the native 60 fps presentation target.
 
 If a budget fails, measure before adding complexity or revising it. Lazy-load code
@@ -885,6 +902,7 @@ Completed task checklist:
 - [x] Add selected-object duplication with Ctrl+D through validated, undoable commands.
 - [x] Import bounded PNG sprites with portable pixels and shared cached native rendering.
 - [x] Benchmark a transparent shared-texture sprite fixture.
+- [x] Benchmark distinct sprite textures, canvas construction and isolated native warm startup.
 - [ ] Close the complete renderer/sandbox/packaging foundation gates.
 - [x] Add validated project-folder creation/opening around existing scenes.
 - [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
@@ -918,7 +936,7 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Measure unique-texture workloads and native presentation/startup to close renderer gates.
+1. Measure native frame pacing/presentation and input latency to close remaining renderer gates.
    Continue measuring larger-context model behavior before broadening scene tools.
 2. Continue scene organization and project integrity work; stronger concurrent-edit
    and power-loss recovery guarantees remain open.

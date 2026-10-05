@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-05",
+  "scope": "Warm process startup to first Qt paint; software QImage rendering, not compositor presentation. Desktop theme plugin disabled; Fusion startup style; temporary preferences; no models loaded.",
+  "results": {
+    "startup-empty": {
+      "fixture": "empty editor welcome",
+      "measurement": "launch to first Qt paint; warm filesystem; isolated preferences",
+      "samples": 5,
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "qpa": "wayland",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "median_ms": 712.168,
+      "max_ms": 720.353,
+      "median_rss_mib": 136.352,
+      "first_paint_samples_ms": [
+        711.073,
+        720.353,
+        682.828,
+        712.168,
+        714.998
+      ]
+    },
+    "startup-showcase": {
+      "fixture": "Ember Run",
+      "measurement": "launch to first Qt paint; warm filesystem; isolated preferences",
+      "samples": 5,
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "qpa": "wayland",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "median_ms": 747.704,
+      "max_ms": 750.765,
+      "median_rss_mib": 137.734,
+      "first_paint_samples_ms": [
+        745.501,
+        750.765,
+        715.125,
+        747.704,
+        749.075
+      ]
+    },
+    "render-shared": {
+      "fixture": "1000 moving native sprites, 1024x576 QImage",
+      "unique_textures": 1,
+      "construction_ms": 15.989,
+      "warmup_frames": 10,
+      "measured_frames": 120,
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "qpa": "offscreen",
+      "median_ms": 3.667,
+      "p95_ms": 3.871
+    },
+    "render-unique": {
+      "fixture": "1000 moving native sprites, 1024x576 QImage",
+      "unique_textures": 1000,
+      "construction_ms": 35.126,
+      "warmup_frames": 10,
+      "measured_frames": 120,
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "qpa": "offscreen",
+      "median_ms": 3.958,
+      "p95_ms": 4.321
+    }
+  },
+  "reference_host": {
+    "cpu": "11th Gen Intel(R) Core(TM) i9-11900H @ 2.50GHz",
+    "logical_cpus": 16,
+    "requested_editor_size": "1280x800 logical pixels",
+    "limitations": "First Qt paint begins, not compositor presentation; RSS after startup workers settle; no cold-cache, input-latency, or GPU claim."
+  }
+}

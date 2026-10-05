@@ -17,9 +17,14 @@ from solar_forge_engine.runtime.rendering import render_scene
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--sprites", action="store_true", help="Use a shared transparent RGBA texture")
+parser.add_argument(
+    "--unique-textures", type=int, default=1, help="Sprite textures, from 1 to 1000"
+)
 args = parser.parse_args()
+if not 1 <= args.unique_textures <= 1000 or (not args.sprites and args.unique_textures != 1):
+    parser.error("--unique-textures requires --sprites and a count from 1 to 1000")
 app = QApplication([])
-sprite = None
+sprites: list[Sprite] = []
 if args.sprites:
     texture = QImage(16, 16, QImage.Format.Format_RGBA8888)
     texture.fill(QColor("#f4b544"))
@@ -27,7 +32,11 @@ if args.sprites:
         for y in range(16):
             if (x // 4 + y // 4) % 2:
                 texture.setPixelColor(x, y, QColor(34, 180, 170, 128))
-    sprite = Sprite(16, 16, base64.b64encode(bytes(texture.constBits())).decode("ascii"))
+    for index in range(args.unique_textures):
+        variant = texture.copy()
+        if index:
+            variant.setPixelColor(0, 0, QColor(index % 256, index // 256, 170, 255))
+        sprites.append(Sprite(16, 16, base64.b64encode(bytes(variant.constBits())).decode("ascii")))
 scene = Scene(
     entities=tuple(
         Entity(
@@ -36,14 +45,16 @@ scene = Scene(
             y=(index // 40) * 20,
             width=16,
             height=16,
-            sprite=sprite,
+            sprite=sprites[index % len(sprites)] if sprites else None,
         )
         for index in range(1000)
     )
 )
 canvas = QGraphicsScene()
 canvas.setSceneRect(0, 0, 1024, 576)
+construction_started = time.perf_counter()
 items = render_scene(canvas, scene)
+construction_ms = (time.perf_counter() - construction_started) * 1000
 image = QImage(1024, 576, QImage.Format.Format_ARGB32_Premultiplied)
 samples = []
 for frame in range(130):
@@ -62,7 +73,8 @@ print(
     json.dumps(
         {
             "fixture": f"1000 moving native {kind}, 1024x576 QImage",
-            "unique_textures": 1 if args.sprites else 0,
+            "unique_textures": len(set(sprites)),
+            "construction_ms": round(construction_ms, 3),
             "warmup_frames": 10,
             "measured_frames": len(samples),
             "python": platform.python_version(),

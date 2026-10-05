@@ -363,8 +363,23 @@ QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/b
 
 It measures 1,000 moving sprites sharing one transparent 16×16 RGBA texture,
 rendered into a 1024×576 image, reporting median/p95 update-and-render time after
-warmup. Omit `--sprites` for rectangles. It does not measure many unique textures,
-compositor presentation, input latency, or GPU performance.
+warmup, plus initial canvas construction time. Add `--unique-textures 1000` to
+exercise 1,000 distinct textures; counts are bounded to 1–1,000. Omit `--sprites`
+for rectangles. These are software measurements, not compositor presentation,
+input latency, or GPU performance.
+
+Measure warm startup on your Wayland desktop with isolated temporary preferences:
+
+```sh
+QT_QPA_PLATFORM=wayland QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_startup.py --samples 5
+QT_QPA_PLATFORM=wayland QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_startup.py --samples 5 --showcase
+```
+
+Each sample starts a fresh process and reports launch-to-first-Qt-paint time and
+RSS after startup workers settle. No models are loaded. Samples are bounded to
+1–10; use `QT_QPA_PLATFORM=offscreen` for headless/Docker checks. This does not
+measure a cold filesystem cache or first compositor-presented frame. See the
+[recorded reference measurements](docs/performance/2026-10-05.json).
 
 ## Docker
 
