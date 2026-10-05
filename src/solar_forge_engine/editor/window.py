@@ -6,7 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QProcess, QSignalBlocker, QSize, Qt, QTimer
+from PySide6.QtCore import QElapsedTimer, QProcess, QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -54,7 +54,7 @@ from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.locks import LockPersistence
 from solar_forge_engine.editor.objects import ROLE_DATA, SceneObjects
 from solar_forge_engine.editor.quarantine import QuarantineDialog
-from solar_forge_engine.editor.recovery import RecoveryWriter
+from solar_forge_engine.editor.recovery import RecoveryCleaner, RecoveryWriter
 from solar_forge_engine.editor.startup import StartupWriter
 from solar_forge_engine.editor.theme import STYLE, ForgeWorkspace
 from solar_forge_engine.editor.viewport import SceneView
@@ -88,7 +88,8 @@ class EditorWindow(QMainWindow):
         self.project: Project | None = None
         self.saved_scene = self.document.scene
         self.selected_id: str | None = None
-        self._recovery_job: RecoveryWriter | None = None
+        self._recovery_job: RecoveryWriter | RecoveryCleaner | None = None
+        self._recovery_cleanup: list[tuple[Project, Scene | None]] = []
         self._recovery_key: tuple[Document, int] | None = None
         self.recovery_timer = QTimer(self)
         self.recovery_timer.setSingleShot(True)
@@ -1387,7 +1388,7 @@ class EditorWindow(QMainWindow):
         if answer == buttons.Save:
             return self.save()
         if answer == buttons.Discard:
-            self._clear_recovery()
+            self._clear_recovery(force=True)
             return True
         return False
 
@@ -1402,31 +1403,46 @@ class EditorWindow(QMainWindow):
         job.finished.connect(lambda: self._recovery_finished(job))
         job.start()
 
-    def _recovery_finished(self, job: RecoveryWriter) -> None:
+    def _recovery_finished(self, job: RecoveryWriter | RecoveryCleaner) -> None:
         if job is not self._recovery_job:
             return
-        if job.discard:
-            try:
-                clear_recovery(job.project)
-            except (OSError, ValueError) as error:
-                self.log.append(f"Could not clear recovery: {error}")
+        if isinstance(job, RecoveryCleaner):
+            if job.error:
+                self.log.append(f"Recovery retained: {job.error}")
         elif job.error:
             self.log.append(f"Autosave failed: {job.error}. Manual Save is still available.")
-        else:
+        elif not job.discard:
             self.log.append("Recovery snapshot updated.")
         self._recovery_job = None
         job.deleteLater()
+        self._start_recovery_cleanup()
 
-    def _clear_recovery(self) -> None:
+    def _clear_recovery(self, *, force: bool = False) -> None:
         self.recovery_timer.stop()
         if self.project is None:
             return
-        if self._recovery_job is not None and self._recovery_job.project == self.project:
+        if (
+            isinstance(self._recovery_job, RecoveryWriter)
+            and self._recovery_job.project == self.project
+        ):
             self._recovery_job.discard = True
-        try:
-            clear_recovery(self.project)
-        except (OSError, ValueError) as error:
-            self.log.append(f"Could not clear recovery: {error}")
+        baseline = None if force else self.saved_scene
+        for index, (project, previous) in enumerate(self._recovery_cleanup):
+            if project == self.project:
+                self._recovery_cleanup[index] = (project, None if previous is None else baseline)
+                break
+        else:
+            self._recovery_cleanup.append((self.project, baseline))
+        self._start_recovery_cleanup()
+
+    def _start_recovery_cleanup(self) -> None:
+        if self._recovery_job is not None or not self._recovery_cleanup:
+            return
+        project, baseline = self._recovery_cleanup.pop(0)
+        job = RecoveryCleaner(project, baseline)
+        self._recovery_job = job
+        job.finished.connect(lambda: self._recovery_finished(job))
+        job.start()
 
     def _choose_recovery(self) -> str:
         dialog = QMessageBox(self)
@@ -1474,9 +1490,12 @@ class EditorWindow(QMainWindow):
                     event.ignore()
                     return
                 self._asset_index_finished(job_index)
-            if self._recovery_job is not None:
+            recovery_deadline = QElapsedTimer()
+            recovery_deadline.start()
+            while self._recovery_job is not None:
                 job = self._recovery_job
-                if not job.wait(1000):
+                remaining = max(0, 1000 - recovery_deadline.elapsed())
+                if not remaining or not job.wait(remaining):
                     self.log.append("Finishing recovery snapshot; close again shortly.")
                     self._closing = False
                     event.ignore()

@@ -51,6 +51,7 @@ def test_scene_create_switch_save_cancel_and_per_scene_recovery(qtbot, tmp_path,
     assert not recovery_path(second).exists()
     editor.undo()
     assert not editor.dirty
+    qtbot.waitUntil(lambda: editor._recovery_job is None)
     assert not recovery_path(first).exists()
 
 

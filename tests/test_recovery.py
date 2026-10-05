@@ -58,9 +58,11 @@ def test_editor_autosaves_restores_undoes_and_clears_on_manual_save(qtbot, tmp_p
     assert recovered.document.scene == edited
     recovered.undo()
     assert recovered.document.scene == original
+    qtbot.waitUntil(lambda: recovered._recovery_job is None)
     assert not recovery_path(project).exists()
     recovered.redo()
     assert recovered.save()
+    qtbot.waitUntil(lambda: recovered._recovery_job is None)
     assert not recovered.dirty
     assert not recovery_path(project).exists()
     editor.recovery_timer.stop()
@@ -138,6 +140,7 @@ def test_explicit_discard_clears_snapshot_without_saving_edits(qtbot, tmp_path, 
     assert recovery_path(project).exists()
     monkeypatch.setattr(QMessageBox, "question", lambda *args: QMessageBox.StandardButton.Discard)
     editor.new_scene()
+    qtbot.waitUntil(lambda: editor._recovery_job is None)
     assert not recovery_path(project).exists()
     assert project.scene_path().read_bytes() == saved_bytes
     assert not editor.recovery_timer.isActive()
@@ -163,3 +166,142 @@ def test_autosave_failure_keeps_edits_and_manual_save_working(qtbot, tmp_path, m
     assert "Autosave failed" in editor.log.toPlainText()
     assert editor.save()
     assert not editor.dirty
+
+
+def test_corrupt_snapshot_survives_autosave_undo_and_manual_save(qtbot, tmp_path):
+    editor = EditorWindow()
+    qtbot.addWidget(editor)
+    editor._confirm_discard = lambda: True
+    editor.add_rectangle()
+    assert editor.create_workspace(tmp_path / "Game")
+    path = recovery_path(editor.project)
+    path.write_bytes(b"invalid json")
+    editor.numbers["x"].setValue(400)
+    editor.apply_inspector()
+    editor.autosave()
+    qtbot.waitUntil(lambda: editor._recovery_job is None)
+    assert path.read_bytes() == b"invalid json"
+    assert editor.dirty
+    assert "Autosave failed" in editor.log.toPlainText()
+    editor.undo()
+    qtbot.waitUntil(lambda: editor._recovery_job is None)
+    assert path.read_bytes() == b"invalid json"
+    editor.redo()
+    assert editor.save()
+    qtbot.waitUntil(lambda: editor._recovery_job is None)
+    assert not editor.dirty
+    assert path.read_bytes() == b"invalid json"
+    assert "Recovery retained" in editor.log.toPlainText()
+
+
+def test_changed_saved_baseline_and_stale_snapshot_are_not_overwritten(tmp_path):
+    from solar_forge_engine.project.assets import save_project_scene
+    from solar_forge_engine.project.recovery import clear_recovery
+
+    baseline = Scene()
+    project = create_project(tmp_path / "Game", baseline)
+    edit = Scene(name="Unsaved")
+    write_recovery(project, edit, baseline)
+    raw = recovery_path(project).read_bytes()
+    external = Scene(name="External saved scene")
+    save_project_scene(project.root, project.scene_path(), external)
+    with pytest.raises(ValueError, match="changed externally"):
+        write_recovery(project, edit, baseline)
+    with pytest.raises(ValueError, match="older saved"):
+        write_recovery(project, Scene(name="New edit"), external)
+    with pytest.raises(ValueError, match="older saved"):
+        clear_recovery(project, external)
+    assert recovery_path(project).read_bytes() == raw
+    assert project.scene_path().exists()
+
+
+@pytest.mark.parametrize("kind", ["symlink", "fifo", "oversized"])
+def test_recovery_rejects_unsafe_or_oversized_existing_snapshots(tmp_path, kind):
+    import os
+
+    from solar_forge_engine.project.recovery import clear_recovery
+    from solar_forge_engine.project.storage import MAX_FILE_BYTES
+
+    baseline = Scene()
+    project = create_project(tmp_path / "Game", baseline)
+    path = recovery_path(project)
+    target = tmp_path / "target"
+    target.write_bytes(b"keep")
+    if kind == "symlink":
+        path.symlink_to(target)
+    elif kind == "fifo":
+        os.mkfifo(path)
+    else:
+        path.write_bytes(b"x" * (MAX_FILE_BYTES + 1))
+    for operation in (
+        lambda: read_recovery(project, baseline),
+        lambda: write_recovery(project, Scene(name="Edit"), baseline),
+        lambda: clear_recovery(project, baseline),
+    ):
+        with pytest.raises((OSError, ValueError)):
+            operation()
+    assert target.read_bytes() == b"keep"
+    assert path.exists()
+
+
+@pytest.mark.parametrize("operation", ["write", "clear"])
+def test_observed_recovery_change_is_preserved(tmp_path, monkeypatch, operation):
+    from solar_forge_engine.project import recovery
+
+    baseline = Scene()
+    project = create_project(tmp_path / "Game", baseline)
+    write_recovery(project, Scene(name="First edit"), baseline)
+    path = recovery_path(project)
+    real_read = recovery._read_snapshot
+    calls = 0
+
+    def changed(project):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            path.write_bytes(b"changed by another editor")
+        return real_read(project)
+
+    monkeypatch.setattr(recovery, "_read_snapshot", changed)
+    with pytest.raises(ValueError, match="changed during"):
+        if operation == "write":
+            write_recovery(project, Scene(name="Second edit"), baseline)
+        else:
+            recovery.clear_recovery(project, baseline)
+    assert path.read_bytes() == b"changed by another editor"
+
+
+def test_recovery_cleanup_runs_in_worker_and_stays_with_original_scene(
+    qtbot, tmp_path, monkeypatch
+):
+    from solar_forge_engine.project.recovery import clear_recovery
+
+    editor = EditorWindow()
+    qtbot.addWidget(editor)
+    editor._confirm_discard = lambda: True
+    editor.add_rectangle()
+    assert editor.create_workspace(tmp_path / "Game")
+    project = editor.project
+    baseline = editor.saved_scene
+    write_recovery(project, replace(baseline, name="Recovery"), baseline)
+    started, proceed = Event(), Event()
+
+    def delayed(*args):
+        started.set()
+        assert proceed.wait(3)
+        clear_recovery(*args)
+
+    monkeypatch.setattr("solar_forge_engine.editor.recovery.clear_recovery", delayed)
+    assert editor.save()
+    qtbot.waitUntil(started.is_set)
+    try:
+        editor.new_scene()
+        editor.add_rectangle()
+        new_scene = editor.document.scene
+        assert editor.project is None
+        assert recovery_path(project).exists()
+    finally:
+        proceed.set()
+    qtbot.waitUntil(lambda: editor._recovery_job is None)
+    assert not recovery_path(project).exists()
+    assert editor.document.scene == new_scene

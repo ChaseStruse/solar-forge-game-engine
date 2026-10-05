@@ -175,9 +175,15 @@ having been saved. Unapplied Inspector fields and standalone scenes are not auto
 
 On reopening a project, choose **Recover edits**, **Discard snapshot**, or **Open
 saved scene**. Recover creates an undoable edit and remains unsaved until **Save**.
-Successful Save, explicit Discard, or Undo back to the saved scene clears recovery.
-Invalid or stale snapshots are retained and reported in Activity instead of
-replacing saved work. This protects against application crashes; power-loss
+Successful Save or Undo back to the saved scene queues background cleanup of a
+valid matching snapshot. Explicit Discard requests removal of that scene's snapshot.
+Invalid, stale, oversized or unsafe snapshots are retained during autosave and
+normal cleanup, with Activity messages. Autosave checks the saved baseline and
+rechecks existing snapshot bytes before replacing them; detected external changes
+stop the operation. Cleanup shares the recovery worker queue and finishes before
+closing. Manual Save remains available after recovery failures. Repair or move a
+retained conflicting snapshot before expecting autosave to resume for that scene.
+This protects against application crashes; power-loss
 persistence and concurrent editing from multiple engine instances are not guaranteed.
 
 The native editor's solarpunk welcome screen pairs black surfaces with leaf green,

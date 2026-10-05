@@ -55,6 +55,18 @@ Native Wayland shortcuts, selection, overlapping picking and undo/redo were veri
 Draw-order verification: 206 tests pass locally (15.43 seconds) and in Docker
 (18.11 seconds), with Ruff, formatting and strict mypy passing.
 
+Recovery now preserves invalid, stale, oversized and unsafe snapshots during
+autosave and normal cleanup. Autosave validates the saved baseline, and snapshot
+replacement/cleanup rechecks observed bytes before mutation. Regular-file reads
+use nonblocking, no-follow descriptors. Cleanup is serialized with snapshot writes
+in workers, remains tied to its original project/scene across switching, and drains
+within the existing bounded close wait. Activity reports conflicts; manual Save
+remains available. Explicit Discard still removes the scene's snapshot. These are
+observed-change checks, not cross-process locking or power-loss guarantees.
+Recovery verification: 214 tests pass locally (15.76 seconds) and in Docker
+(18.46 seconds); Ruff, formatting and strict mypy pass. Native Wayland corrupt-file
+preservation, manual saving and worker shutdown were verified.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -520,16 +532,18 @@ Preview state lives in a separate simulation and is not persisted into the scene
 
 **Implemented recovery:** `<scene>.recovery.json` is a version-one envelope with
 baseline fingerprint and embedded scene data (maximum 4 MiB total). A two-second
-edit debounce starts one worker-thread write; no frame-loop I/O or unbounded queue.
+edit debounce starts one worker-thread write; cleanup requests coalesce per scene
+and share that worker queue. There is no frame-loop I/O.
 Baseline hashes canonicalize int/float geometry to match save/load normalization.
 Invalid or stale snapshots never replace saved scenes automatically. Users choose
 Recover/Discard/Open saved; recovery is undoable and dirty until manually saved.
-Save, explicit Discard, and Undo-to-saved remove the snapshot, including late worker
-completion. No standalone/untitled recovery, unapplied-field capture, snapshot
+Save and Undo-to-saved queue validated cleanup, preserving conflicting snapshots;
+explicit Discard removes the snapshot, including late worker completion.
+No standalone/untitled recovery, unapplied-field capture, snapshot
 history, power-loss durability guarantee, or concurrent multi-instance coordination
 is implemented yet.
 
-Implemented commands are `CreateEntity`, `SetEntity`, `DeleteEntity`, and `RestoreScene` in
+Implemented commands are `CreateEntity`, `SetEntity`, `DeleteEntity`, `MoveEntity`, and `RestoreScene` in
 [`core/commands.py`](../src/solar_forge_engine/core/commands.py). Batched edits apply
 atomically with an expected revision; invalid or stale changes leave the document
 and history intact. The UI uses this command layer. The assistant exposes a bounded create/set/delete dispatcher. No generic
@@ -876,6 +890,7 @@ Completed task checklist:
 - [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
 - [x] Add a bounded native sprite palette with previews and undoable reuse/application.
 - [x] Add bounded project autosave, user-controlled crash recovery, and in-flight save protection.
+- [x] Preserve recovery conflicts and invalid snapshots with worker-based validated cleanup.
 - [x] Add bounded multiple-scene creation/browsing and safe switching with per-scene recovery.
 - [x] Add asynchronous saved-scene project sprite indexing and cross-scene reuse.
 - [x] Add undoable per-object movement speed and WASD/arrows presets with compatible scene upgrades.
@@ -903,10 +918,10 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Strengthen autosave/recovery integrity and failure handling.
+1. Measure unique-texture workloads and native presentation/startup to close renderer gates.
    Continue measuring larger-context model behavior before broadening scene tools.
-2. Continue measuring unique-texture workloads
-   and native presentation/startup before closing renderer gates.
+2. Continue scene organization and project integrity work; stronger concurrent-edit
+   and power-loss recovery guarantees remain open.
 3. Add audio, then a small independent native player/export package. Verify it
    outside the editor on clean Arch.
 4. Prove a native and container-compatible sandbox before enabling imported/generated
