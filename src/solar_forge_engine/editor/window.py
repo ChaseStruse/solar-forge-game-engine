@@ -48,6 +48,7 @@ from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryWriter
+from solar_forge_engine.editor.startup import StartupWriter
 from solar_forge_engine.editor.viewport import SceneView
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
@@ -60,6 +61,7 @@ from solar_forge_engine.project.workspace import (
     list_scenes,
     new_scene_target,
     open_project,
+    read_project,
 )
 from solar_forge_engine.project.workspace import (
     open_scene as open_project_scene,
@@ -177,6 +179,15 @@ class EditorWindow(QMainWindow):
         self.switch_scene_button = QPushButton("Open selected scene")
         self.switch_scene_button.clicked.connect(self.open_selected_project_scene)
         scene_layout.addWidget(self.switch_scene_button)
+        self._startup_project: Project | None = None
+        self._startup_job: StartupWriter | None = None
+        self.startup_label = QLabel("Startup scene: no project")
+        self.startup_label.setWordWrap(True)
+        scene_layout.insertWidget(0, self.startup_label)
+        self.startup_button = QPushButton("Set selected as startup scene")
+        self.startup_button.clicked.connect(self.set_selected_startup_scene)
+        scene_layout.addWidget(self.startup_button)
+        self.project_scene_list.currentRowChanged.connect(self._update_startup_actions)
         self.refresh_scenes_button = QPushButton("Refresh scenes")
         self.refresh_scenes_button.clicked.connect(self.refresh_project_scenes)
         scene_layout.addWidget(self.refresh_scenes_button)
@@ -184,7 +195,10 @@ class EditorWindow(QMainWindow):
             lambda item: self.open_selected_project_scene()
         )
         self._scene_root: Path | None = None
-        self._dock("Project scenes", scene_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        scene_scroll = QScrollArea()
+        scene_scroll.setWidgetResizable(True)
+        scene_scroll.setWidget(scene_panel)
+        self._dock("Project scenes", scene_scroll, Qt.DockWidgetArea.RightDockWidgetArea)
 
         self.inspector = QWidget()
         form = QFormLayout(self.inspector)
@@ -957,13 +971,57 @@ class EditorWindow(QMainWindow):
             self.execute(RestoreScene(recovered))
             self.log.append("Recovered edits. Save to keep them; Undo restores the saved scene.")
 
+    def _update_startup_actions(self) -> None:
+        row = self.project_scene_list.currentItem()
+        self.startup_button.setEnabled(
+            self.project is not None
+            and self._startup_project is not None
+            and self._startup_job is None
+            and row is not None
+            and row.data(Qt.ItemDataRole.UserRole) != self._startup_project.scene
+        )
+
+    def set_selected_startup_scene(self) -> None:
+        row = self.project_scene_list.currentItem()
+        if (
+            self.project is None
+            or self._startup_project is None
+            or row is None
+            or self._startup_job is not None
+        ):
+            return
+        job = StartupWriter(self.project, row.data(Qt.ItemDataRole.UserRole), self._startup_project)
+        self._startup_job = job
+        self.setEnabled(False)
+        self.startup_label.setText("Validating startup scene…")
+        job.finished.connect(lambda: self._startup_finished(job))
+        job.start()
+
+    def _startup_finished(self, job: StartupWriter) -> None:
+        self._startup_job = None
+        self.setEnabled(True)
+        job.deleteLater()
+        if job.error:
+            self.log.append(f"Startup scene unchanged: {job.error}")
+        else:
+            self.log.append(f"Startup scene set to {job.reference}; active scene unchanged.")
+        self.refresh_project_scenes()
+
     def refresh_project_scenes(self) -> None:
+        self._startup_project = None
+        self.startup_label.setText("Startup scene: no project")
         self.project_scene_list.clear()
         if self.project is None:
             return
         try:
             references = list_scenes(self.project)
+            self._startup_project = read_project(self.project.root)
+            self.startup_label.setText(f"Startup scene: {Path(self._startup_project.scene).name}")
         except (OSError, ValueError) as error:
+            self.startup_label.setText(
+                "Startup scene unavailable; refresh after fixing project settings."
+            )
+            self._update_startup_actions()
             self.log.append(f"Scene browser unavailable: {error}")
             return
         for reference in references:
@@ -973,6 +1031,7 @@ class EditorWindow(QMainWindow):
             self.project_scene_list.addItem(row)
             if reference == self.project.scene:
                 self.project_scene_list.setCurrentItem(row)
+        self._update_startup_actions()
 
     def choose_new_project_scene(self) -> None:
         if self.project is None:
@@ -1123,6 +1182,10 @@ class EditorWindow(QMainWindow):
         QMessageBox.warning(self, "Scene could not be changed", message)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self._startup_job is not None:
+            self.log.append("Finishing startup scene update; close again shortly.")
+            event.ignore()
+            return
         if self._confirm_discard():
             self._closing = True
             if self._cleanup_job is not None and not self._cleanup_job.wait(1000):

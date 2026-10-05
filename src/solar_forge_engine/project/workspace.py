@@ -9,6 +9,7 @@ from pathlib import Path, PurePosixPath
 
 from solar_forge_engine.core.scene import Scene, text
 from solar_forge_engine.project.assets import load_project_scene, save_project_scene
+from solar_forge_engine.project.storage import atomic_write
 
 MANIFEST = "project.json"
 MAX_MANIFEST_BYTES = 16 * 1024
@@ -44,7 +45,7 @@ class Project:
         return path
 
 
-def open_project(root: Path) -> tuple[Project, Scene]:
+def _read_manifest(root: Path) -> tuple[Project, bytes]:
     root = root.resolve(strict=True)
     manifest = root / MANIFEST
     if manifest.is_symlink() or not manifest.is_file():
@@ -64,6 +65,17 @@ def open_project(root: Path) -> tuple[Project, Scene]:
     project = Project(
         root, text(data["name"], "Project name"), text(data["scene"], "Scene path", 240)
     )
+    project.scene_path()
+    return project, raw
+
+
+def read_project(root: Path) -> Project:
+    """Read bounded project metadata without loading scene pixels."""
+    return _read_manifest(root)[0]
+
+
+def open_project(root: Path) -> tuple[Project, Scene]:
+    project = read_project(root)
     path = project.scene_path()
     if not path.is_file():
         raise ValueError("The project's scene file is missing or is not a regular file.")
@@ -139,3 +151,18 @@ def open_scene(project: Project, reference: str) -> tuple[Project, Scene]:
     if not path.is_file():
         raise ValueError("The selected scene is missing or is not a regular file.")
     return target, load_project_scene(target.root, path)
+
+
+def set_startup_scene(project: Project, reference: str, expected: Project) -> Project:
+    """Validate a saved scene and preserve externally changed manifest settings."""
+    project.scene_path()
+    current, raw = _read_manifest(project.root)
+    if current != expected:
+        raise ValueError("Project settings changed. Refresh scenes before selecting startup.")
+    target, _ = open_scene(project, reference)
+    if _read_manifest(project.root)[1] != raw:
+        raise ValueError("Project settings changed while validating the startup scene.")
+    updated = replace(current, scene=target.scene)
+    data = {"format_version": 1, "name": updated.name, "scene": updated.scene}
+    atomic_write(project.root / MANIFEST, (json.dumps(data, indent=2) + "\n").encode())
+    return updated

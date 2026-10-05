@@ -77,8 +77,16 @@ digit. Double-click a scene or choose **Open selected scene** to switch; unsaved
 changes offer Save/Discard/Cancel. Invalid targets leave the current scene intact.
 Save and recovery apply to the active scene; switching stops Play and resets the
 current undo history and sprite palette. **Refresh scenes** picks up files added
-outside the editor. Reopening a project still uses the manifest's default scene;
-switching does not change that default or introduce runtime scene transitions.
+outside the editor. Select a saved scene and choose **Set selected as startup scene**
+to make it open when the project is reopened. The panel displays the current startup
+scene; scroll the panel to reach its controls in smaller windows. This validates
+saved scene data and sprite references in a worker, then atomically updates
+`project.json`. It keeps the active scene, unsaved edits, undo history and Play
+snapshot unchanged. It uses the selected scene's saved bytes, rather than unapplied
+or unsaved edits. **Refresh scenes** reloads externally changed settings; stale,
+invalid or failed updates leave the manifest intact. Startup selection is a project
+setting outside scene undo/redo. Ordinary scene switching still leaves that setting
+unchanged and does not introduce runtime scene transitions.
 
 Project saves write version-six scene files with relative sprite references to
 `assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;

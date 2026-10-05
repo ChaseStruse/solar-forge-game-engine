@@ -2,7 +2,7 @@
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
 separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, multiple-scene authoring, project-wide sprite reuse, basic project folders, and
-editable coin collector, reviewed asset quarantine and native restoration, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation are implemented. The remaining architecture and release
+editable coin collector, reviewed asset quarantine and native restoration, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation and project startup-scene selection are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
 ### Implemented foundation checkpoints
@@ -124,6 +124,11 @@ symlinks, changed files, incomplete scans, failed source removal and worker life
 108 tests passed locally in 1.67 seconds and in Docker in 2.17 seconds. Ruff, formatting
 and strict mypy passed. Native Wayland browsing/restoration passed; the dialog was
 visually inspected.
+Startup-scene checks cover persisted selection, invalid/missing/symlinked targets,
+external settings changes, failed atomic writes and preservation of active unsaved
+edits/history: 115 tests passed locally in 1.74 seconds and in Docker in 2.28 seconds. Native Wayland selection
+and reopen passed; the project panel was inspected. Ruff, formatting and strict
+mypy passed.
 Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
@@ -426,7 +431,11 @@ Project scene browsing covers up to 128 top-level scene files plus the active
 manifest scene when nested. New scenes use exclusive atomic file publication and
 validated names; existing files are never overwritten. Scene activation clears
 current undo/palette state and handles that scene’s recovery snapshot. Project
-reopen selects the manifest default, which switching does not modify. Nested scene
+reopen selects the manifest startup scene, which ordinary switching does not modify.
+Set selected as startup scene validates saved data/assets in a worker, checks for
+externally changed settings, and atomically updates the manifest. The active scene,
+unsaved edits, history and Play remain unchanged; this project setting is outside
+scene undo/redo. Nested scene
 tree UI, scene renaming/deletion, and runtime transitions remain planned.
 
 Saved-scene asset indexing runs in a worker with interruption on close; results
@@ -719,14 +728,15 @@ Completed task checklist:
 - [x] Add pointer-centered wheel zoom, toolbar/keyboard zoom, middle-button pan and Fit scene for distant objects.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
+- [x] Add explicit startup-scene selection with validation and atomic manifest updates.
 - [ ] Add quarantine purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [ ] Connect the assistant through a fake provider, then verified real adapters.
 
 Next small features, in recommended order:
 
-1. Add project startup-scene selection with validated, atomic manifest updates,
-   so reopening a project uses the scene chosen by its creator.
+1. Add bounded sprite-sheet animation to authoring and built-in Play, preserving
+   portable scene data and deterministic restart behavior.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.
