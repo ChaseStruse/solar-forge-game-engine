@@ -4,6 +4,10 @@ Status: proposed direction, October 4, 2026. This repository contains planning
 documents only. Commands and layouts below are intended implementation contracts,
 not existing functionality. Performance numbers are targets to validate.
 
+**Fixed platform decision:** native Arch Linux desktop, Python application and game
+scripting, and PySide6 Qt Widgets. No JavaScript, TypeScript, browser UI, embedded
+webview, or web export. This supersedes the original web-based proposal.
+
 ## 1. Product promise
 
 **Turn a small game idea into something playable quickly, then give its creator
@@ -28,8 +32,8 @@ Add platformers after collisions and character movement are reliable.
 
 Out of scope for v0.1: 3D, multiplayer networking, consoles, native mobile exports,
 real-time collaboration, a full visual scripting language, an asset store, model
-training, and autonomous background agents. Mobile browser controls and native game
-packaging can follow validated demand.
+training, web exports, and autonomous background agents. Other native operating
+systems can follow validated demand; Arch Linux desktop is the initial target.
 
 ## 2. The first complete experience
 
@@ -42,10 +46,11 @@ a score, sound effects, and a restart button.
 4. Ask: “Make the player faster and add five coins away from walls.”
 5. Inspect the proposed changes, apply them, and preview the result.
 6. Undo the change as one action or adjust individual objects manually.
-7. Save, close, reopen, and export a static web game.
+7. Save, close, reopen, and export a native Linux game.
 
-An equivalent manual workflow must work with AI disabled. The export must run from
-a static server without contacting the editor or a model provider.
+An equivalent manual workflow must work with AI disabled. The exported Linux game
+must launch without the editor, Docker, or a model provider. Validate it on a clean
+Arch installation without the development environment.
 
 Success criterion: at least four of five first-time testers can customize and
 export the template within ten minutes without developer intervention. Test whether
@@ -63,7 +68,7 @@ labels, defaults, and recovery paths are understandable, not just functional.
 | UI | Labels, buttons, anchors, basic scaling | Full UI layout designer |
 | Development | Play/stop, error links, small script editor, external-editor workflow | Breakpoint debugger, profiler UI |
 | AI | Contextual questions, structured scene edits, bounded script changes | Asset generation integrations |
-| Export | Self-contained static web build and export validation | Desktop game packages, mobile targets |
+| Export | Native Linux game bundle and clean-machine validation | Other native platforms if requested |
 
 Use a restrained graphite theme with solar amber accents, readable typography,
 clear selection states, and minimal decorative motion. Share Solar Forge Studios
@@ -75,62 +80,95 @@ below. Make the assistant collapsible. Provide a searchable command palette,
 shortcuts, contextual help, empty states, and plain-language errors with a next step.
 Remember layout preferences locally. Avoid mandatory onboarding or a login wall.
 
-## 4. Architecture and provisional stack
+## 4. Native Python architecture and suite alignment
 
-Recommend a **TypeScript monorepo with a browser-based editor served by a small
-local companion service**. This fits Docker and permits a later desktop wrapper.
-The browser renders on the user's GPU; it is not a GUI running in Docker. The
-companion owns project file access, imports, builds, and model credentials.
+Use **Python with PySide6 Qt Widgets**, targeting Arch Linux on Wayland first.
+Build actual native windows, menus, dialogs, docking panels, and a native viewport.
+No browser engine, HTML UI, Electron, Tauri, QtWebEngine, QML/JavaScript layer,
+Node tooling, or JavaScript/TypeScript application, game, plugin, or test code.
+HTTP access to model APIs is permitted; that does not make the editor web-based.
 
-| Layer | Proposed choice | Reason / validation requirement |
+The sibling `../solar-forge-life-helper` was inspected for this revision. Its
+`pyproject.toml`, README, Dockerfiles, Compose configuration, and widget code use
+Python 3.14, PySide6, Hatchling, `uv.lock`, pytest/pytest-qt, Ruff, Wayland forwarding,
+and separate run/test images. Follow those conventions where appropriate. Reuse
+visual conventions after reviewing their fit; do not copy its account system,
+database, application domain, or dependencies unrelated to game development.
+
+| Layer | Direction | Validation requirement |
 | --- | --- | --- |
-| Editor | React, TypeScript, Vite | Familiar tooling; keep frame-by-frame game state outside React |
-| Runtime | Small scene/component runtime; PixiJS candidate | Control over serialization and editing; prove gameplay implementation is affordable |
-| Alternative runtime | Phaser candidate | Existing gameplay systems may reduce implementation effort |
-| Companion | Node.js LTS, narrow HTTP API | Share schemas/types; restrict file access to open project roots |
-| Project format | Versioned JSON, ordinary assets and TypeScript | Inspectable, portable, suitable for version control |
-| Validation | Shared runtime schemas; library selected during foundation work | One source of truth for loading, UI, AI tools, and migrations |
-| Testing | Vitest for contracts; Playwright for critical flows | Fast checks with limited browser automation |
-| Distribution | Docker for development/self-hosting; desktop packaging after v0.1 proof | Keep development infrastructure optional for end users |
+| Language/tooling | Python, `pyproject.toml`, Hatchling, uv and one lockfile | Start by checking the Life Helper Python/PySide6 versions against engine dependencies |
+| Editor | PySide6 Qt Widgets, dock panels, native text editor | Responsive input, keyboard access, scaling, Wayland focus |
+| 2D rendering | Prototype Qt Graphics View with cached native pixmaps and shared rendering adapter | Measure animation, transforms, many sprites, camera motion, and export size |
+| Runtime | Python scene/component simulation with native Qt rendering/audio bindings | Separate process and package entry point; no editor or AI imports |
+| Project I/O | Python services inside the editor, worker jobs for expensive operations | Atomic saves and project-root restrictions; no local HTTP server required |
+| Model integration | Python provider adapters with streaming and cancellation | Worker I/O; marshal results back to the UI thread |
+| Tests | pytest, pytest-qt, Ruff, one Python type checker | Small deterministic tests and a few native UI workflows |
+| Distribution | Native Arch package/launcher plus Docker desktop run image | Both launch native windows; exports work without Docker |
 
-PixiJS is a rendering foundation with WebGL and WebGPU support, not the whole
-engine. We would still own gameplay systems. Its rendering and extension model
-make it worth evaluating. [PixiJS application](https://pixijs.com/8.x/guides/components/application),
-[architecture](https://pixijs.com/8.x/guides/concepts/architecture).
+Qt's Graphics View provides 2D scene items and views through Python bindings.
+Use it as the first rendering spike so authoring and standalone playback can share
+one visual implementation. Keep simulation data independent of Qt items and isolate
+editor gizmos from runtime rendering. [Qt Graphics View documentation](https://doc.qt.io/qtforpython-6/overviews/qtwidgets-graphicsview.html).
 
-Before committing, build the same tiny scene in PixiJS and Phaser: animation,
-movement, collisions, live edits, save/reload, and export. Compare engineering cost,
-startup, bundle size, memory, and integration friction. Phaser already offers
-gameplay systems including input and physics; choose it if it substantially shortens
-delivery within the budgets. Do not ship two runtimes.
-[Phaser framework](https://www.phaser.io/phaser4).
+This is a candidate rendering backend, not a claim that Qt supplies a complete game
+engine or meets our budgets. Measure the coin collector and a 1,000-sprite fixture.
+If inadequate, evaluate a Python-accessible native rendering backend such as
+pygame-ce/SDL before choosing one implementation. Do not ship competing backends or
+build a renderer abstraction framework prematurely. A separate native Play window
+is acceptable for v0.1; do not depend on embedding foreign windows under Wayland.
+[pygame-ce documentation](https://pyga.me/docs/ref/pygame.html).
 
-Do not fork Godot or write a renderer for v0.1. Reconsider a Godot-based approach
-only if the spike shows the web architecture cannot meet requirements. Record the
-chosen stack and supported versions in an architecture decision record (ADR). Pin
-dependencies and use one package manager and lockfile.
+Python is the preferred implementation language, not a performance guarantee. Use
+native library operations for drawing, cache assets, minimize per-frame Python
+allocations, and measure collision/update costs. Keep UI operations on the Qt main
+thread. Use workers for blocking I/O and processes for CPU-heavy Python tasks when
+measurements justify them. Introduce compiled extensions only for proven bottlenecks
+with an explicit architecture decision; do not replace the Python-first direction.
 
-Introduce these boundaries only as implementation needs them:
+Suggested structure, introduced as needed:
 
 ```text
-apps/editor/             UI and editor state
-apps/companion/          Local project I/O, builds, model gateway
-packages/core/           Project schemas, commands, validation, migrations
-packages/runtime/        2D execution; no editor or model dependencies
-packages/ai/             Provider adapters, context, tool orchestration
-templates/               Small playable starter projects
-tests/                   Integration fixtures and critical browser flows
-docs/                    Decisions, contracts, guides
+pyproject.toml
+uv.lock
+src/solar_forge_engine/
+    editor/             Qt Widgets, inspector, native viewport and panels
+    core/               Data schemas, reversible commands, migrations
+    runtime/            Simulation, rendering/audio adapter, standalone player
+    ai/                 Provider adapters, context, tool orchestration
+    project/            File I/O, assets, recovery and native export
+    __main__.py         Native editor entry point
+resources/              Icons, themes and desktop integration assets
+templates/              Python game scripts and sample assets
+tests/                  Focused contracts and native UI checks
+packaging/              Arch package recipe and game bundle configuration
+Dockerfile.run
+Dockerfile.test
+compose.yaml
+compose.test.yaml
 ```
 
-Dependency direction: editor and companion use core; AI submits core commands;
-runtime consumes validated game data. Core cannot import the editor or providers.
-Avoid microservices, a database, event sourcing, or a custom ECS architecture until
-a concrete need appears.
+Editor, project, and AI layers use core; runtime consumes validated game data.
+Core cannot import the editor or providers. The standalone player must not import
+editor/AI modules. Avoid microservices, databases, event sourcing, or a custom ECS
+until a concrete need appears. Pin supported versions and record backend selection
+in a short architecture decision record (ADR).
+
+Provide an Arch `PKGBUILD`, application icon, `.desktop` entry, and a console
+launcher. Follow XDG paths for preferences/cache; let users select project folders.
+Validate Wayland, fractional scaling, clipboard, file dialogs, fonts, audio, and
+GPU behavior on the actual Arch desktop. X11 support is secondary, explicitly tested
+before advertised. Container tests alone cannot establish desktop compatibility.
+
+Package native games with their player, assets, Python runtime and required native
+libraries, or offer an Arch package with declared dependencies. Evaluate a directory
+bundle first to avoid single-file extraction startup overhead. Verify licensing,
+Qt plugin inclusion, and the clean-machine dependency boundary. Distribution beyond
+Arch needs its own ABI/build baseline. [Qt deployment guidance](https://doc.qt.io/qtforpython-6.8/deployment/index.html).
 
 ## 5. Project model, runtime, and extension contracts
 
-A project contains `project.json`, `scenes/`, `assets/`, and `scripts/`. Ignore
+A project contains `project.json`, `scenes/`, `assets/`, and Python `scripts/`. Ignore
 generated caches and builds. Use stable IDs and relative asset references, with
 separate scene files for manageable diffs. Never store keys or machine-specific
 absolute paths in projects.
@@ -138,12 +176,12 @@ absolute paths in projects.
 Use a scene graph with typed components such as Transform2D, Sprite, Camera2D,
 Collider2D, AudioSource, and Behavior. Separate authoring state from play state;
 stopping preview restores the authored scene. Offer a small script API such as
-`onStart`, `onUpdate`, and `onCollision`, with documented lifecycle and cleanup.
+`on_start`, `on_update`, and `on_collision`, with documented lifecycle and cleanup.
 Use fixed simulation steps with bounded catch-up, independently scheduled rendering,
 and explicit pause/focus behavior. Start with simple collision shapes and triggers.
 
-All mutations enter shared commands such as `createEntity`, `setProperty`,
-`attachComponent`, `instantiateScene`, and `applyScriptPatch`. Commands have stable
+All mutations enter shared commands such as `create_entity`, `set_property`,
+`attach_component`, `instantiate_scene`, and `apply_script_patch`. Commands have stable
 targets, schema-validated arguments, a project revision, and a reversible result.
 Batch related changes into atomic transactions. Reject stale edits and generate a
 fresh preview against the current revision instead of overwriting intervening work.
@@ -157,7 +195,7 @@ Ship built-in components using a registration contract. Later expose versioned
 extension points for components, importers, exporters, inspector controls, and model
 adapters. Extensions declare compatibility and capabilities. Keep runtime and editor
 extensions distinct. Untrusted plugins need actual process or sandbox isolation;
-TypeScript interfaces alone are not a security boundary.
+Python protocols and type hints alone are not a security boundary.
 
 ## 6. LLM-first, with local and enterprise support
 
@@ -207,16 +245,24 @@ exclusions, and redact secrets before constructing prompts. Label token/cost est
 as estimates, show actual usage when available, and allow per-task limits. Never
 retry indefinitely or silently switch to a paid model.
 
-Keep credentials in the companion or OS credential store, never browser storage or
-exports. Bind the local service to loopback with origin checks and session
-authentication. Protect project APIs against traversal and symlink escapes. Project
-text and model tool requests cannot grant themselves permissions.
+Keep credentials in an OS credential store or a dedicated provider worker, never
+projects, game bundles, or inherited preview environment variables. Restrict file
+operations to project roots and prevent traversal/symlink escapes. Project text and
+model requests cannot grant themselves permissions. Use private, bounded IPC for
+worker commands/results; deserialize data, never arbitrary Python objects from an
+untrusted worker.
 
-Run previews on an isolated origin in a restricted iframe or equivalent boundary;
-never expose companion tokens, editor DOM, filesystem handles, or model keys. Use
-network restrictions by default and explicit capabilities when games need network
-access. Validate this boundary during the architecture spike. Handle runaway scripts
-with a way to terminate and restart the preview.
+Run Python game previews in a separate process so crashes and runaway loops can be
+terminated without losing editor state. **A subprocess is not a sandbox.** Before
+running untrusted/generated code, implement and verify a Linux sandbox policy, such
+as bubblewrap with a read-only project snapshot, isolated writable save directory,
+restricted filesystem/process access, no credentials, and network disabled by
+default. Expose only necessary display/audio resources. Use explicit permissions for
+networked games. Validate the sandbox both for native launch and container launch;
+nested namespace restrictions can differ. If isolation is unavailable, do not
+silently execute untrusted code; provide a clear trusted-project execution choice.
+Bubblewrap supplies mechanisms; the caller must define the actual policy.
+[Bubblewrap security model](https://github.com/containers/bubblewrap).
 
 Enterprise readiness is incremental: v0.1 provides endpoint flexibility, local-only
 policy, exclusions, and bounded audit metadata. Central SSO, organization roles,
@@ -224,81 +270,92 @@ centrally enforced policy, and multi-user hosting come later. A single-user Dock
 deployment is not automatically enterprise-secure because it accepts an enterprise
 endpoint. Provider retention/residency depends on its deployment and contract.
 
-## 7. Docker: separate application and test execution
+## 7. Docker: native desktop app and separate test container
 
-**Use separate application and test containers.** Share dependency/build stages,
-lockfile, and source revision while keeping testing tools out of the application.
-Docker documents multi-stage builds for this separation and Compose profiles for
-optional services. [Multi-stage builds](https://docs.docker.com/build/building/multi-stage/),
-[Compose profiles](https://docs.docker.com/reference/compose-file/profiles/).
+**Retain containerization using separate native desktop run and test images**, as
+Life Helper does. Docker launches the Python/Qt application and forwards its window
+to the host Wayland compositor. It does not host a webpage or remote desktop UI.
+Keep a direct native launcher available as well.
 
-| Service | Responsibility | Lifecycle |
+| Image/service | Responsibility | Isolation |
 | --- | --- | --- |
-| `app` | Compiled editor and companion; chosen project volume | Default application profile |
-| `dev` | Editor hot reload and companion watch process | Optional development profile |
-| `test` | Type checks, lint, focused unit/contract tests | Disposable; no app dependency |
-| `test-app` | Production app build with temporary projects and fake provider | Integration/E2E profile only |
-| `e2e` | Browser flows against `test-app` | Disposable; wait for readiness |
-| `ollama` | Optional inference with separate model storage | Explicit opt-in profile |
+| `Dockerfile.run` / `desktop` | Native editor and standalone preview support | Selected project/config volumes, current Wayland socket, required audio/GPU access only |
+| `Dockerfile.test` / `test` | Ruff, Python type checking, focused pytest/pytest-qt | Offscreen Qt, temporary projects, no host display or credentials |
+| Optional model service | Local inference, separate model storage | Explicit enablement; not part of normal tests |
 
-Use a multi-stage application Dockerfile with dependency, build, test, and runtime
-targets. Give E2E its own browser-capable image matched to its automation version.
-Keep routine tests in the smaller image. Pin images, run non-root, use a
-`.dockerignore`, cache dependency downloads, and never mount the Docker socket.
-Pass credentials at runtime, excluding them from image layers and test fixtures.
+Share the Python version, lockfile, source revision, and needed native libraries.
+Use a common dependency stage or otherwise keep the two Dockerfiles synchronized;
+install test extras only in the test image. Pin images and cache dependency downloads.
+Docker supports separating build/runtime dependencies with multi-stage builds.
+[Docker multi-stage builds](https://docs.docker.com/build/building/multi-stage/).
 
-Tests must never mount live user projects or production credentials. Use temporary
-storage and unique Compose project names in CI. Capture reports before cleanup,
-propagate failure to CI, and clean up even when tests fail. Do not use live inference
-in the normal suite.
+Use a non-root user matching the host UID/GID. Forward only the current Wayland
+socket, not the entire runtime directory. Add specific render devices and audio
+sockets only if the selected backend requires them. No privileged mode, Docker
+socket mount, broad home-directory mount, or blanket display access changes.
+Keep the local-only configuration network-disabled; model access is a deliberate
+configuration with explicit endpoints. Unlike Life Helper's entirely offline
+container, the model-enabled configuration must support the chosen local/enterprise
+endpoint. Do not silently enable network access in previews or tests.
 
-Planned developer interface, to implement and verify during foundation work:
+Use `compose.yaml` for the native app and a standalone `compose.test.yaml` for tests.
+This avoids requiring Wayland environment variables or evaluating host display
+mounts on a headless runner. Planned commands, not implemented yet:
 
 ```sh
-docker compose up --build app
-docker compose --profile dev up --build dev
-docker compose run --build --rm test
-docker compose --profile e2e up --build --abort-on-container-exit --exit-code-from e2e
+# Native desktop window through Wayland
+docker compose up --build desktop
+
+# Independent headless test container; propagate its exit status
+docker compose -f compose.test.yaml run --build --rm test
+
+# Direct native development workflow
+uv sync --frozen
+uv run --frozen solar-forge-engine
+
+# Same focused tests without Docker
+QT_QPA_PLATFORM=offscreen uv run --frozen --extra test pytest -q
 ```
 
-Configure `app` with its own profile so explicitly targeting it starts it, while an
-E2E profile starts only `test-app` and `e2e`. Define readiness/dependencies explicitly.
-Verify these commands return the intended exit status using an intentionally failing
-fixture. Keep app/dev ports from competing and document teardown and CI isolation
-once configuration exists.
+Test configuration uses `QT_QPA_PLATFORM=offscreen`, deterministic provider fixtures,
+no inference, and temporary data/cache/config directories. Never mount a live project
+or production secrets. Capture reports before cleanup; verify an intentionally
+failing fixture fails CI. Document volume persistence and cleanup without encouraging
+deletion of user projects. Separate ephemeral test storage from persistent app data.
 
-Docker standardizes the toolchain; it does not automatically accelerate builds,
-graphics, or inference. Containers add image/download/storage costs. Cache builds,
-avoid installing a browser for unit tests, and retain native development commands.
-GPU inference is optional and host-specific. Where container GPU support is
-unsuitable, connect to a host model server. Container `localhost` means that
-container: document a supported host connection or use Compose DNS. Do not expose
-inference endpoints publicly by default.
+Offscreen tests cover widget behavior, not real compositor, GPU, audio, or input
+compatibility. Run a small native Wayland smoke check on Arch for releases. If a
+backend needs a display for integration tests, add an isolated virtual display only
+to that test job; do not expose the user's desktop. Confirm native and container
+launches have consistent project behavior and acceptable performance.
 
-For end users, evaluate a desktop wrapper after the browser workflow works. Tauri
-is a candidate with capability controls, but companion packaging and per-OS testing
-are additional work. [Tauri capabilities](https://v2.tauri.app/security/capabilities/),
-[sidecars](https://v2.tauri.app/develop/sidecar/).
-Do not require Docker for the eventual desktop editor or exported games. Desktop
-packaging may need native OS runners even when core tests use Docker.
+Container GPU inference is optional and host-specific. Support a host model server
+when necessary. Container `localhost` means the container; document host routing or
+Compose DNS and endpoint binding. Never expose inference endpoints publicly by
+default. The engine's own interface remains entirely native.
+
+Use the Life Helper image strategy as a starting point, then validate required Qt,
+audio and rendering libraries. A Debian-based Python container can run on Arch;
+it does not replace testing Arch packaging and host drivers. Native editor packages
+and exported games must not require Docker.
 
 ## 8. Performance and focused verification
 
-These budgets are hypotheses. Establish a reference laptop, OS, browser, resolution,
+These budgets are hypotheses. Establish a reference Arch laptop, compositor, driver, resolution,
 and fixture in phase 0. Measure startup separately from image pulls, builds, model
 startup, and downloads.
 
 | Metric | Initial target / measurement |
 | --- | --- |
-| Editor usable | Under 2 seconds warm, under 5 seconds cold, service already ready |
+| Editor usable | Under 2 seconds warm, under 5 seconds cold from native process launch |
 | Enter Play | Under 1 second for the reference game after assets load |
 | Editor actions | Under 100 ms at p95 for selection and property changes |
 | Rendering | 60 fps target; p95 frame time below 16.7 ms on a defined 1,000-sprite scene |
-| Idle editor memory | Under 250 MiB incremental browser memory; report companion separately |
-| Initial editor JS | Under 2 MiB compressed, excluding lazy-loaded tools |
-| Starter export | Under 1 MiB compressed code, excluding assets; revisit after runtime spike |
+| Idle editor memory | Under 250 MiB editor RSS; report preview/workers/model separately |
+| Editor distribution | Record installed and download sizes with Python/Qt included; set a budget after the packaging spike |
+| Starter export | Record full native bundle size including Python/Qt; set a measured budget in phase 0 |
 | Routine checks | Under 30 seconds with warm dependencies on the reference machine |
-| Critical browser suite | Under 2 minutes, excluding initial image download/build |
+| Critical native UI suite | Under 2 minutes, excluding initial image download/build |
 
 If a budget fails, measure before adding complexity or revising it. Lazy-load code
 editing/optional panels, virtualize large asset lists, cache imports by content hash,
@@ -310,10 +367,11 @@ Tests earn their place by catching meaningful failures:
 - Unit/contract: command validation, atomic undo, scene round trips, migrations,
   stable references, path restrictions, provider errors and cancellation.
 - Runtime integration: movement/collision rules and resource disposal on restart.
-- Browser: create/edit/save/reopen; apply AI fixture and undo; export and play without
+- Native UI: create/edit/save/reopen; apply AI fixture and undo; export and play without
   editor/provider dependencies. Add flows only for distinct costly risks.
 - Boundary checks: reject unauthorized requests; prove preview code cannot access
-  editor credentials or host project APIs.
+  editor credentials or unrelated user files. Allow only the project snapshot,
+  isolated saves, and explicitly required runtime libraries/devices.
 - Performance: fixed-fixture milestone reports; avoid noisy per-commit timing gates
   until repeatability is established.
 
@@ -329,12 +387,12 @@ experience; these milestones are gates, not promised delivery dates.
 
 | Phase | Deliverable | Exit criterion |
 | --- | --- | --- |
-| 0 — Prove foundation | Runtime comparison, preview isolation spike, schema sketch, baseline measurements | Select one runtime in an ADR; record risks and budgets |
-| 1 — Reliable workspace | Shell, companion, storage, command/undo layer, Docker app/test targets | Create/save/reopen scene; atomic undo; test failures fail CI |
-| 2 — Playable 2D slice | Coin collector, input, collisions, audio, HUD, scripts, export | Manually editable game runs independently of editor |
+| 0 — Prove foundation | Python/Qt viewport, native player, Wayland/sandbox and packaging spikes | Validate native backend, isolation, dependency versions and measured budgets on Arch |
+| 1 — Reliable workspace | Qt shell, project storage, command/undo layer, Docker run/test images | Create/save/reopen scene; atomic undo; test failures fail CI |
+| 2 — Playable 2D slice | Coin collector, input, collisions, audio, HUD, Python scripts, Linux export | Native exported game runs on clean Arch without editor or Docker |
 | 3 — Useful assistant | Context, local/hosted adapters, diffs, commands, patch validation | Bounded task succeeds on verified local and hosted deployments; cancel/undo/offline work |
-| 4 — v0.1 polish | Assets, recovery, onboarding, accessibility, budgets, docs | First-time user exercise passes; export contains no secrets or AI dependency |
-| 5 — Validated expansion | Desktop packaging, tilemaps, templates, SDK, enterprise governance | Each addition justified by feedback and independently scoped |
+| 4 — v0.1 polish | Arch packaging, assets, recovery, onboarding, accessibility, budgets, docs | First-time user exercise passes; export contains no secrets or AI dependency |
+| 5 — Validated expansion | Tilemaps, templates, SDK, enterprise governance, other native platforms | Each addition justified by feedback and independently scoped |
 
 The v0.1 release includes phases 0–4. Export is an architectural check in phase 2,
 not an end-of-project feature. Avoid polishing a broad assistant before manual
@@ -342,12 +400,12 @@ editing is useful. Trial UX throughout development.
 
 First implementation tasks, in dependency order:
 
-1. Record baseline hardware, compare runtime candidates, and select one.
-2. Scaffold strict TypeScript, package scripts, formatting, pinned dependencies.
+1. Validate Python/PySide6 compatibility, native rendering, Wayland and packaging.
+2. Scaffold the Python package, uv lockfile, Ruff, type checks and native launcher.
 3. Define a versioned project/scene schema and three reversible commands.
-4. Build local project I/O, viewport, and inspector around those commands.
-5. Add Docker app/test targets and one save/load/undo contract fixture.
-6. Implement the playable template and independent web export.
+4. Build local project I/O, native Qt viewport, and inspector around those commands.
+5. Add separate Docker desktop/test images and one save/load/undo contract fixture.
+6. Implement the playable template and independent native Linux export.
 7. Connect AI to proven commands through a fake provider, then real adapters.
 
 ## 10. Risks, decisions, and release discipline
@@ -358,15 +416,16 @@ First implementation tasks, in dependency order:
 | AI corrupts work or invents APIs | Typed commands, current API context, validation, revisions, undo |
 | Small local models struggle | Capability detection, compact context, narrower operations, manual fallback |
 | Editor leaks into exports | Independent runtime entry point; inspect and execute exports in CI |
-| Preview hangs or escapes permissions | Isolation spike, restricted bridge/network, restart path, boundary tests |
-| Docker slows routine work | Cached stages, small images, native dev option, optional browser/model images |
+| Preview hangs or escapes permissions | Isolation spike, restricted IPC/filesystem/network, restart path, boundary tests |
+| Docker slows routine work | Cached stages, small images, native dev option, offscreen tests and optional model images |
 | Extensions destabilize editor | Built-ins first, versioned contracts, permissions, disable/recovery path |
 | Scope grows indefinitely | 2D release gates; defer work outside reference workflows |
 
-Default assumptions: local single-user authoring, web export first, no account,
-TypeScript scripting, keyboard/mouse first, Linux as the initial development host.
-Desktop OS support, minimum hardware, first enterprise provider, and licensing are
-open decisions. Choose the engine license before external release; document
+Fixed direction: native Arch Linux desktop, Python/PySide6, Python game scripting,
+native Linux exports, and no JavaScript/TypeScript or web UI. Default assumptions:
+local single-user authoring, no account, keyboard/mouse first, and Wayland first.
+Other native OS support, minimum hardware, first enterprise provider, and licensing
+remain open decisions. Choose the engine license before external release; document
 third-party notices and template/asset licenses. Never infer a license for imported
 or generated content.
 
