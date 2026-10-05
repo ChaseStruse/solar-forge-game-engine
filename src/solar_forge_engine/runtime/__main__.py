@@ -4,11 +4,9 @@ import argparse
 import json
 import sys
 
-from PySide6.QtWidgets import QApplication
-
+from solar_forge_engine.core.limits import MAX_FILE_BYTES
 from solar_forge_engine.core.scene import Scene
-from solar_forge_engine.project.storage import MAX_FILE_BYTES
-from solar_forge_engine.runtime.player import PlayerWindow
+from solar_forge_engine.runtime.application import run_scene
 
 
 def main() -> int:
@@ -24,12 +22,7 @@ def main() -> int:
     except (ValueError, UnicodeDecodeError, RecursionError) as error:
         print(f"Cannot play scene: {error}", file=sys.stderr)
         return 1
-    app = QApplication([sys.argv[0]])
-    app.setStyle("Fusion")
-    window = PlayerWindow(scene, args.control)
-    window.show()
-    print("Preview ready", flush=True)
-    return app.exec()
+    return run_scene(scene, args.control)
 
 
 if __name__ == "__main__":

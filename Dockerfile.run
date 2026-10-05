@@ -4,7 +4,7 @@ ARG SOLAR_FORGE_UID=1000
 ARG SOLAR_FORGE_GID=1000
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libegl1 libgl1 libxkbcommon0 libdbus-1-3 libglib2.0-0 libfontconfig1 \
-    libwayland-cursor0 fonts-dejavu-core \
+    libwayland-cursor0 fonts-dejavu-core pipewire-bin \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
@@ -13,7 +13,8 @@ COPY src ./src
 RUN uv sync --frozen --no-dev --no-cache
 RUN groupadd --gid "${SOLAR_FORGE_GID}" forge \
     && useradd --uid "${SOLAR_FORGE_UID}" --gid "${SOLAR_FORGE_GID}" --create-home forge \
-    && mkdir /projects && chown forge:forge /projects
+    && mkdir -p /projects /home/forge/.config/solar-forge-engine \
+    && chown -R forge:forge /projects /home/forge/.config
 USER forge
 WORKDIR /projects
 CMD ["/app/.venv/bin/solar-forge-engine"]

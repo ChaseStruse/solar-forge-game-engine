@@ -3,7 +3,9 @@
 from dataclasses import asdict, dataclass, replace
 from typing import Protocol
 
-from solar_forge_engine.core.scene import Entity, Scene
+from solar_forge_engine.core.audio import SoundClip
+from solar_forge_engine.core.scene import Entity, Scene, text
+from solar_forge_engine.core.sprite import Sprite
 
 
 class Command(Protocol):
@@ -26,7 +28,19 @@ class SetEntity:
     changes: dict[str, object]
 
     def apply(self, scene: Scene) -> Scene:
-        if not set(self.changes) <= {"name", "x", "y", "width", "height", "color", "role"}:
+        if not set(self.changes) <= {
+            "name",
+            "x",
+            "y",
+            "width",
+            "height",
+            "color",
+            "role",
+            "sprite",
+            "move_speed",
+            "input_preset",
+            "animation",
+        }:
             raise ValueError("Only editable entity properties may be changed.")
         entity = Entity.from_data({**asdict(scene.entity(self.entity_id)), **self.changes})
         return replace(
@@ -44,6 +58,48 @@ class DeleteEntity:
     def apply(self, scene: Scene) -> Scene:
         scene.entity(self.entity_id)
         return replace(scene, entities=tuple(e for e in scene.entities if e.id != self.entity_id))
+
+
+@dataclass(frozen=True)
+class MoveEntity:
+    """Move an existing object to a validated back-to-front draw index."""
+
+    entity_id: str
+    index: int
+
+    def apply(self, scene: Scene) -> Scene:
+        if type(self.index) is not int or not 0 <= self.index < len(scene.entities):
+            raise ValueError("Draw index must identify a position in the scene.")
+        entity = scene.entity(self.entity_id)
+        entities = [item for item in scene.entities if item.id != self.entity_id]
+        entities.insert(self.index, entity)
+        return replace(scene, entities=tuple(entities))
+
+
+@dataclass(frozen=True)
+class SetSceneName:
+    name: object
+
+    def apply(self, scene: Scene) -> Scene:
+        return replace(scene, name=text(self.name, "Scene name"))
+
+
+@dataclass(frozen=True)
+class SetCoinSound:
+    data: object
+
+    def apply(self, scene: Scene) -> Scene:
+        return replace(
+            scene, coin_sound=SoundClip.from_data(self.data) if self.data is not None else None
+        )
+
+
+@dataclass(frozen=True)
+class RestoreScene:
+    scene: Scene
+
+    def apply(self, scene: Scene) -> Scene:
+        return self.scene
 
 
 class Document:
@@ -70,6 +126,14 @@ class Document:
     @property
     def can_redo(self) -> bool:
         return bool(self._redo)
+
+    def retained_sprites(self) -> set[Sprite]:
+        return {
+            entity.sprite
+            for scene in (self._scene, *self._undo, *self._redo)
+            for entity in scene.entities
+            if entity.sprite is not None
+        }
 
     def execute(self, *commands: Command, expected_revision: int) -> None:
         if expected_revision != self._revision:

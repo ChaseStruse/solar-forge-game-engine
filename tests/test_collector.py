@@ -42,11 +42,11 @@ def test_collection_is_once_per_coin_and_restart_restores_score_and_visibility(q
     assert player.simulation.collected == {"coin"}
     assert player.simulation.won
     assert not player.items["coin"].isVisible()
-    assert "All coins collected" in player.score_label.text()
+    assert "All collected!" in player.score_label.text()
     player.restart()
     assert not player.simulation.collected
     assert player.items["coin"].isVisible()
-    assert "Coins: 0/1" in player.score_label.text()
+    assert "Collected: 0/1" in player.score_label.text()
     assert scene.entities[1].role == Role.COIN
 
 
@@ -67,9 +67,14 @@ def test_starter_can_be_edited_saved_and_reopened_with_roles(qtbot, tmp_path):
 def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     path = tmp_path / "old.forge.json"
     data = Scene(entities=(Entity("rectangle"),)).to_data()
+    data.pop("coin_sound", None)
     data["format_version"] = 1
     for entity in data["entities"]:
+        del entity["animation"]
+        del entity["move_speed"]
+        del entity["input_preset"]
         del entity["role"]
+        del entity["sprite"]
     original = json.dumps(data).encode()
     path.write_bytes(original)
     upgraded = load_scene(path)
@@ -77,7 +82,7 @@ def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     assert upgraded.entity("rectangle").role == Role.DECORATION
     save_scene(path, upgraded)
     assert (tmp_path / "old.forge.json.v1.bak").read_bytes() == original
-    assert json.loads(path.read_text())["format_version"] == 2
+    assert json.loads(path.read_text())["format_version"] == 9
     assert load_scene(path) == upgraded
 
 

@@ -1,0 +1,2730 @@
+{
+  "format_version": 8,
+  "name": "Courier Bay \u2014 sprite playground",
+  "entities": [
+    {
+      "id": "ember-0",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-1",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-2",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-3",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-4",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-5",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-6",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-7",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-8",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-9",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-10",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-11",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-12",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-13",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-14",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-15",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 0,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-16",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-17",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-18",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-19",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-20",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-21",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-22",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-23",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-24",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-25",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-26",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-27",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-28",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-29",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-30",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-31",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 64,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-32",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-33",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-34",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-35",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-36",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-37",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-38",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-39",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-40",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-41",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-42",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-43",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-44",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-45",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-46",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-47",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 128,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-48",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-49",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-50",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-51",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-52",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-53",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-54",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-55",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-56",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-57",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-58",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-59",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-60",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-61",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-62",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-63",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 192,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-64",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-65",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-66",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-67",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-68",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-69",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-70",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-71",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-72",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-73",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-74",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-75",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-76",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-77",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-78",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-79",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 256,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-80",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-81",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-82",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-83",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-84",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-85",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-86",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-87",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-88",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-89",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-90",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-91",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-92",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-93",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-94",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-95",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 320,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-96",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-97",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-98",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-99",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-100",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-101",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-102",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-103",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-104",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-105",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-106",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-107",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-108",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-109",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-110",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-111",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 384,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-112",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-113",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-114",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-115",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-116",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-117",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-118",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-119",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-120",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-121",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-122",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-123",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-124",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-125",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-126",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-127",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 448,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-128",
+      "name": "Deck plating",
+      "x": 0,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-129",
+      "name": "Deck plating",
+      "x": 64,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-130",
+      "name": "Deck plating",
+      "x": 128,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-131",
+      "name": "Deck plating",
+      "x": 192,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-132",
+      "name": "Deck plating",
+      "x": 256,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-133",
+      "name": "Deck plating",
+      "x": 320,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-134",
+      "name": "Deck plating",
+      "x": 384,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-135",
+      "name": "Deck plating",
+      "x": 448,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-136",
+      "name": "Deck plating",
+      "x": 512,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-137",
+      "name": "Deck plating",
+      "x": 576,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-138",
+      "name": "Deck plating",
+      "x": 640,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-139",
+      "name": "Deck plating",
+      "x": 704,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-140",
+      "name": "Deck plating",
+      "x": 768,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-141",
+      "name": "Deck plating",
+      "x": 832,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-142",
+      "name": "Deck plating",
+      "x": 896,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "ember-143",
+      "name": "Deck plating",
+      "x": 960,
+      "y": 512,
+      "width": 64,
+      "height": 64,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 32,
+        "height": 32,
+        "asset": "assets/b4da9ee44b9d2de4535fa6054a3919f67336900b004ce0083c28a78c5984d4f5.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": null
+    },
+    {
+      "id": "bay-player",
+      "name": "Forge courier",
+      "x": 100,
+      "y": 272,
+      "width": 48,
+      "height": 48,
+      "color": "#f4b544",
+      "role": "player",
+      "sprite": {
+        "width": 128,
+        "height": 32,
+        "asset": "assets/93fad93e631084ff532d651fb6bbe8e4fd9238d7ed367d97b998b5e2a650b002.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "bay-reactor",
+      "name": "Forge flame",
+      "x": 480,
+      "y": 192,
+      "width": 128,
+      "height": 128,
+      "color": "#f4b544",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/c4bc2cdda9a0ff61a9e4a9137065b45c4db2446b0cb7d1b6b2d5160cf2da2584.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 12
+      }
+    },
+    {
+      "id": "bay-core-0",
+      "name": "Energy core",
+      "x": 240,
+      "y": 272,
+      "width": 32,
+      "height": 32,
+      "color": "#f4b544",
+      "role": "coin",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "bay-core-1",
+      "name": "Energy core",
+      "x": 360,
+      "y": 272,
+      "width": 32,
+      "height": 32,
+      "color": "#f4b544",
+      "role": "coin",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "bay-core-2",
+      "name": "Energy core",
+      "x": 680,
+      "y": 272,
+      "width": 32,
+      "height": 32,
+      "color": "#f4b544",
+      "role": "coin",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "bay-core-3",
+      "name": "Energy core",
+      "x": 800,
+      "y": 272,
+      "width": 32,
+      "height": 32,
+      "color": "#f4b544",
+      "role": "coin",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    }
+  ]
+}

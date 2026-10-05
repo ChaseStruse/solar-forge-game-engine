@@ -60,3 +60,28 @@ def test_editor_starts_snapshot_without_importing_project_code_or_mutating_scene
     assert editor.document.scene == original
     assert editor.document.revision == revision
     editor.saved_scene = original
+
+
+def test_game_text_is_plain(qtbot, tmp_path):
+    from PySide6.QtGui import QColor, QImage
+
+    private = QImage(8, 8, QImage.Format.Format_RGB32)
+    private.fill(QColor("#ff00ff"))
+    path = tmp_path / "p.png"
+    assert private.save(str(path))
+    name = f"<img src='{path}'>"
+    player = PlayerWindow(Scene(entities=(Entity("player", name=name),)), "player")
+    qtbot.addWidget(player)
+    player.timer.stop()
+    label = player.controls_label
+    label.resize(600, 40)
+    painted = QImage(label.size(), QImage.Format.Format_RGB32)
+    painted.fill(QColor("black"))
+    label.render(painted)
+    assert not any(
+        painted.pixelColor(x, y) == QColor("#ff00ff")
+        for x in range(painted.width())
+        for y in range(painted.height())
+    )
+    assert name in label.text()
+    player.close()
