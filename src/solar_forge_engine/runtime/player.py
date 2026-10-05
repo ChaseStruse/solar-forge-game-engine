@@ -1,9 +1,10 @@
 """Native Play window for data-only scenes and built-in keyboard movement."""
 
+import base64
 import time
 
 from PySide6.QtCore import QEvent, Qt, QTimer
-from PySide6.QtGui import QBrush, QColor, QKeyEvent, QPaintEvent, QResizeEvent
+from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsView,
@@ -14,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from solar_forge_engine.core.scene import InputPreset, Scene
+from solar_forge_engine.runtime.audio import SoundPlayer
 from solar_forge_engine.runtime.rendering import SpriteAnimator, render_scene
 from solar_forge_engine.runtime.simulation import FIXED_STEP, WORLD_HEIGHT, WORLD_WIDTH, Simulation
 
@@ -52,6 +54,11 @@ class GameView(QGraphicsView):
 class PlayerWindow(QMainWindow):
     def __init__(self, scene: Scene, controlled_id: str) -> None:
         super().__init__()
+        self.sound_player = SoundPlayer(self)
+        self._sound_pcm = base64.b64decode(scene.coin_sound.samples) if scene.coin_sound else b""
+        self._audio_count = 0
+        self._closing = False
+        self.sound_player.finished.connect(self._audio_finished)
         self.simulation = Simulation(scene, controlled_id)
         preset = self.simulation.controlled.input_preset
         key_sets = {
@@ -110,6 +117,11 @@ class PlayerWindow(QMainWindow):
         toolbar.addWidget(restart)
         self.score_label = QLabel()
         toolbar.addWidget(self.score_label)
+        self.audio_label = QLabel()
+        if scene.coin_sound is not None:
+            toolbar.addWidget(self.audio_label)
+            self.audio_label.setAccessibleName("Game sound status")
+            self.sound_player.message.connect(self._audio_message)
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.timeout.connect(self.tick)
@@ -120,6 +132,11 @@ class PlayerWindow(QMainWindow):
         self.items[self.simulation.controlled.id].setPos(self.simulation.x, self.simulation.y)
         for coin in self.simulation.coins:
             self.items[coin.id].setVisible(coin.id not in self.simulation.collected)
+        count = len(self.simulation.collected)
+        clip = self.simulation.scene.coin_sound
+        if count > self._audio_count and clip is not None and not self.paused:
+            self.sound_player.play(self._sound_pcm, clip.rate, clip.channels, clip.width)
+        self._audio_count = count
         self.view.queue_animation_updates(self.animator.update(self._ticks))
         if self.simulation.coins:
             suffix = " · All collected! · Restart for another run" if self.simulation.won else ""
@@ -147,12 +164,16 @@ class PlayerWindow(QMainWindow):
 
     def toggle_pause(self) -> None:
         self.paused = not self.paused
+        if self.paused:
+            self.sound_player.stop()
         self.pause_button.setText("Resume" if self.paused else "Pause")
         self.keys.clear()
         self._accumulator = 0
         self._last_tick = time.monotonic()
 
     def restart(self) -> None:
+        self.sound_player.stop()
+        self._audio_count = 0
         self.paused = False
         self.pause_button.setText("Pause")
         self.simulation = Simulation(self.simulation.scene, self.simulation.controlled.id)
@@ -179,4 +200,24 @@ class PlayerWindow(QMainWindow):
     def changeEvent(self, event: QEvent) -> None:
         if event.type() == QEvent.Type.ActivationChange and not self.isActiveWindow():
             self.keys.clear()
+            self.sound_player.stop()
         super().changeEvent(event)
+
+    def _audio_message(self, message: str) -> None:
+        self.audio_label.setText(message[:72])
+        self.audio_label.setToolTip(message)
+
+    def _audio_finished(self) -> None:
+        if self._closing:
+            self.close()
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+        self.timer.stop()
+        self.keys.clear()
+        if self.sound_player.active:
+            event.ignore()
+            if not self._closing:
+                self._closing = True
+                self.sound_player.stop()
+        else:
+            super().closeEvent(event)

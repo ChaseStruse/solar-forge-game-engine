@@ -148,8 +148,7 @@ selection changes and closing stop playback, including a bounded kill fallback.
 PipeWire is optional for native import; no Qt multimedia add-on or Python dependency
 was added. Both Docker images include its client, while `compose.audio.yaml` optionally
 forwards only the user PipeWire socket. Default networking/display isolation is preserved.
-Gameplay references/triggers, sound renaming/deletion and concurrent-directory editing
-remain open. Sprite cleanup does not touch audio. Native Wayland import and real
+Library renaming/deletion and concurrent-directory editing remain open. Sprite cleanup does not touch audio. Native Wayland import and real
 PipeWire preview completed with exit zero and unchanged scene bytes. The same flow
 passed in the Wayland desktop container with its optional audio socket; the default
 container imported clips and reported unavailable playback without a socket. Asynchronous
@@ -171,8 +170,21 @@ upgrades preserve exact versioned backups, and prior v5/v7 recovery hashes remai
 compatible when the baseline has no sound. `SetCoinSound` provides validated,
 revision-checked undo/redo. Assigned PCM remains within the existing 4 MiB scene
 limit; relative audio references and larger music clips are deferred. The schema
-checkpoint passed 93 focused integrity/audio tests, Ruff and strict mypy; gameplay
-and assignment controls follow in the next checkpoint.
+checkpoint passed 93 focused integrity/audio tests, Ruff and strict mypy.
+
+Scene sound assignment/removal now runs through `SetCoinSound` with revision checks,
+size validation and undo/redo. The native Sounds dialog assigns a selected imported
+clip; a Scene-menu removal action also works for standalone documents. Play reads
+only the snapshot, decodes PCM once before ticking and uses one optional voice.
+Collection batches trigger once; overlapping events share that voice. Pause, focus
+loss, restart and closing terminate playback, with a bounded kill fallback. Runtime
+SIGTERM requests a graceful window close so normal editor Stop also disposes audio.
+Native Wayland assignment, save/reopen, undo/redo, real coin playback and restart
+completed with zero playback exit codes and unchanged authored data, both directly
+and in the native Wayland desktop container with optional audio forwarding. Full integration:
+242 tests pass locally (17.12 seconds) and in Docker (20.50 seconds), plus Ruff,
+formatting and strict mypy. Arbitrary script execution, multi-voice mixing, music and
+abrupt process-kill cleanup guarantees remain deferred.
 
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
@@ -1026,7 +1038,8 @@ Completed task checklist:
 - [x] Add worker-based single-file quarantine purge with fresh review, default-No confirmation and revalidation.
 - [ ] Add stronger recovery guarantees.
 - [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
-- [ ] Add gameplay sound references/triggers, Python game scripting and native game export.
+- [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.
+- [ ] Add Python game scripting and native game export.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
 - [x] Add bounded installed-model discovery and worker-based saved local preferences, preserving offline startup.
@@ -1035,18 +1048,13 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Connect imported sounds to a small gameplay event workflow, starting with coin
-   collection and restart-safe playback. Keep references portable and edits undoable.
-   Compositor-presented frame timing and hardware input latency remain unverified;
-   continue performance checks alongside the next runtime features.
-   Continue measuring larger-context model behavior before broadening scene tools.
-2. Continue scene organization and project integrity work; stronger concurrent-edit
+1. Continue scene organization and project integrity work; stronger concurrent-edit
    and power-loss recovery guarantees remain open.
-3. Add a small independent native player/export package. Verify it
+2. Add a small independent native player/export package. Verify it
    outside the editor on clean Arch.
-4. Prove a native and container-compatible sandbox before enabling imported/generated
+3. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
-5. Connect local and enterprise provider adapters after the initial fake-provider
+4. Connect local and enterprise provider adapters after the initial fake-provider
    workflow and scene-edit review are verified. Script-edit tools depend on the
    sandboxed execution path.
 

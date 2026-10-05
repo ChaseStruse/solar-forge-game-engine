@@ -2,7 +2,7 @@
 
 import json
 import sys
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 from uuid import uuid4
 
@@ -42,6 +42,7 @@ from solar_forge_engine.core.commands import (
     Document,
     MoveEntity,
     RestoreScene,
+    SetCoinSound,
     SetEntity,
 )
 from solar_forge_engine.core.scene import Entity, InputPreset, Role, Scene
@@ -416,6 +417,8 @@ class EditorWindow(QMainWindow):
         scene_menu.addAction(import_sprite)
         self.sounds_action = scene_menu.addAction("Project sounds…")
         self.sounds_action.triggered.connect(self.browse_sounds)
+        self.clear_sound_action = scene_menu.addAction("Remove collection sound")
+        self.clear_sound_action.triggered.connect(lambda: self.execute(SetCoinSound(None)))
         self.duplicate_action = action("Duplicate object", "Ctrl+D")
         self.duplicate_action.triggered.connect(self.duplicate_selected)
         self.delete_action = action("Delete object", "Ctrl+Delete")
@@ -549,6 +552,7 @@ class EditorWindow(QMainWindow):
             self.project is not None and self._asset_index_job is None
         )
         self.sounds_action.setEnabled(self.project is not None)
+        self.clear_sound_action.setEnabled(self.document.scene.coin_sound is not None)
         self.quarantine_button.setEnabled(self.project is not None and self._cleanup_job is None)
         self.cleanup_assets_button.setEnabled(
             self.project is not None and not self.dirty and self._cleanup_job is None
@@ -709,9 +713,14 @@ class EditorWindow(QMainWindow):
         self.objects.apply_filter(self.selected_id)
         self._update_inspector()
 
-    def execute(self, command: Command) -> bool:
+    def execute(self, command: Command, *, expected_revision: int | None = None) -> bool:
         try:
-            self.document.execute(command, expected_revision=self.document.revision)
+            self.document.execute(
+                command,
+                expected_revision=self.document.revision
+                if expected_revision is None
+                else expected_revision,
+            )
         except ValueError as error:
             self._error(str(error))
             self.refresh()
@@ -753,18 +762,18 @@ class EditorWindow(QMainWindow):
         self.log.append(f"Imported {path.name}")
         return True
 
-    def _execute_sprite(self, command: Command) -> bool:
+    def _execute_bounded(self, command: Command, *, expected_revision: int | None = None) -> bool:
         try:
             candidate = command.apply(self.document.scene)
             if len(json.dumps(candidate.to_data(), indent=2).encode("utf-8")) + 1 > MAX_FILE_BYTES:
-                raise ValueError("This sprite edit would exceed the 4 MiB scene limit.")
+                raise ValueError("This edit would exceed the 4 MiB scene limit.")
         except ValueError as error:
             self._error(str(error))
             return False
-        return self.execute(command)
+        return self.execute(command, expected_revision=expected_revision)
 
     def _add_sprite_entity(self, entity: Entity) -> bool:
-        if not self._execute_sprite(CreateEntity(entity)):
+        if not self._execute_bounded(CreateEntity(entity)):
             return False
         self.selected_id = entity.id
         self.refresh()
@@ -862,8 +871,17 @@ class EditorWindow(QMainWindow):
     def browse_sounds(self) -> None:
         if self.project is None:
             return
-        dialog = SoundsDialog(self.project, self)
+        document, revision = self.document, self.document.revision
+        dialog = SoundsDialog(self.project, self, coin_sound=document.scene.coin_sound)
         dialog.exec()
+        if dialog.sound_changed:
+            if self.document is not document:
+                self._error("The scene changed. Reopen sounds before assigning a clip.")
+            else:
+                self._execute_bounded(
+                    SetCoinSound(asdict(dialog.chosen_clip) if dialog.chosen_clip else None),
+                    expected_revision=revision,
+                )
         dialog.deleteLater()
 
     def browse_quarantine(self) -> None:
@@ -971,7 +989,7 @@ class EditorWindow(QMainWindow):
         row = self.asset_list.currentItem()
         if row is not None and not row.isHidden() and self.selected_id is not None:
             sprite = self.asset_sprites[row.data(Qt.ItemDataRole.UserRole)]
-            self._execute_sprite(
+            self._execute_bounded(
                 SetEntity(
                     self.selected_id,
                     {

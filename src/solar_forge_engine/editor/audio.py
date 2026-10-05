@@ -16,11 +16,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from solar_forge_engine.project.audio import Sound, import_wav, list_sounds, load_sound
+from solar_forge_engine.core.audio import SoundClip
+from solar_forge_engine.project.audio import Sound, import_wav, list_sounds, load_clip, load_sound
 from solar_forge_engine.project.workspace import Project
 from solar_forge_engine.runtime.audio import SoundPlayer
 
-Operation = Literal["scan", "import", "preview"]
+Operation = Literal["scan", "import", "preview", "choose"]
 
 
 class SoundWorker(QThread):
@@ -32,11 +33,14 @@ class SoundWorker(QThread):
         self.entries: tuple[Sound, ...] = ()
         self.sound: Sound | None = None
         self.pcm = b""
+        self.clip: SoundClip | None = None
         self.error: str | None = None
 
     def run(self) -> None:
         try:
-            if self.operation == "preview":
+            if self.operation == "choose":
+                self.clip = load_clip(self.project.root, self.target)
+            elif self.operation == "preview":
                 self.sound, self.pcm = load_sound(self.project, self.target)
             else:
                 if self.operation == "import":
@@ -47,9 +51,18 @@ class SoundWorker(QThread):
 
 
 class SoundsDialog(QDialog):
-    def __init__(self, project: Project, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        project: Project,
+        parent: QWidget | None = None,
+        *,
+        coin_sound: SoundClip | None = None,
+    ) -> None:
         super().__init__(parent)
         self.project = project
+        self.coin_sound = coin_sound
+        self.sound_changed = False
+        self.chosen_clip: SoundClip | None = None
         self.entries: tuple[Sound, ...] = ()
         self._job: SoundWorker | None = None
         self._closing = False
@@ -58,7 +71,7 @@ class SoundsDialog(QDialog):
         layout = QVBoxLayout(self)
         hint = QLabel(
             "Import short WAV clips into this project's audio/ folder. "
-            "Preview uses PipeWire at 25% volume. Gameplay sound triggers are coming later."
+            "Preview uses PipeWire at 25% volume. Use a clip when coins are collected in Play."
         )
         hint.setWordWrap(True)
         layout.addWidget(hint)
@@ -82,6 +95,20 @@ class SoundsDialog(QDialog):
         ):
             row.addWidget(button)
         layout.addLayout(row)
+        self.assigned = QLabel(
+            f"Coin collection sound: {coin_sound.duration:.2f} s"
+            if coin_sound
+            else "Coin collection sound: None"
+        )
+        layout.addWidget(self.assigned)
+        assign_row = QHBoxLayout()
+        self.use_button = QPushButton("Use for coin collection")
+        self.clear_button = QPushButton("Remove collection sound")
+        assign_row.addWidget(self.use_button)
+        assign_row.addWidget(self.clear_button)
+        layout.addLayout(assign_row)
+        self.use_button.clicked.connect(self.choose_sound)
+        self.clear_button.clicked.connect(self.clear_sound)
         close = QPushButton("Close")
         close.clicked.connect(self.reject)
         layout.addWidget(close)
@@ -107,6 +134,8 @@ class SoundsDialog(QDialog):
         self.preview_button.setEnabled(idle and 0 <= self.files.currentRow() < len(self.entries))
         self.stop_button.setEnabled(self._playing())
         self.files.setEnabled(self._job is None)
+        self.use_button.setEnabled(idle and 0 <= self.files.currentRow() < len(self.entries))
+        self.clear_button.setEnabled(idle and self.coin_sound is not None)
 
     def _start(self, operation: Operation, target: str = "") -> None:
         if self._job is not None or self._playing():
@@ -130,6 +159,17 @@ class SoundsDialog(QDialog):
         if 0 <= index < len(self.entries):
             self._start("preview", self.entries[index].reference)
 
+    def choose_sound(self) -> None:
+        index = self.files.currentRow()
+        if 0 <= index < len(self.entries):
+            self._start("choose", self.entries[index].reference)
+
+    def clear_sound(self) -> None:
+        if self._job is None and not self._playing() and self.coin_sound is not None:
+            self.sound_changed = True
+            self.chosen_clip = None
+            super().accept()
+
     def _finished(self, job: SoundWorker) -> None:
         self._job = None
         job.deleteLater()
@@ -143,6 +183,10 @@ class SoundsDialog(QDialog):
             if job.operation == "scan":
                 self.entries = ()
                 self.files.clear()
+        elif job.operation == "choose":
+            self.sound_changed = True
+            self.chosen_clip = job.clip
+            super().accept()
         elif job.operation == "preview":
             assert job.sound is not None
             self.status.setText(f"Previewing {job.sound.name}…")

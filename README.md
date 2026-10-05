@@ -117,12 +117,12 @@ invalid or failed updates leave the manifest intact. Startup selection is a proj
 setting outside scene undo/redo. Ordinary scene switching still leaves that setting
 unchanged and does not introduce runtime scene transitions.
 
-Project saves write version-eight scene files with relative sprite references to
+Project saves write version-ten scene files with relative sprite references to
 `assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;
 files are validated by size, dimensions, and content hash when opened. Move the
 entire folder to keep the project portable. Standalone Save As still embeds pixels
-in version-seven scenes, and Play receives resolved data without reading asset paths.
-Older embedded scenes and version-four/six project scenes load with default movement
+in version-nine scenes, and Play receives resolved data without reading asset paths.
+Older embedded scenes and version-four/six/eight project scenes load with default movement
 settings; saving upgrades them after keeping an exact version-specific `.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
@@ -427,16 +427,29 @@ records observed improvements and the remaining cadence/presentation limits.
 
 Open a project, then choose **Scene → Project sounds…**. Import WAV clips, select
 one to preview, and use Stop to interrupt playback. Selection changes and closing
-also stop playback. Import and validation run in workers; scenes and undo history
-are unchanged. Clips are copied into `audio/` with readable names and content hashes,
+also stop playback. Import and validation run in workers. Importing clips leaves scenes and undo history
+unchanged; **Use for coin collection** assigns a clip through a validated undoable edit. Clips are copied into `audio/` with readable names and content hashes,
 deduplicated and kept portable when the project moves. Source metadata is stripped.
 
 Supported clips: uncompressed PCM WAV, mono/stereo, 8/16 bit, 8–48 kHz, up to
 30 seconds and 4 MiB per file. The library allows 128 clips / 32 MiB. Unsafe paths,
 malformed files and changed fingerprints are rejected without overwriting files.
-Import is a library operation, not an undoable scene edit; gameplay sound triggers,
-renaming and deletion are not implemented yet. Audio files are outside sprite cleanup.
+Import is a library operation, not an undoable scene edit; library renaming/deletion
+are not implemented yet. Audio files are outside sprite cleanup.
 Concurrent external editing of the audio directory is not supported.
+
+Each scene can use one collection sound. The dialog shows its duration and lets you
+replace/remove it; **Scene → Remove collection sound** also works for standalone scenes.
+Assignment/removal supports undo/redo and rejects expired scene revisions. The assigned
+PCM is embedded in standalone format 9 and project format 10 within the existing
+4 MiB scene limit; source/library paths are not needed by Play or standalone copies.
+Earlier scenes load silently and upgrades preserve exact versioned backups.
+
+Play uses one optional voice at 25% volume. Collecting coins triggers that sound once
+per collection batch; overlapping events share the active voice. Pause, focus loss,
+Restart and closing stop it; Restart makes coins collectable again. Missing PipeWire
+is shown in the game status without preventing play. No inference or project code
+runs during audio playback.
 
 Native preview uses `/usr/bin/pw-play` from Arch's `pipewire-audio` package and an
 active user PipeWire session. Validated PCM samples go over stdin at 25% volume;

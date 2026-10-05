@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import signal
 import sys
 
 from PySide6.QtWidgets import QApplication
@@ -27,6 +28,7 @@ def main() -> int:
     app = QApplication([sys.argv[0]])
     app.setStyle("Fusion")
     window = PlayerWindow(scene, args.control)
+    signal.signal(signal.SIGTERM, lambda *_: window.close())
     window.show()
     print("Preview ready", flush=True)
     return app.exec()
