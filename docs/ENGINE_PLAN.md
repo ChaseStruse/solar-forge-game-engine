@@ -1,16 +1,17 @@
 # Solar Forge Game Engine — product and implementation plan
 
-Status: implementation started, October 4, 2026. The native scene editor foundation
-is implemented. The architecture and later milestones below describe intended work;
-performance numbers remain targets, not measured guarantees.
+Status: playable native prototype, updated October 4, 2026, through implementation
+commit `515d995`. The scene editor, separate native player, Docker workflows, and
+editable coin collector are implemented. The remaining architecture and release
+milestones below are planned work; unmeasured performance budgets remain targets.
 
 ### Implemented foundation checkpoints
 
 - Python 3.14, PySide6 Essentials 6.11.2, uv lockfile, Ruff, mypy and focused pytest.
 - Native Qt shell, Graphics View rectangles, scene tree, property inspector, and
   create/update/delete commands with transactional undo/redo and revision checks.
-- Version-one `.forge.json` scene documents, bounded/validated loading, atomic writes,
-  and unsaved-change handling on New/Open/Close.
+- Version-two `.forge.json` scene documents with version-one loading support,
+  bounded/validated reads, atomic writes, and unsaved-change protection on New/Open/Close.
 - Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
 - Separate non-root Docker desktop/test images and independent headless test Compose;
   the native app forwards its window through Wayland and keeps networking disabled.
@@ -40,8 +41,18 @@ compositor/GPU compatibility.
 This is a small authoring slice, not a completed phase 0 or phase 1. Project folders,
 assets, audio, sandboxed script execution, AI, and native game exports are not
 implemented. A single scene file deliberately precedes multi-file project persistence.
-The Qt backend remains provisional pending sprite and native presentation benchmarks. See the README
-for commands that are actually runnable; later commands below are design targets.
+The Qt backend remains provisional pending sprite and native presentation benchmarks.
+See the [README](../README.md) for runnable commands. Later sections distinguish
+implemented contracts from the intended project and release architecture.
+
+### Completed implementation checkpoints
+
+| Commit | Delivered checkpoint |
+| --- | --- |
+| `302d629` | Python package and native editor; rectangle editing; validated commands; transactional undo/redo; atomic scene persistence |
+| `1db6335` | Separate non-root Wayland desktop and offscreen test containers; verified test failure exit handling |
+| `be32b68` | Native Play subprocess; shared renderer; normalized fixed-step movement; pause/restart/Stop; software rendering fixture; dependency-layer caching |
+| `515d995` | Editable coin starter; explicit gameplay roles; static wall collisions; collectible triggers; score/completion HUD; version-one backup before upgrade |
 
 **Fixed platform decision:** native Arch Linux desktop, Python application and game
 scripting, and PySide6 Qt Widgets. No JavaScript, TypeScript, browser UI, embedded
@@ -95,6 +106,12 @@ Success criterion: at least four of five first-time testers can customize and
 export the template within ten minutes without developer intervention. Test whether
 labels, defaults, and recovery paths are understandable, not just functional.
 
+**Current usable subset:** choose Coin starter, edit object properties and roles,
+press Play, navigate around walls, collect all five coins, restart, and save/reopen
+the scene. A focused route test verifies the starter can be completed without crossing
+walls. Local project-folder creation, sprite drag/import, sound effects, AI changes,
+and native export remain pending. The five-person usability exercise has not run.
+
 ## 3. Scope and editor design
 
 | Area | v0.1 requirement | Later, if justified |
@@ -108,6 +125,24 @@ labels, defaults, and recovery paths are understandable, not just functional.
 | Development | Play/stop, error links, small script editor, external-editor workflow | Breakpoint debugger, profiler UI |
 | AI | Contextual questions, structured scene edits, bounded script changes | Asset generation integrations |
 | Export | Native Linux game bundle and clean-machine validation | Other native platforms if requested |
+
+Implemented scope is intentionally narrower than the v0.1 requirements above:
+
+- Workspace: native scene tree, viewport, property inspector, menus/toolbar, activity
+  log, shortcuts, and empty-scene guidance. No project browser or asset panel yet.
+- Scene editing: create/delete, name, X/Y, width/height, hex color, role, and undo/redo.
+  Inspector changes require Apply. No drag gizmos, rotation, snapping, hierarchy,
+  duplication, or layer controls yet.
+- Rendering: native rectangles and circular coin visuals, selection, tooltips, and
+  fit-to-view. No imported sprites, atlases, animation, camera tooling, or game UI editor.
+- Gameplay: 1024×576 arena, keyboard movement at a built-in 240 units/second,
+  normalized diagonals, static axis-aligned walls, rectangular coin trigger bounds,
+  score/completion display, pause, restart, and focus-loss handling. Initial wall
+  overlap is not resolved. General input actions and reusable behavior components
+  are still planned.
+- Development: separate native Play process, Stop, startup/error log, and snapshot
+  playback that leaves authored state unchanged. No project script execution,
+  script editor, debugger, AI panel, or exported game bundle yet.
 
 Use a restrained graphite theme with solar amber accents, readable typography,
 clear selection states, and minimal decorative motion. Share Solar Forge Studios
@@ -145,6 +180,12 @@ database, application domain, or dependencies unrelated to game development.
 | Tests | pytest, pytest-qt, Ruff, one Python type checker | Small deterministic tests and a few native UI workflows |
 | Distribution | Native Arch package/launcher plus Docker desktop run image | Both launch native windows; exports work without Docker |
 
+Implemented choices are Python 3.14, PySide6 Essentials 6.11.2, Hatchling, uv with
+one lockfile, Ruff, mypy, pytest, and pytest-qt. Qt Graphics View is shared by editor
+and player. The renderer currently draws geometric items, not cached sprite pixmaps.
+The built-in simulation is Qt-independent. Audio bindings, background worker jobs,
+asset processing, and provider adapters have not been introduced.
+
 Qt's Graphics View provides 2D scene items and views through Python bindings.
 Use it as the first rendering spike so authoring and standalone playback can share
 one visual implementation. Keep simulation data independent of Qt items and isolate
@@ -165,27 +206,31 @@ thread. Use workers for blocking I/O and processes for CPU-heavy Python tasks wh
 measurements justify them. Introduce compiled extensions only for proven bottlenecks
 with an explicit architecture decision; do not replace the Python-first direction.
 
-Suggested structure, introduced as needed:
+Current repository structure:
 
 ```text
 pyproject.toml
 uv.lock
 src/solar_forge_engine/
-    editor/             Qt Widgets, inspector, native viewport and panels
-    core/               Data schemas, reversible commands, migrations
-    runtime/            Simulation, rendering/audio adapter, standalone player
-    ai/                 Provider adapters, context, tool orchestration
-    project/            File I/O, assets, recovery and native export
+    editor/             Native window, scene tree, viewport and inspector
+    core/               Scene/role schemas, commands, built-in starter data
+    runtime/            Simulation, shared renderer and native player entry point
+    project/            Bounded scene reads and atomic writes with upgrade backup
     __main__.py         Native editor entry point
-resources/              Icons, themes and desktop integration assets
-templates/              Python game scripts and sample assets
-tests/                  Focused contracts and native UI checks
-packaging/              Arch package recipe and game bundle configuration
+scripts/                Software rendering benchmark
+tests/                  Scene, editor, player and collector checks
+docs/                   This plan
 Dockerfile.run
 Dockerfile.test
 compose.yaml
 compose.test.yaml
 ```
+
+Add `ai/`, project asset/recovery/export modules, `resources/`, external `templates/`,
+and `packaging/` when their features are implemented. The current starter is data in
+[`core/templates.py`](../src/solar_forge_engine/core/templates.py); it contains no
+project scripts. A source-run console launcher and Docker image exist; Arch package
+recipes, desktop entries, icons, and distributable game packaging do not yet exist.
 
 Editor, project, and AI layers use core; runtime consumes validated game data.
 Core cannot import the editor or providers. The standalone player must not import
@@ -207,7 +252,22 @@ Arch needs its own ABI/build baseline. [Qt deployment guidance](https://doc.qt.i
 
 ## 5. Project model, runtime, and extension contracts
 
-A project contains `project.json`, `scenes/`, `assets/`, and Python `scripts/`. Ignore
+**Current persistence:** one version-two `.forge.json` file contains scene name,
+stable entity IDs, geometry, color, and explicit Role values. Version-one scenes
+load in memory with Decoration roles. Loading does not rewrite the original; saving
+over a version-one document first creates `<filename>.v1.bak`. An occupied backup
+name requires Save As. Scene reads/writes are limited to 4 MiB and scenes to 10,000
+entities. Undo/redo uses bounded in-memory scene history with monotonic revisions.
+Preview state lives in a separate simulation and is not persisted into the scene.
+
+Implemented commands are `CreateEntity`, `SetEntity`, and `DeleteEntity` in
+[`core/commands.py`](../src/solar_forge_engine/core/commands.py). Batched edits apply
+atomically with an expected revision; invalid or stale changes leave the document
+and history intact. The UI uses this command layer. No AI tool dispatcher or generic
+component registration exists yet. Typed roles are the current built-in gameplay
+contract, preceding the richer component design below.
+
+**Planned project format:** `project.json`, `scenes/`, `assets/`, and Python `scripts/`. Ignore
 generated caches and builds. Use stable IDs and relative asset references, with
 separate scene files for manageable diffs. Never store keys or machine-specific
 absolute paths in projects.
@@ -237,6 +297,12 @@ extensions distinct. Untrusted plugins need actual process or sandbox isolation;
 Python protocols and type hints alone are not a security boundary.
 
 ## 6. LLM-first, with local and enterprise support
+
+**Status: not implemented.** There is no assistant panel, provider connection,
+credential store integration, model worker, tool orchestration, or AI fixture suite.
+Manual editing and built-in playback work offline today. The existing command and
+revision contracts are the foundation for future AI edits. The behavior below is the
+target design, not current model support.
 
 The assistant answers questions about selected objects, explains errors, constructs
 scenes, adds behaviors, and makes small code changes. Supply a compact, versioned
@@ -303,7 +369,7 @@ silently execute untrusted code; provide a clear trusted-project execution choic
 Bubblewrap supplies mechanisms; the caller must define the actual policy.
 [Bubblewrap security model](https://github.com/containers/bubblewrap).
 
-Enterprise readiness is incremental: v0.1 provides endpoint flexibility, local-only
+Enterprise readiness is incremental: v0.1 is intended to provide endpoint flexibility, local-only
 policy, exclusions, and bounded audit metadata. Central SSO, organization roles,
 centrally enforced policy, and multi-user hosting come later. A single-user Docker
 deployment is not automatically enterprise-secure because it accepts an enterprise
@@ -322,6 +388,13 @@ Keep a direct native launcher available as well.
 | `Dockerfile.test` / `test` | Ruff, Python type checking, focused pytest/pytest-qt | Offscreen Qt, temporary projects, no host display or credentials |
 | Optional model service | Local inference, separate model storage | Explicit enablement; not part of normal tests |
 
+The desktop and test services are implemented. The app currently mounts the current
+Wayland socket and a persistent `/projects` volume; it has no configuration volume,
+audio forwarding, explicit GPU device mapping, or model service. Both runtime
+services have networking disabled. Dependency installation precedes source copying
+so code-only rebuilds reuse the dependency layer. Test-only packages stay in the
+test image. The default test command runs Ruff, formatting, mypy, and pytest.
+
 Share the Python version, lockfile, source revision, and needed native libraries.
 Use a common dependency stage or otherwise keep the two Dockerfiles synchronized;
 install test extras only in the test image. Pin images and cache dependency downloads.
@@ -339,8 +412,9 @@ endpoint. Do not silently enable network access in previews or tests.
 
 Use `compose.yaml` for the native app and a standalone `compose.test.yaml` for tests.
 This avoids requiring Wayland environment variables or evaluating host display
-mounts on a headless runner. These foundation commands are implemented; container
-compositor/GPU compatibility still requires a native host smoke check:
+mounts on a headless runner. These foundation commands are implemented.
+Native and container Wayland startup/shutdown smoke checks have passed. Broader
+compositor/GPU compatibility and performance checks are still pending:
 
 ```sh
 # Native desktop window through Wayland
@@ -357,8 +431,8 @@ uv run --frozen solar-forge-engine
 QT_QPA_PLATFORM=offscreen uv run --frozen --extra test pytest -q
 ```
 
-Test configuration uses `QT_QPA_PLATFORM=offscreen`, deterministic provider fixtures,
-no inference, and temporary data/cache/config directories. Never mount a live project
+Test configuration uses `QT_QPA_PLATFORM=offscreen`, no inference, and temporary
+data/cache/config directories. Provider fixtures remain future AI work. Never mount a live project
 or production secrets. Capture reports before cleanup; verify an intentionally
 failing fixture fails CI. Document volume persistence and cleanup without encouraging
 deletion of user projects. Separate ephemeral test storage from persistent app data.
@@ -397,6 +471,13 @@ startup, and downloads.
 | Routine checks | Under 30 seconds with warm dependencies on the reference machine |
 | Critical native UI suite | Under 2 minutes, excluding initial image download/build |
 
+Recorded evidence so far: the software rectangle fixture reported median 4.805 ms
+and p95 4.953 ms. The latest 21-test suite passed locally in 0.75 seconds and in the
+test container in 0.89 seconds; those pytest timings exclude lint, type checks, image
+builds, and downloads. Startup, editor-action latency, memory, textured-sprite frame
+time, distribution size, and export size have not been measured against the budgets.
+Do not treat the software fixture as proof of the native 60 fps presentation target.
+
 If a budget fails, measure before adding complexity or revising it. Lazy-load code
 editing/optional panels, virtualize large asset lists, cache imports by content hash,
 and move heavy processing off the UI thread. Keep AI out of the runtime loop.
@@ -425,28 +506,53 @@ implementation. Data-integrity and permission tests are worth their cost.
 Build one usable vertical slice before expanding. Estimates depend on staffing and
 experience; these milestones are gates, not promised delivery dates.
 
-| Phase | Deliverable | Exit criterion |
+| Phase | Current status | Remaining exit work |
 | --- | --- | --- |
-| 0 — Prove foundation | Python/Qt viewport, native player, Wayland/sandbox and packaging spikes | Validate native backend, isolation, dependency versions and measured budgets on Arch |
-| 1 — Reliable workspace | Qt shell, project storage, command/undo layer, Docker run/test images | Create/save/reopen scene; atomic undo; test failures fail CI |
-| 2 — Playable 2D slice | Coin collector, input, collisions, audio, HUD, Python scripts, Linux export | Native exported game runs on clean Arch without editor or Docker |
-| 3 — Useful assistant | Context, local/hosted adapters, diffs, commands, patch validation | Bounded task succeeds on verified local and hosted deployments; cancel/undo/offline work |
-| 4 — v0.1 polish | Arch packaging, assets, recovery, onboarding, accessibility, budgets, docs | First-time user exercise passes; export contains no secrets or AI dependency |
-| 5 — Validated expansion | Tilemaps, templates, SDK, enterprise governance, other native platforms | Each addition justified by feedback and independently scoped |
+| 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Textured sprites and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
+| 1 — Reliable workspace | Scene workspace shipped: editing, save/reopen, upgrade backup, atomic undo and independent Docker tests | Project-folder format/root restrictions, asset workspace, recovery journal and complete project integrity checks; CI automation still absent |
+| 2 — Playable 2D slice | Partial: editable collector, keyboard movement, walls, coin triggers, HUD and restart | Imported/animated assets, audio, configurable input/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
+| 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
+| 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
+| 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
 
 The v0.1 release includes phases 0–4. Export is an architectural check in phase 2,
 not an end-of-project feature. Avoid polishing a broad assistant before manual
 editing is useful. Trial UX throughout development.
 
-First implementation tasks, in dependency order:
+Completed task checklist:
 
-1. Validate Python/PySide6 compatibility, native rendering, Wayland and packaging.
-2. Scaffold the Python package, uv lockfile, Ruff, type checks and native launcher.
-3. Define a versioned project/scene schema and three reversible commands.
-4. Build local project I/O, native Qt viewport, and inspector around those commands.
-5. Add separate Docker desktop/test images and one save/load/undo contract fixture.
-6. Implement the playable template and independent native Linux export.
-7. Connect AI to proven commands through a fake provider, then real adapters.
+- [x] Scaffold the Python package, pinned dependencies, uv lockfile, Ruff, mypy and launcher.
+- [x] Implement a versioned scene schema and create/update/delete commands.
+- [x] Connect native viewport, inspector, scene tree and local scene persistence.
+- [x] Verify atomic undo/redo, stale revisions, validation and save-failure preservation.
+- [x] Implement separate Docker desktop/test images and verify failure propagation.
+- [x] Implement data-only native Play with state separation, pause/restart and Stop.
+- [x] Measure a repeatable software rendering fixture.
+- [x] Implement the editable collector and verify a complete route around its walls.
+- [x] Persist gameplay roles and protect version-one originals during save upgrades.
+- [ ] Close the complete renderer/sandbox/packaging foundation gates.
+- [ ] Replace scene-only persistence with a validated project-folder workflow.
+- [ ] Deliver assets, audio, Python game scripting and native game export.
+- [ ] Connect the assistant through a fake provider, then verified real adapters.
+
+Next small features, in recommended order:
+
+1. Add PNG sprite import/rendering with validated asset paths and a cached native
+   image representation. Reuse it in editor and player; extend the software fixture
+   to textured sprites and record native presentation/startup measurements.
+2. Introduce project-folder creation/opening, relative asset references, project-root
+   restrictions and a tested upgrade path from existing scene documents. Keep saves
+   transactional; add a bounded recovery journal after the basic folder contract works.
+3. Add configurable movement/input and audio to the reference game, then a small
+   independent native player/export package. Verify it outside the editor on clean Arch.
+4. Prove a native and container-compatible sandbox before enabling imported/generated
+   Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
+5. Add the assistant's bounded scene tools through deterministic fake-provider fixtures,
+   using the existing validated command/revision layer, before connecting local and
+   enterprise providers. Script-edit tools depend on the sandboxed execution path.
+
+Continue committing coherent small features. Do not repeat finished scaffolding or
+replace the working native approach while closing the remaining milestone gates.
 
 ## 10. Risks, decisions, and release discipline
 
