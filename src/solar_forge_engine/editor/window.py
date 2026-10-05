@@ -2,6 +2,7 @@
 
 import json
 import sys
+from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
@@ -158,9 +159,11 @@ class EditorWindow(QMainWindow):
         toolbar.addSeparator()
         add = action("Add rectangle", "Ctrl+Shift+A")
         add.triggered.connect(self.add_rectangle)
+        self.duplicate_action = action("Duplicate object", "Ctrl+D")
+        self.duplicate_action.triggered.connect(self.duplicate_selected)
         self.delete_action = action("Delete object", "Ctrl+Delete")
         self.delete_action.triggered.connect(self.delete_selected)
-        scene_menu.addActions([add, self.delete_action])
+        scene_menu.addActions([add, self.duplicate_action, self.delete_action])
         fit = scene_menu.addAction("Fit scene")
         fit.setShortcut("F")
         fit.triggered.connect(self.fit_scene)
@@ -224,6 +227,7 @@ class EditorWindow(QMainWindow):
     def _update_inspector(self) -> None:
         self.inspector.setEnabled(self.selected_id is not None)
         self.delete_action.setEnabled(self.selected_id is not None)
+        self.duplicate_action.setEnabled(self.selected_id is not None)
         if self.selected_id is None:
             self.name_field.clear()
             self.color_field.clear()
@@ -256,12 +260,15 @@ class EditorWindow(QMainWindow):
                     break
         self._update_inspector()
 
-    def execute(self, command: Command) -> None:
+    def execute(self, command: Command) -> bool:
         try:
             self.document.execute(command, expected_revision=self.document.revision)
         except ValueError as error:
             self._error(str(error))
+            self.refresh()
+            return False
         self.refresh()
+        return True
 
     def add_rectangle(self) -> None:
         offset = (len(self.document.scene.entities) % 8) * 24
@@ -282,6 +289,21 @@ class EditorWindow(QMainWindow):
     def delete_selected(self) -> None:
         if self.selected_id is not None:
             self.execute(DeleteEntity(self.selected_id))
+
+    def duplicate_selected(self) -> None:
+        if self.selected_id is None:
+            return
+        original = self.document.scene.entity(self.selected_id)
+        duplicate = replace(
+            original,
+            id=str(uuid4()),
+            name=f"{original.name[:95]} copy",
+            x=min(original.x + 24, 100_000),
+            y=min(original.y + 24, 100_000),
+        )
+        if self.execute(CreateEntity(duplicate)):
+            self.selected_id = duplicate.id
+            self.refresh()
 
     def undo(self) -> None:
         self.document.undo()

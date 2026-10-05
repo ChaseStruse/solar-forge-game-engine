@@ -26,6 +26,9 @@ uv run --frozen solar-forge-engine
 ```
 
 Choose **Add rectangle**, edit the **Inspector**, and press **Apply changes**.
+Select an object and choose **Duplicate object** (Ctrl+D) to create a selected copy
+24 units to the right and down. Copies preserve size, color and gameplay role,
+use a new ID, and support undo/redo. Duplication uses applied properties.
 Save to a `.forge.json` file. These version-two files contain the entire scene and
 explicit object roles; project folders are future work. Version-one files still
 load as decorations. Before an older file is saved in version-two format, its exact

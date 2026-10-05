@@ -1,7 +1,7 @@
 # Solar Forge Game Engine — product and implementation plan
 
-Status: playable native prototype, updated October 4, 2026, through implementation
-commit `515d995`. The scene editor, separate native player, Docker workflows, and
+Status: playable native prototype, updated October 5, 2026. The scene editor,
+separate native player, Docker workflows, object duplication, and
 editable coin collector are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
@@ -10,6 +10,9 @@ milestones below are planned work; unmeasured performance budgets remain targets
 - Python 3.14, PySide6 Essentials 6.11.2, uv lockfile, Ruff, mypy and focused pytest.
 - Native Qt shell, Graphics View rectangles, scene tree, property inspector, and
   create/update/delete commands with transactional undo/redo and revision checks.
+- Duplicate Object (Ctrl+D) copies applied properties and gameplay roles with a
+  fresh ID and a 24-unit offset, selects the copy, and uses the shared create command.
+  Names and positions remain within schema limits. Undo/redo and save/reopen are verified.
 - Version-two `.forge.json` scene documents with version-one loading support,
   bounded/validated reads, atomic writes, and unsaved-change protection on New/Open/Close.
 - Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
@@ -31,7 +34,8 @@ milestones below are planned work; unmeasured performance budgets remain targets
 Verification: the foundation had 12 focused tests; playback adds movement,
 keyboard/pause/restart, and subprocess lifecycle checks. The collector adds collision,
 score/reset, starter persistence, migration backup, invalid roles, and a complete
-starter route around the walls for 21 tests total. Ruff,
+starter route around the walls. Object duplication adds property preservation,
+undo/redo and save/reopen checks for 22 tests total (0.90 seconds in the latest local run). Ruff,
 formatting, and strict mypy pass. Native and container Play startup/shutdown were
 verified on the Arch host's Wayland session, with authored scene data unchanged.
 An intentionally failing test previously returned exit status 1 in the independent
@@ -530,6 +534,7 @@ Completed task checklist:
 - [x] Measure a repeatable software rendering fixture.
 - [x] Implement the editable collector and verify a complete route around its walls.
 - [x] Persist gameplay roles and protect version-one originals during save upgrades.
+- [x] Add selected-object duplication with Ctrl+D through validated, undoable commands.
 - [ ] Close the complete renderer/sandbox/packaging foundation gates.
 - [ ] Replace scene-only persistence with a validated project-folder workflow.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
