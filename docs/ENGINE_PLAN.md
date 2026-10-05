@@ -5,8 +5,18 @@ include native scene editing and playback, Docker workflows, duplication, PNG
 sprites, project-relative assets and sprite reuse, autosave/recovery, multiple scenes,
 startup-scene selection, asset quarantine/restoration, movement/input settings,
 viewport drag/snap/zoom/pan, sprite-sheet animation and an offline assistant demo.
+The Ember Run showcase adds original pixel art, 187 editable objects, 19 animated
+sprites and a twelve-core collection route. Its portable example includes a second
+scene sharing assets; the built-in template is accessible in native and Docker builds.
 The architecture and release milestones below remain planned work; unmeasured
 performance budgets remain targets.
+
+Showcase verification: the complete twelve-core route avoids walls, distributed
+scenes match their built-in templates, and Play leaves authoring unchanged.
+All 142 tests passed locally (2.41 seconds) and in Docker (3.07 seconds), with
+Ruff, formatting and strict mypy passing. Native Wayland opening, animation,
+pause/restart and second-scene switching were verified. Opening instructions are
+in `examples/ember-run/README.md`; a preview is in `docs/screenshots/ember-run.png`.
 
 ### Implemented foundation checkpoints
 
@@ -760,6 +770,7 @@ Completed task checklist:
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
 - [x] Add bounded looping sprite-sheet animation, first-frame editor rendering, and deterministic Play timing/restart.
+- [x] Ship Ember Run: an animated, playable forge showcase and compact editable two-scene example.
 - [ ] Add quarantine purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.

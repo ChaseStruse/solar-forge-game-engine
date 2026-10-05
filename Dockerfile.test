@@ -10,6 +10,7 @@ RUN uv sync --frozen --extra test --no-dev --no-install-project --no-cache
 COPY src ./src
 RUN uv sync --frozen --extra test --no-dev --no-cache
 COPY tests ./tests
+COPY examples ./examples
 COPY scripts ./scripts
 RUN useradd --create-home forge \
     && mkdir /tmp/forge-tests && chown forge:forge /tmp/forge-tests

@@ -44,6 +44,7 @@ from solar_forge_engine.core.commands import (
     SetEntity,
 )
 from solar_forge_engine.core.scene import Entity, InputPreset, Role, Scene
+from solar_forge_engine.core.showcase import ember_run
 from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.assistant import AssistantPanel
@@ -316,9 +317,12 @@ class EditorWindow(QMainWindow):
         open_workspace = file_menu.addAction("Open project…")
         open_workspace.setShortcut("Ctrl+Alt+O")
         open_workspace.triggered.connect(self.choose_open_project)
-        starter = action("Coin starter", "Ctrl+Shift+N")
+        showcase = action("Forge showcase", "Ctrl+Shift+F")
+        showcase.triggered.connect(self.new_showcase)
+        file_menu.addAction(showcase)
+        starter = file_menu.addAction("Coin starter")
+        starter.setShortcut("Ctrl+Shift+N")
         starter.triggered.connect(self.new_collector)
-        file_menu.addAction(starter)
         save_as = file_menu.addAction("Save &As…")
         save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
         save_as.triggered.connect(lambda: self.save(choose_path=True))
@@ -1145,17 +1149,31 @@ class EditorWindow(QMainWindow):
             self.fit_scene()
 
     def new_collector(self) -> None:
+        self._open_starter(
+            coin_collector(), "Collect all five coins. Gray walls are solid; the teal player moves."
+        )
+
+    def new_showcase(self) -> None:
+        self._open_starter(
+            ember_run(),
+            "EMBER RUN · Recover twelve energy cores. "
+            "WASD/arrows move the courier. Press F5 to launch.",
+        )
+
+    def _open_starter(self, scene: Scene, message: str) -> None:
         if not self._confirm_discard():
             return
         self._close_preview()
-        self.document = Document(coin_collector())
+        self.document = Document(scene)
         self.saved_scene = Scene()
         self.path = None
         self.project = None
-        self.selected_id = "player"
+        self.selected_id = next(
+            entity.id for entity in scene.entities if entity.role == Role.PLAYER
+        )
         self.refresh()
         self.fit_scene()
-        self.log.append("Collect all five coins. Gray walls are solid; the teal player moves.")
+        self.log.append(message)
 
     def _confirm_discard(self) -> bool:
         if not self.dirty:

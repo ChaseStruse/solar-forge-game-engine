@@ -2,6 +2,7 @@
 
 import base64
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor, QImage, QPen, QPixmap, QTransform
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsScene
 
@@ -50,7 +51,7 @@ def render_scene(
                 0,
                 entity.width,
                 entity.height,
-                QPen(QColor("#ffffff")),
+                QPen(Qt.PenStyle.NoPen),
                 QBrush(QColor(entity.color)),
             )
         item.setPos(entity.x, entity.y)

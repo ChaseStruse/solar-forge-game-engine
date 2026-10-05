@@ -42,11 +42,11 @@ def test_collection_is_once_per_coin_and_restart_restores_score_and_visibility(q
     assert player.simulation.collected == {"coin"}
     assert player.simulation.won
     assert not player.items["coin"].isVisible()
-    assert "All coins collected" in player.score_label.text()
+    assert "All collected!" in player.score_label.text()
     player.restart()
     assert not player.simulation.collected
     assert player.items["coin"].isVisible()
-    assert "Coins: 0/1" in player.score_label.text()
+    assert "Collected: 0/1" in player.score_label.text()
     assert scene.entities[1].role == Role.COIN
 
 

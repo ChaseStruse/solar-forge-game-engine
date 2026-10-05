@@ -50,6 +50,14 @@ class PlayerWindow(QMainWindow):
         self._last_tick = time.monotonic()
         self.setWindowTitle(f"Play — {scene.name} — Solar Forge")
         self.resize(1040, 660)
+        self.setStyleSheet("""
+            QMainWindow, QToolBar { background: #111d26; color: #d1e4df; }
+            QToolBar { padding: 8px; spacing: 10px; border-bottom: 1px solid #385361; }
+            QLabel { color: #d1e4df; padding: 4px; }
+            QPushButton { background: #243b47; color: #f0ce85; border: 1px solid #527681;
+                          padding: 7px 14px; border-radius: 3px; }
+            QPushButton:hover { background: #34515b; }
+        """)
         self.canvas = QGraphicsScene(self)
         self.canvas.setSceneRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT)
         self.items = render_scene(self.canvas, scene)
@@ -95,9 +103,10 @@ class PlayerWindow(QMainWindow):
             self.items[coin.id].setVisible(coin.id not in self.simulation.collected)
         self.animator.update(self._ticks)
         if self.simulation.coins:
-            suffix = " · All coins collected!" if self.simulation.won else ""
+            suffix = " · All collected! · Restart for another run" if self.simulation.won else ""
             self.score_label.setText(
-                f"  Coins: {len(self.simulation.collected)}/{len(self.simulation.coins)}{suffix}"
+                f"  Collected: {len(self.simulation.collected)}/"
+                f"{len(self.simulation.coins)}{suffix}"
             )
 
     def tick(self) -> None:

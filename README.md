@@ -157,7 +157,18 @@ Invalid or stale snapshots are retained and reported in Activity instead of
 replacing saved work. This protects against application crashes; power-loss
 persistence and concurrent editing from multiple engine instances are not guaranteed.
 
-Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
+Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
+an animated courier, flickering reactor, industrial pixel art, and twelve energy
+cores to recover. WASD/arrows move; Pause and Restart control playback. All 187
+objects are editable, including collision walls and 19 animated sprites.
+Create a project from this scene to save your changes.
+
+The [editable example project](examples/ember-run/README.md) also includes **Courier
+Bay**, a second scene sharing the same assets. Copy its folder before editing and
+use **File → Open project**. The original artwork and scenes total less than 256 KB;
+no downloads or model connection are needed. [View the showcase](docs/screenshots/ember-run.png).
+
+Choose **File → Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score
 and announces completion; **Restart** resets the player and coins. Each object has
 an editable **Role** in the Inspector: Decoration, Player, Wall, or Coin. Names and
