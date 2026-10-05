@@ -1,9 +1,12 @@
 # Solar Forge Game Engine — product and implementation plan
 
-Status: playable native prototype, updated October 5, 2026. The scene editor,
-separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, multiple-scene authoring, project-wide sprite reuse, basic project folders, and
-editable coin collector, reviewed asset quarantine and native restoration, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation and project startup-scene selection and sprite-sheet animation are implemented. The remaining architecture and release
-milestones below are planned work; unmeasured performance budgets remain targets.
+Status: playable native prototype, updated October 5, 2026. Implemented features
+include native scene editing and playback, Docker workflows, duplication, PNG
+sprites, project-relative assets and sprite reuse, autosave/recovery, multiple scenes,
+startup-scene selection, asset quarantine/restoration, movement/input settings,
+viewport drag/snap/zoom/pan, sprite-sheet animation and an offline assistant demo.
+The architecture and release milestones below remain planned work; unmeasured
+performance budgets remain targets.
 
 ### Implemented foundation checkpoints
 
@@ -61,7 +64,8 @@ milestones below are planned work; unmeasured performance budgets remain targets
   Validation rejects unsafe paths/duplicate names before any discard prompt, and
   new scene publication is exclusive and atomic. Save/Discard/Cancel protects dirty
   edits; activation stops Play, resets undo/palette, and offers per-scene recovery.
-  The manifest default remains unchanged; runtime transitions are not implemented.
+  Ordinary switching leaves the manifest default unchanged; explicit startup selection
+  is now available. Runtime transitions are not implemented.
 - Project-wide sprite catalog from saved scenes, automatically indexed in a worker
   on project open/scene activation and manually via Refresh project assets. Existing
   scene, path and hash validators are reused; malformed scenes yield warnings.
@@ -136,6 +140,11 @@ Ruff, formatting and strict mypy passed. Native Wayland animation/pause/restart
 passed and rendering was visually inspected. Older scenes remain static; saves
 upgrade standalone scenes to version seven and project scenes to version eight.
 Version-five recovery fingerprints remain compatible when baseline animation is absent.
+Assistant checks cover deterministic proposals, response limits, unsafe/invalid tools,
+atomic review/apply/undo/save, stale documents, cancellation, provider failures and
+close-while-running: 139 tests passed locally in 2.18 seconds and in Docker in
+2.82 seconds. Ruff, formatting and strict mypy passed. Native Wayland proposal,
+review, Apply and Undo were verified. No real-model response is claimed.
 Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
@@ -145,8 +154,8 @@ test container. This does not validate an arbitrary-code sandbox or establish fu
 compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project asset
-libraries, audio, sandboxed script execution, AI, and native game
-exports are not implemented. Project folders support multiple authored scenes with
+libraries, audio, sandboxed script execution, real model adapters, and native game
+exports are not implemented. The assistant currently uses an offline demo fixture. Project folders support multiple authored scenes with
 relative sprite references, per-scene recovery and a project-wide sprite palette.
 Reviewed unused-asset scanning, reversible quarantine and native browsing/restoration
 are implemented. Permanent purge and runtime scene transitions remain planned.
@@ -221,7 +230,7 @@ press Play, navigate around walls, collect all five coins, restart, and save/reo
 the scene. A focused route test verifies the starter can be completed without crossing
 walls. PNG sprites can be imported, sized, duplicated, saved and played. Scenes
 can be copied into a new project folder and reopened through its manifest.
-Sprite dragging is implemented; sound effects, AI changes, and native export remain pending. The five-person usability exercise has not run.
+Sprite dragging is implemented; sound effects, real-model changes, and native export remain pending. The five-person usability exercise has not run.
 
 ## 3. Scope and editor design
 
@@ -265,7 +274,9 @@ Implemented scope is intentionally narrower than the v0.1 requirements above:
   are still planned.
 - Development: separate native Play process, Stop, startup/error log, and snapshot
   playback that leaves authored state unchanged. No project script execution,
-  script editor, debugger, AI panel, or exported game bundle yet.
+  script editor, debugger, real model connection, or exported game bundle yet.
+  The Assistant tab has a deterministic offline demo with review/apply/discard,
+  atomic undo, bounded scene tools, cancellation and stale-document protection.
 
 Use a restrained graphite theme with solar amber accents, readable typography,
 clear selection states, and minimal decorative motion. Share Solar Forge Studios
@@ -350,7 +361,8 @@ compose.yaml
 compose.test.yaml
 ```
 
-Add `ai/`, export modules and quarantine purge controls, `resources/`, external `templates/`,
+The `ai/` package contains the offline provider and bounded proposal decoder.
+Add export modules and quarantine purge controls, `resources/`, external `templates/`,
 and `packaging/` when their features are implemented. The current starter is data in
 [`core/templates.py`](../src/solar_forge_engine/core/templates.py); it contains no
 project scripts. A source-run console launcher and Docker image exist; Arch package
@@ -433,7 +445,7 @@ is implemented yet.
 Implemented commands are `CreateEntity`, `SetEntity`, `DeleteEntity`, and `RestoreScene` in
 [`core/commands.py`](../src/solar_forge_engine/core/commands.py). Batched edits apply
 atomically with an expected revision; invalid or stale changes leave the document
-and history intact. The UI uses this command layer. No AI tool dispatcher or generic
+and history intact. The UI uses this command layer. The assistant exposes a bounded create/set/delete dispatcher. No generic
 component registration exists yet. Typed roles are the current built-in gameplay
 contract, preceding the richer component design below.
 
@@ -487,11 +499,19 @@ Python protocols and type hints alone are not a security boundary.
 
 ## 6. LLM-first, with local and enterprise support
 
-**Status: not implemented.** There is no assistant panel, provider connection,
-credential store integration, model worker, tool orchestration, or AI fixture suite.
-Manual editing and built-in playback work offline today. The existing command and
-revision contracts are the foundation for future AI edits. The behavior below is the
-target design, not current model support.
+**Status: initial offline proposal workflow implemented.** The native Assistant tab
+uses a deterministic fake provider with exact demo requests, not a language model.
+It proposes create/set/delete scene commands, validates the entire batch in a
+throwaway Document, and displays an explicit diff before Apply. Responses are
+limited to 16 KiB / 16 commands; requests to 2,000 characters. No scripts, file
+patches, sprite changes or arbitrary execution tools are exposed. Apply revalidates
+and checks document identity/revision, then creates one atomic undoable edit.
+Generation runs in a Qt worker. Discard cancels results, stale responses cannot
+apply, and provider errors leave authoring untouched. Closing waits for an active
+request to finish; forcibly interrupting an unresponsive provider is not supported.
+Real local/enterprise adapters, credentials, bounded network timeouts, general
+language understanding and tool orchestration remain planned. Manual workflows
+remain independent of the assistant. The broader behavior below is the target design.
 
 The assistant answers questions about selected objects, explains errors, constructs
 scenes, adds behaviors, and makes small code changes. Supply a compact, versioned
@@ -621,7 +641,7 @@ QT_QPA_PLATFORM=offscreen uv run --frozen --extra test pytest -q
 ```
 
 Test configuration uses `QT_QPA_PLATFORM=offscreen`, no inference, and temporary
-data/cache/config directories. Provider fixtures remain future AI work. Never mount a live project
+data/cache/config directories. The demo provider fixtures run offline today. Never mount a live project
 or production secrets. Capture reports before cleanup; verify an intentionally
 failing fixture fails CI. Document volume persistence and cleanup without encouraging
 deletion of user projects. Separate ephemeral test storage from persistent app data.
@@ -704,7 +724,7 @@ experience; these milestones are gates, not promised delivery dates.
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
 | 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Quarantine purge, scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
 | 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Expanded asset libraries/animation clips, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
-| 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
+| 3 — Useful assistant | Partial: offline demo proposals, readable diffs, validated atomic edits, undo/revision protection and cancellation | Verified local/hosted models, compact model context, request timeouts, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
 
@@ -742,12 +762,13 @@ Completed task checklist:
 - [x] Add bounded looping sprite-sheet animation, first-frame editor rendering, and deterministic Play timing/restart.
 - [ ] Add quarantine purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
-- [ ] Connect the assistant through a fake provider, then verified real adapters.
+- [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
+- [ ] Add verified local and enterprise model adapters, timeouts and credential handling.
 
 Next small features, in recommended order:
 
-1. Add a minimal assistant panel with a deterministic fake provider and validated,
-   undoable scene-edit proposals. Begin the LLM workflow without enabling project scripts.
+1. Add a local-model adapter with explicit connection settings, compact scene context,
+   bounded network timeouts and cancellation, using the existing reviewed tool schema.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.

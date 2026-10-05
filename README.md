@@ -14,8 +14,8 @@ games should work without an AI service.
 or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
 documents. New/Open/Close protect unsaved changes. Play opens a separate native
 window with keyboard movement, wall collisions, and coin collection. PNG sprites
-and basic project folders are supported; AI, sandboxed Python scripts, and exports
-follow in later small features.
+and basic project folders are supported. An offline assistant demo supports reviewed
+scene edits; real model adapters, sandboxed Python scripts, and exports follow later.
 
 ## Run on Linux
 
@@ -180,6 +180,34 @@ unsaved scene edits are included, but unapplied Inspector fields are not.
 Playback changes never modify the authored scene. Opening/New/closing the editor
 stops its preview process. This data-only preview runs built-in behavior and does
 not execute project scripts or claim to sandbox arbitrary Python.
+
+## Assistant demo
+
+Open the **Assistant** tab beside the Inspector; scroll, resize or undock the panel
+to see its review controls. It uses a deterministic offline fixture, **not an LLM**.
+No model, credentials or networking are required. Enter a supported request and
+choose **Propose edits**:
+
+- `add rectangle` or `add coin`
+- `move selected to 200 150`
+- `rename selected Hero`
+- `color selected #33aa88`
+- `speed selected 120`
+- `delete selected`
+
+Separate requests with semicolons for a batch. Selected-object requests use the
+object selected when generation starts. Review the explicit property changes and
+IDs, then **Apply reviewed edits** or **Discard / cancel proposal**. Generation
+never edits the scene. Apply creates one atomic undo step; Save persists the result.
+Any scene edit, Undo/Redo, or replaced document invalidates the proposal. Selection
+changes alone do not retarget it. Unsupported requests show an error without edits.
+
+Requests are capped at 2,000 characters; responses at 16 KiB and 16 commands.
+Only creation, deletion and the listed scene properties are exposed. Script,
+filesystem, sprite/animation and arbitrary-code tools are unavailable. Proposals
+run in a worker, and cancellation discards its result; it cannot forcibly interrupt
+an unresponsive provider. Real model networking, timeouts, credentials and natural
+language understanding remain future work.
 
 ## Development checks
 

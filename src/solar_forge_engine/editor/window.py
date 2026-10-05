@@ -46,6 +46,7 @@ from solar_forge_engine.core.commands import (
 from solar_forge_engine.core.scene import Entity, InputPreset, Role, Scene
 from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
+from solar_forge_engine.editor.assistant import AssistantPanel
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.quarantine import QuarantineDialog
@@ -278,6 +279,17 @@ class EditorWindow(QMainWindow):
         self._dock("Activity", self.log, Qt.DockWidgetArea.BottomDockWidgetArea)
         self.log.append("Create a rectangle, edit its properties, and save your first scene.")
 
+        self.assistant = AssistantPanel(lambda: (self.document, self.selected_id), self.refresh)
+        assistant_scroll = QScrollArea()
+        assistant_scroll.setWidgetResizable(True)
+        assistant_scroll.setWidget(self.assistant)
+        self._dock("Assistant", assistant_scroll, Qt.DockWidgetArea.RightDockWidgetArea)
+        assistant_dock = self.findChild(QDockWidget, "Assistant")
+        inspector_dock = self.findChild(QDockWidget, "Inspector")
+        if assistant_dock is not None and inspector_dock is not None:
+            self.tabifyDockWidget(inspector_dock, assistant_dock)
+            inspector_dock.raise_()
+
         toolbar = QToolBar("Scene tools")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
@@ -413,6 +425,7 @@ class EditorWindow(QMainWindow):
         self.execute(SetEntity(entity_id, {"x": x, "y": y}))
 
     def refresh(self) -> None:
+        self.assistant.scene_changed()
         self.view.cancel_drag()
         key = (self.document, self.document.revision)
         if key != self._recovery_key:
@@ -1216,6 +1229,11 @@ class EditorWindow(QMainWindow):
         QMessageBox.warning(self, "Scene could not be changed", message)
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self.assistant.busy:
+            self.assistant.discard()
+            self.log.append("Finishing assistant request; close again shortly.")
+            event.ignore()
+            return
         if self._startup_job is not None:
             self.log.append("Finishing startup scene update; close again shortly.")
             event.ignore()
