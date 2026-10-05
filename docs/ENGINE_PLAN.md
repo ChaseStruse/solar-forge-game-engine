@@ -1,8 +1,23 @@
 # Solar Forge Game Engine — product and implementation plan
 
-Status: proposed direction, October 4, 2026. This repository contains planning
-documents only. Commands and layouts below are intended implementation contracts,
-not existing functionality. Performance numbers are targets to validate.
+Status: implementation started, October 4, 2026. The native scene editor foundation
+is implemented. The architecture and later milestones below describe intended work;
+performance numbers remain targets, not measured guarantees.
+
+### Implemented first checkpoint
+
+- Python 3.14, PySide6 Essentials 6.11.2, uv lockfile, Ruff, mypy and focused pytest.
+- Native Qt shell, Graphics View rectangles, scene tree, property inspector, and
+  create/update/delete commands with transactional undo/redo and revision checks.
+- Version-one `.forge.json` scene documents, bounded/validated loading, atomic writes,
+  and unsaved-change handling on New/Open/Close.
+- Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
+
+This is a small authoring slice, not a completed phase 0 or phase 1. Project folders,
+assets, gameplay, sandboxed script execution, AI, and native game exports are not
+implemented. A single scene file deliberately precedes multi-file project persistence.
+The Qt backend is provisional until the rendering benchmark passes. See the README
+for commands that are actually runnable; later commands below are design targets.
 
 **Fixed platform decision:** native Arch Linux desktop, Python application and game
 scripting, and PySide6 Qt Widgets. No JavaScript, TypeScript, browser UI, embedded
