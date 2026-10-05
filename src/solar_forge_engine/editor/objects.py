@@ -35,6 +35,7 @@ class SceneObjects(QWidget):
         self.role.setAccessibleName("Filter scene objects by role")
         self.tree = QTreeWidget()
         self.tree.setHeaderLabels(["Scene objects", "Drag"])
+        self.tree.headerItem().setToolTip(0, "Back-to-front draw order; later objects draw on top.")
         self.tree.header().setStretchLastSection(False)
         self.tree.header().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.tree.header().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)

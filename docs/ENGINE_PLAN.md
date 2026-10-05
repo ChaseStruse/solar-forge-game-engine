@@ -44,6 +44,17 @@ cancellation and deletion of an isolated temporary file were verified.
 The architecture and release milestones below remain planned work; unmeasured
 performance budgets remain targets.
 
+Explicit draw-order controls now move selected objects forward/backward or directly
+to the front/back through validated, revision-checked commands. Scene tuple order
+remains the persisted back-to-front order; no format bump or migration is needed.
+Editor and Play assign matching draw indices, including overlapping hit testing.
+Scene-menu shortcuts and Inspector position hints follow selection and boundary
+availability. Ordering preserves entity data, supports undo/redo and project/
+standalone saves, and acts on the full scene even when search filters hide objects.
+Native Wayland shortcuts, selection, overlapping picking and undo/redo were verified.
+Draw-order verification: 206 tests pass locally (15.43 seconds) and in Docker
+(18.11 seconds), with Ruff, formatting and strict mypy passing.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -875,6 +886,7 @@ Completed task checklist:
 - [x] Persist per-scene drag locks in local editor preferences with background I/O and close flushing.
 - [x] Group Inspector properties with adaptive forms and an always-visible Apply action.
 - [x] Add sprite palette search, clearer thumbnail entries and safe filtered reuse.
+- [x] Add validated object draw ordering, boundary-aware actions and consistent editor/Play stacking.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
@@ -891,9 +903,9 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add richer scene organization, starting with explicit object draw ordering.
+1. Strengthen autosave/recovery integrity and failure handling.
    Continue measuring larger-context model behavior before broadening scene tools.
-2. Strengthen recovery guarantees and continue measuring unique-texture workloads
+2. Continue measuring unique-texture workloads
    and native presentation/startup before closing renderer gates.
 3. Add audio, then a small independent native player/export package. Verify it
    outside the editor on clean Arch.

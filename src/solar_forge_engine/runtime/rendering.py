@@ -26,7 +26,7 @@ def render_scene(
     border.setZValue(-1)
     items: dict[str, QGraphicsItem] = {}
     pixmaps: dict[Sprite, QPixmap] = {}
-    for entity in scene.entities:
+    for index, entity in enumerate(scene.entities):
         item: QGraphicsItem
         if entity.sprite is not None:
             sprite = entity.sprite
@@ -55,6 +55,7 @@ def render_scene(
                 QBrush(QColor(entity.color)),
             )
         item.setPos(entity.x, entity.y)
+        item.setZValue(index)
         item.setData(0, entity.id)
         item.setToolTip(entity.name)
         item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, selectable)

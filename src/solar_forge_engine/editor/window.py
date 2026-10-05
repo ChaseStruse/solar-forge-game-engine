@@ -40,6 +40,7 @@ from solar_forge_engine.core.commands import (
     CreateEntity,
     DeleteEntity,
     Document,
+    MoveEntity,
     RestoreScene,
     SetEntity,
 )
@@ -247,6 +248,9 @@ class EditorWindow(QMainWindow):
         for role in Role:
             self.role_field.addItem(role.value.title(), role.value)
         forms["Object"].addRow("&Role", self.role_field)
+        self.draw_order_label = QLabel()
+        self.draw_order_label.setToolTip("Objects later in the list draw over earlier ones.")
+        forms["Object"].addRow("Draw order", self.draw_order_label)
         self.speed_field = QDoubleSpinBox()
         self.speed_field.setRange(0, 2000)
         self.speed_field.setSuffix(" units/s")
@@ -348,6 +352,20 @@ class EditorWindow(QMainWindow):
         find_sprite = scene_menu.addAction("Find sprite")
         find_sprite.setShortcut("Ctrl+Alt+L")
         find_sprite.triggered.connect(self.find_sprite)
+        order_menu = scene_menu.addMenu("Draw order")
+        self.draw_order_actions: dict[str, QAction] = {}
+        for label, direction, shortcut in (
+            ("Bring forward", "forward", "Ctrl+PgUp"),
+            ("Send backward", "backward", "Ctrl+PgDown"),
+            ("Bring to front", "front", "Ctrl+Shift+PgUp"),
+            ("Send to back", "back", "Ctrl+Shift+PgDown"),
+        ):
+            order_action = order_menu.addAction(label)
+            order_action.setShortcut(shortcut)
+            order_action.triggered.connect(
+                lambda checked=False, direction=direction: self.move_selected(direction)
+            )
+            self.draw_order_actions[direction] = order_action
         self.lock_action = scene_menu.addAction("Lock viewport dragging")
         self.lock_action.setCheckable(True)
         self.lock_action.setShortcut("Ctrl+Shift+L")
@@ -609,6 +627,23 @@ class EditorWindow(QMainWindow):
         self.apply_button.setEnabled(self.selected_id is not None)
         self.delete_action.setEnabled(self.selected_id is not None)
         self.duplicate_action.setEnabled(self.selected_id is not None)
+        position = next(
+            (
+                index
+                for index, entity in enumerate(self.document.scene.entities)
+                if entity.id == self.selected_id
+            ),
+            None,
+        )
+        last = len(self.document.scene.entities) - 1
+        for direction, order_action in self.draw_order_actions.items():
+            order_action.setEnabled(
+                position is not None
+                and (position < last if direction in ("forward", "front") else position > 0)
+            )
+        self.draw_order_label.setText(
+            f"{position + 1} / {last + 1} · back → front" if position is not None else ""
+        )
         if self.selected_id is None:
             self.name_field.clear()
             self.color_field.clear()
@@ -975,6 +1010,23 @@ class EditorWindow(QMainWindow):
         if self.execute(CreateEntity(duplicate)):
             self.selected_id = duplicate.id
             self.refresh()
+
+    def move_selected(self, direction: str) -> None:
+        if self.selected_id is None:
+            return
+        position = next(
+            index
+            for index, entity in enumerate(self.document.scene.entities)
+            if entity.id == self.selected_id
+        )
+        last = len(self.document.scene.entities) - 1
+        target = {
+            "forward": min(last, position + 1),
+            "backward": max(0, position - 1),
+            "front": last,
+            "back": 0,
+        }[direction]
+        self.execute(MoveEntity(self.selected_id, target))
 
     def undo(self) -> None:
         self.document.undo()

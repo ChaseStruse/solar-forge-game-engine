@@ -60,6 +60,22 @@ class DeleteEntity:
 
 
 @dataclass(frozen=True)
+class MoveEntity:
+    """Move an existing object to a validated back-to-front draw index."""
+
+    entity_id: str
+    index: int
+
+    def apply(self, scene: Scene) -> Scene:
+        if type(self.index) is not int or not 0 <= self.index < len(scene.entities):
+            raise ValueError("Draw index must identify a position in the scene.")
+        entity = scene.entity(self.entity_id)
+        entities = [item for item in scene.entities if item.id != self.entity_id]
+        entities.insert(self.index, entity)
+        return replace(scene, entities=tuple(entities))
+
+
+@dataclass(frozen=True)
 class RestoreScene:
     scene: Scene
 

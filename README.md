@@ -45,6 +45,14 @@ Zoom and pan are session-only. The Inspector groups controls into **Object**,
 **Transform**, **Appearance**, and **Movement**. Scroll its properties in smaller
 windows; **Apply changes** stays visible below them. Fields wrap in narrow docks.
 
+Use **Scene → Draw order** to **Bring forward**, **Send backward**, **Bring to
+front**, or **Send to back**. Ctrl+PageUp/PageDown moves one step; add Shift to
+move directly to the front/back. The Scene list runs from back to front, and the
+Inspector shows the selected object's position. Objects at the front draw over
+earlier objects and receive overlapping clicks first. Order changes support undo,
+redo and save/reopen; Play uses the same order. Search filters do not limit ordering
+to matching objects, and viewport drag locks still allow deliberate order changes.
+
 Select an object and choose **Duplicate object** (Ctrl+D) to create a selected copy
 24 units to the right and down. Copies preserve size, color and gameplay role,
 use a new ID, and support undo/redo. Duplication uses applied properties.
