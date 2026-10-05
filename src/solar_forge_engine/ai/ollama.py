@@ -113,6 +113,20 @@ def scene_context(context: Context) -> str:
 
 
 @dataclass(frozen=True)
+class ModelCapabilities:
+    names: tuple[str, ...]
+    context_length: int | None
+
+    @property
+    def description(self) -> str:
+        budget = f" · {self.context_length:,} context tokens" if self.context_length else ""
+        return (
+            f"Reported capabilities: {', '.join(self.names)}{budget}. "
+            "Completion available; proposals still require validation and review."
+        )
+
+
+@dataclass(frozen=True)
 class OllamaProvider:
     endpoint: str
     model: str
@@ -156,6 +170,8 @@ class OllamaProvider:
             raise ValueError("Enter a request of 1–2,000 characters.")
         if context.cancelled():
             raise ValueError("Request canceled.")
+        deadline = time.monotonic() + self.timeout
+        self.capabilities(context.cancelled, deadline=deadline)
         body = json.dumps(
             {
                 "model": self.model,
@@ -183,7 +199,7 @@ class OllamaProvider:
                 ],
             }
         ).encode()
-        envelope = self._request("POST", "/api/chat", body, context.cancelled)
+        envelope = self._request("POST", "/api/chat", body, context.cancelled, deadline=deadline)
         if envelope.get("done") is not True:
             raise ValueError("Ollama returned an incomplete response.")
         message = envelope.get("message")
@@ -191,6 +207,45 @@ class OllamaProvider:
         if not isinstance(content, str) or len(content.encode()) > MAX_RESPONSE_BYTES:
             raise ValueError("Ollama proposal is missing or exceeds 16 KiB.")
         return content
+
+    def capabilities(
+        self, cancelled: Callable[[], bool], *, deadline: float | None = None
+    ) -> ModelCapabilities:
+        envelope = self._request(
+            "POST",
+            "/api/show",
+            json.dumps({"model": self.model, "verbose": False}).encode(),
+            cancelled,
+            deadline=deadline,
+        )
+        if any(envelope.get(key) not in (None, "") for key in ("remote_host", "remote_model")):
+            raise ValueError("This model points to a remote provider; use an offline local model.")
+        names = envelope.get("capabilities")
+        if (
+            not isinstance(names, list)
+            or not 1 <= len(names) <= 16
+            or any(
+                not isinstance(name, str)
+                or not name
+                or len(name) > 64
+                or any(c.isspace() or ord(c) < 32 for c in name)
+                for name in names
+            )
+        ):
+            raise ValueError("Ollama did not provide a valid capability list; update or check it.")
+        if "completion" not in names:
+            raise ValueError(
+                "This model cannot generate text proposals; choose a completion model."
+            )
+        info = envelope.get("model_info")
+        context_length = None
+        if isinstance(info, dict):
+            architecture = info.get("general.architecture")
+            if isinstance(architecture, str):
+                value = info.get(f"{architecture}.context_length")
+                if type(value) is int and 1 <= value <= 1_000_000:
+                    context_length = value
+        return ModelCapabilities(tuple(sorted(set(names))), context_length)
 
     def models(self, cancelled: Callable[[], bool]) -> tuple[str, ...]:
         envelope = self._request("GET", "/api/tags", None, cancelled)
@@ -204,25 +259,36 @@ class OllamaProvider:
                 raise ValueError("Ollama returned an invalid model name.")
             if any(c.isspace() or ord(c) < 32 for c in name):
                 raise ValueError("Ollama returned an invalid model name.")
-            if "cloud" not in name.lower():
+            if "cloud" not in name.lower() and all(
+                entry.get(key) in (None, "") for key in ("remote_host", "remote_model")
+            ):
                 names.add(name)
         return tuple(sorted(names))
 
     def _request(
-        self, method: str, path: str, body: bytes | None, cancelled: Callable[[], bool]
+        self,
+        method: str,
+        path: str,
+        body: bytes | None,
+        cancelled: Callable[[], bool],
+        *,
+        deadline: float | None = None,
     ) -> dict[str, object]:
         if cancelled():
             raise ValueError("Request canceled.")
         host, port = self.address()
-        connection = http.client.HTTPConnection(host, port, timeout=min(2, self.timeout))
+        deadline = deadline if deadline is not None else time.monotonic() + self.timeout
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError("Ollama request timed out.")
+        connection = http.client.HTTPConnection(host, port, timeout=min(2, remaining))
         stop = Event()
-        deadline = time.monotonic() + self.timeout
         watcher: Thread | None = None
         try:
             connection.connect()
             transport = connection.sock
             assert transport is not None
-            transport.settimeout(self.timeout)
+            transport.settimeout(max(0.01, deadline - time.monotonic()))
 
             def interrupt() -> None:
                 while not stop.wait(0.1):

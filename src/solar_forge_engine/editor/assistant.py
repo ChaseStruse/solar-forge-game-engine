@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 )
 
 from solar_forge_engine.ai.demo import Context, DemoProvider, Provider
-from solar_forge_engine.ai.ollama import OllamaProvider
+from solar_forge_engine.ai.ollama import ModelCapabilities, OllamaProvider
 from solar_forge_engine.ai.preferences import profile_path, read_profile, save_profile
 from solar_forge_engine.ai.proposals import Proposal, decode_proposal
 from solar_forge_engine.core.commands import Document
@@ -49,6 +49,7 @@ class ConnectionWorker(QThread):
         self.operation, self.path, self.provider = operation, path, provider
         self.loaded: OllamaProvider | None = None
         self.names: tuple[str, ...] = ()
+        self.capabilities: ModelCapabilities | None = None
         self.error: str | None = None
 
     def run(self) -> None:
@@ -58,6 +59,8 @@ class ConnectionWorker(QThread):
             elif self.provider is not None:
                 if self.operation == "save":
                     save_profile(self.path, self.provider)
+                elif self.operation == "check":
+                    self.capabilities = self.provider.capabilities(self.isInterruptionRequested)
                 else:
                     self.names = self.provider.models(self.isInterruptionRequested)
         except Exception as error:
@@ -97,6 +100,8 @@ class AssistantPanel(QWidget):
         self.model.setPlaceholderText("Installed local model name")
         self.discover_button = QPushButton("Refresh installed models")
         self.discover_button.clicked.connect(self.discover_models)
+        self.check_model_button = QPushButton("Check model capabilities")
+        self.check_model_button.clicked.connect(self.check_model)
         self.save_connection_button = QPushButton("Save local connection")
         self.save_connection_button.clicked.connect(self.save_connection)
         self.timeout = QSpinBox()
@@ -106,6 +111,7 @@ class AssistantPanel(QWidget):
         settings.addRow("Local server", self.endpoint)
         settings.addRow("Model", self.model_picker)
         settings.addRow(self.discover_button)
+        settings.addRow(self.check_model_button)
         settings.addRow(self.save_connection_button)
         settings.addRow("Deadline", self.timeout)
         settings.addRow(QLabel("Run Ollama with OLLAMA_NO_CLOUD=1 for local-only inference."))
@@ -173,6 +179,9 @@ class AssistantPanel(QWidget):
     def discover_models(self) -> None:
         self._connection_operation("discover")
 
+    def check_model(self) -> None:
+        self._connection_operation("check")
+
     def save_connection(self) -> None:
         self._connection_operation("save")
 
@@ -182,7 +191,7 @@ class AssistantPanel(QWidget):
         try:
             endpoint, model, timeout = self._connection_values()
             provider = OllamaProvider(
-                endpoint, model if operation == "save" else "discovery", timeout
+                endpoint, "discovery" if operation == "discover" else model, timeout
             )
         except ValueError as error:
             self.status.setText(str(error))
@@ -193,6 +202,8 @@ class AssistantPanel(QWidget):
         self.status.setText(
             "Refreshing installed models…"
             if operation == "discover"
+            else "Checking model capabilities…"
+            if operation == "check"
             else "Saving local connection…"
         )
         job.finished.connect(lambda: self._connection_finished(job))
@@ -206,6 +217,8 @@ class AssistantPanel(QWidget):
             self.status.setText("Connection operation canceled.")
         elif job.error:
             self.status.setText(f"Connection operation failed: {job.error}")
+        elif job.operation == "check" and job.capabilities is not None:
+            self.status.setText(job.capabilities.description)
         elif job.operation == "save":
             self.status.setText("Local connection saved. Startup remains offline; no request sent.")
         else:

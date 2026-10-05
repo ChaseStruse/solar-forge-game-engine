@@ -547,21 +547,35 @@ Default app/test Compose networking remains disabled; `compose.ollama.yaml` is a
 explicit Linux host-network override for the desktop. No services are managed and
 no models are downloaded. Installed-model discovery uses a bounded, cancellable
 GET `/api/tags` request and an editable picker; up to 128 entries are accepted,
-deduplicated and filtered to exclude cloud-named models. Discovery sends no scene
+deduplicated and filtered to exclude cloud-named models and advertised remote aliases. Discovery sends no scene
 context and does not load models. An explicit Save local connection action stores
 validated version-one endpoint/model/deadline preferences atomically under the
 user's XDG config directory, outside projects. Loading stays offline, preserves
 settings typed while loading, and reports malformed files without rewriting them.
 Preference I/O runs in workers with 4 KiB reads and regular-file checks. The Docker
 runtime has a separate writable `preferences` volume for non-root persistence.
-Verification: 171 tests pass locally (10.13 seconds) and in Docker (12.11 seconds).
+Check model capabilities performs a bounded `/api/show` metadata request without
+scene context or inference. It reports completion capabilities and advertised
+context length when available. Every generation preflights again and rejects
+missing/invalid capability metadata, models without completion, and advertised
+remote aliases before sending scene data. Preflight and chat share one absolute
+deadline. Capability metadata does not prove JSON quality, active context budget,
+or server isolation; reviewed proposal validation and offline server configuration
+remain required.
+Verification: 181 tests pass locally (11.66 seconds) and in Docker (13.30 seconds).
 Ruff, formatting and strict mypy pass. Real loopback HTTP fixtures cover transport,
 schema requests, bad/oversized responses, redirect refusal, cancellation/deadlines,
 review, Apply and Undo, discovery bounds/cancellation, and preference persistence
 and malformed-file preservation. Native Wayland discovery/save/offline reopen and
-runtime non-root volume writes were checked. Actual model inference remains
-unverified: host Ollama was not running.
-Model capability checks, enterprise adapters, credentials and broader
+runtime non-root volume writes were checked. Live inference on an existing
+`granite4.1:3b` model, with temporary cloud-disabled Ollama 0.33.3 on port 11439,
+produced valid reviewed position edits and native Wayland Apply/Undo (6.12 seconds).
+An Ember Run speed edit also passed preflight, validation, Apply and Undo
+(6.19 seconds; 28,417-byte context, 180-byte response). These are individual
+observations, not performance budgets or a general model-quality claim. The
+temporary server was stopped; no models were downloaded or services reconfigured.
+Capability/remote rejection and a shared metadata/chat deadline are covered by
+offline HTTP fixtures. Enterprise adapters, credentials and broader
 tool orchestration remain planned. Manual workflows
 remain independent of the assistant. The broader behavior below is the target design.
 
@@ -818,12 +832,13 @@ Completed task checklist:
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
 - [x] Add bounded installed-model discovery and worker-based saved local preferences, preserving offline startup.
+- [x] Add model capability preflight and verify live local proposals, native review, Apply and Undo.
 - [ ] Add verified local and enterprise model adapters, timeouts and credential handling.
 
 Next small features, in recommended order:
 
-1. Add model capability checks, then verify end-to-end inference with an installed
-   model and measure response/context behavior.
+1. Add richer scene organization, starting with object filtering for dense scenes.
+   Continue measuring larger-context model behavior before broadening scene tools.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.

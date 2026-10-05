@@ -35,11 +35,20 @@ def server(reply, status=200, wait=None):
             started.set()
             if wait is not None:
                 wait.wait(3)
+            payload = (
+                reply(self.path)
+                if callable(reply)
+                else (
+                    json.dumps({"capabilities": ["completion"]}).encode()
+                    if self.path == "/api/show"
+                    else reply
+                )
+            )
             self.send_response(status)
-            self.send_header("Content-Length", str(len(reply)))
+            self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             try:
-                self.wfile.write(reply)
+                self.wfile.write(payload)
             except OSError:
                 pass  # Canceled client deliberately closes its socket.
 
@@ -113,7 +122,8 @@ def test_real_http_request_schema_response_validation_and_atomic_undo(monkeypatc
     context = Context(document.scene, 0, "hero")
     with server(envelope()) as (endpoint, requests, _):
         raw = OllamaProvider(endpoint, "test-model").propose("Move hero", context)
-    path, request = requests[0]
+    assert [path for path, _ in requests] == ["/api/show", "/api/chat"]
+    path, request = requests[1]
     assert path == "/api/chat"
     assert request["stream"] is False
     assert request["format"]["properties"]["revision"]["const"] == 0

@@ -232,7 +232,15 @@ enter your installed model name and local server address, and choose a deadline
 (1–120 seconds; default 60). Nothing connects until you press **Propose edits**.
 Use **Refresh installed models** to populate the editable model picker. Discovery
 contacts only the configured server and sends no scene context; cloud-named entries
-are excluded. It neither downloads nor loads models. You can also type a model name.
+and advertised remote aliases are excluded. It neither downloads nor loads models.
+You can also type a model name. **Check model capabilities** queries
+[Ollama model metadata](https://github.com/ollama/ollama/blob/main/docs/api.md#show-model-information)
+without generating a proposal or sending scene data. It reports available
+capabilities and the model's advertised context length when present; that length
+does not establish the server's active context budget or guarantee a correct proposal.
+Every generation repeats the check: missing/invalid metadata, remote aliases and
+models without text completion are rejected before scene data is sent. Preflight
+and inference share the configured deadline. Embedding-only models cannot edit scenes.
 
 Choose **Save local connection** to remember the endpoint, model and deadline in
 `$XDG_CONFIG_HOME/solar-forge-engine/assistant.json` (normally under `~/.config`).
@@ -271,10 +279,13 @@ docker compose -f compose.yaml -f compose.ollama.yaml up --build desktop
 ```
 
 The test container stays isolated and uses temporary loopback HTTP fixtures, with
-no model downloads. Live model inference has not been verified on this machine:
-the installed Ollama server was not running. Docker stores saved settings in its
+no model downloads. Live inference was verified with the installed `granite4.1:3b`
+model on a temporary cloud-disabled Ollama 0.33.3 server: reviewed edits and Undo
+worked for a small scene and the Ember Run showcase. The temporary server was
+stopped afterward; normal launching still requires your own Ollama server.
+Docker stores saved settings in its
 `preferences` volume, separately from the `projects` volume. Enterprise adapters
-and model capability checks remain future work.
+remain future work.
 
 ## Development checks
 
