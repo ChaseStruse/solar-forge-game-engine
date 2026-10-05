@@ -14,16 +14,22 @@ refresh after command edits and undo/redo and persist within the editor session.
 Verification: 184 tests pass locally (11.76 seconds) and in Docker (13.95 seconds),
 with Ruff, formatting and strict mypy passing. Native Wayland search, role filters,
 selection preservation and Ctrl+L focus were verified.
-Session-only viewport locks now prevent accidental object dragging while keeping
+Viewport locks now prevent accidental object dragging while keeping
 selection, Inspector edits and reviewed assistant commands available. Inspector
 and Ctrl+Shift+L controls synchronize with Scene-list lock markers. Bulk decoration
 locking and unlock-all live in the Scene menu. Lock changes cancel drag previews,
 guard against late commits, and preserve unapplied Inspector fields. Locks are not
-game data or undo steps; they survive current-document undo/redo and reset when
-the active scene document changes. Persistent per-scene editor metadata is next.
-Lock verification: 187 tests pass locally (14.24 seconds) and in Docker (16.39 seconds).
-Ruff, formatting and strict mypy pass. Native Wayland shortcut, locked selection,
-drag prevention, Inspector editing and bulk unlock were verified.
+game data or undo steps; they survive undo/redo. Per-scene locks automatically
+persist in user-local preferences, keyed by the absolute scene path, and restore
+when reopening or switching scenes. First save and Save As carry current locks;
+external project moves do not carry these personal settings. Serialized background
+I/O merges edits made during loading and flushes pending settings before closing.
+Bounded regular-file validation preserves corrupt metadata and detected external
+changes, reporting failures in Activity rather than overwriting them. Docker uses
+the existing preferences volume; runtime scene files and exports remain unchanged.
+Lock verification: 192 tests pass locally (14.81 seconds) and in Docker (17.23 seconds).
+Ruff, formatting and strict mypy pass. Native Wayland persistence, reopening,
+unlocking and unchanged scene bytes were verified, alongside previous drag checks.
 The Ember Run showcase adds original pixel art, 187 editable objects, 19 animated
 sprites and a twelve-core collection route. Its portable example includes a second
 scene sharing assets; the built-in template is accessible in native and Docker builds.
@@ -842,6 +848,7 @@ Completed task checklist:
 - [x] Add pointer-centered wheel zoom, toolbar/keyboard zoom, middle-button pan and Fit scene for distant objects.
 - [x] Add view-only object name/ID search, combined role filters, counts and keyboard focus.
 - [x] Add session-only viewport drag locks, bulk decoration locking, markers and safe cancellation.
+- [x] Persist per-scene drag locks in local editor preferences with background I/O and close flushing.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
@@ -857,7 +864,7 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Persist per-scene editor locks without changing runtime game behavior.
+1. Group Inspector properties to make editing easier to scan.
    Continue measuring larger-context model behavior before broadening scene tools.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before

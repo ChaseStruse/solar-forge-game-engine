@@ -179,9 +179,17 @@ selectable; deliberate Inspector and assistant edits still work. From the Scene
 menu, **Lock decorations against dragging** protects backgrounds in one step and
 **Unlock all viewport dragging** clears every lock. Changing locks cancels an
 in-progress drag without moving the object and preserves unapplied Inspector fields.
-Locks are session-only, create no undo step, and do not change scene files or Play.
-They survive undo/redo in the current scene but reset when opening, creating or
-switching scenes. Saving locks across sessions remains planned.
+Locks create no undo step and do not change scene files or Play. They survive
+undo/redo and automatically save in the background for each saved scene. Reopening
+or switching scenes restores its locks; an unsaved scene carries its locks into
+its first save, and Save As carries them to the new scene.
+
+Settings live under `$XDG_CONFIG_HOME/solar-forge-engine/scene-locks` (normally
+`~/.config/solar-forge-engine/scene-locks`), keyed by the absolute scene path.
+Docker uses its existing preferences volume. These are personal settings: moving
+or copying a project outside Save As does not carry its locks. Invalid settings
+and detected external changes are preserved, with a warning in Activity; locks
+remain usable in memory. Repair the settings and reopen the scene to resume saving.
 
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
 an animated courier, flickering reactor, industrial pixel art, and twelve energy

@@ -49,6 +49,7 @@ from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.assistant import AssistantPanel
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
+from solar_forge_engine.editor.locks import LockPersistence
 from solar_forge_engine.editor.objects import ROLE_DATA, SceneObjects
 from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryWriter
@@ -200,7 +201,8 @@ class EditorWindow(QMainWindow):
         form.addRow("&Name", self.name_field)
         self.lock_drag_check = QCheckBox("Lock viewport dragging")
         self.lock_drag_check.setToolTip(
-            "Session-only drag protection. Inspector and assistant edits still work."
+            "Drag protection saved locally for named scenes. "
+            "Inspector and assistant edits still work."
         )
         self.lock_drag_check.toggled.connect(self.set_selected_lock)
         form.addRow(self.lock_drag_check)
@@ -275,6 +277,9 @@ class EditorWindow(QMainWindow):
         self.log.setMaximumHeight(130)
         self._dock("Activity", self.log, Qt.DockWidgetArea.BottomDockWidgetArea)
         self.log.append("Create a rectangle, edit its properties, and save your first scene.")
+        self.lock_preferences = LockPersistence(self)
+        self.lock_preferences.restored.connect(self._set_viewport_locks)
+        self.lock_preferences.warning.connect(self.log.append)
 
         self.assistant = AssistantPanel(lambda: (self.document, self.selected_id), self.refresh)
         assistant_scroll = QScrollArea()
@@ -496,6 +501,7 @@ class EditorWindow(QMainWindow):
                 if entity.id == self.selected_id:
                     self.tree.setCurrentItem(row)
                     item.setSelected(True)
+        self.lock_preferences.activate(self.document, self.path, self.view.locked_ids)
         self.objects.set_locked(self.view.locked_ids)
         self.objects.apply_filter(self.selected_id)
         self._refresh_assets()
@@ -525,6 +531,7 @@ class EditorWindow(QMainWindow):
 
     def _set_viewport_locks(self, ids: frozenset[str]) -> None:
         self.view.set_locked(ids)
+        self.lock_preferences.update(ids)
         self._drag_context = None
         self.objects.set_locked(ids)
         self._update_lock_controls()
@@ -544,7 +551,9 @@ class EditorWindow(QMainWindow):
                 if entity.role == Role.DECORATION
             }
         )
-        self.log.append("Decorations locked against viewport dragging for this scene session.")
+        self.log.append(
+            "Decorations locked against viewport dragging. Named scenes save locks locally."
+        )
 
     def _update_inspector(self) -> None:
         self._update_lock_controls()
@@ -1312,6 +1321,10 @@ class EditorWindow(QMainWindow):
             event.ignore()
             return
         if self._confirm_discard():
+            if not self.lock_preferences.drain(1000):
+                self.log.append("Finishing editor lock settings; close again shortly.")
+                event.ignore()
+                return
             self._closing = True
             if self._cleanup_job is not None and not self._cleanup_job.wait(1000):
                 self._closing = False
