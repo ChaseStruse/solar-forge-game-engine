@@ -15,7 +15,8 @@ or scene tree, edit their name/position/size/color, undo/redo, and save/reopen s
 documents. New/Open/Close protect unsaved changes. Play opens a separate native
 window with keyboard movement, wall collisions, and coin collection. PNG sprites
 and basic project folders are supported. An offline assistant demo supports reviewed
-scene edits; real model adapters, sandboxed Python scripts, and exports follow later.
+scene edits, and opt-in Ollama supports local models. Single-scene runtime-only exports
+are available; sandboxed Python scripts and dependency bundles remain planned.
 
 ## Run on Linux
 
@@ -463,6 +464,19 @@ supported environment. Its launcher uses Python isolated mode, ignoring project
 imports and Python environment overrides. Export includes one scene and the built-in
 behaviors; imported/generated Python scripts and runtime scene transitions remain
 unimplemented.
+
+For the dependency-packaging spike, run the offline developer probe:
+
+```sh
+.venv/bin/python scripts/probe_runtime_package.py
+.venv/bin/python scripts/probe_runtime_package.py --qpa wayland
+```
+
+It copies a Widgets-only Qt subset into a temporary Python environment and exercises
+an exported game without an installed engine. It prints sizes, external libraries
+and gameplay results, then removes the environment. It needs the frozen dependencies
+and installed Wayland libraries even for its offscreen check. This is a measurement
+tool, not a distributable bundle; see the [packaging decision](docs/architecture/0001-runtime-packaging.md).
 
 ## Project sounds
 

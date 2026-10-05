@@ -1100,6 +1100,7 @@ Completed task checklist:
 - [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.
 - [x] Add runtime-only native active-scene export and verified editor-free playback.
 - [ ] Bundle runtime dependencies and verify exported games on clean Arch.
+- [x] Measure a copied Widgets-only Qt subset and verify editor-free exports on host and Docker Wayland.
 - [ ] Add sandboxed Python game scripting.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
@@ -1113,6 +1114,9 @@ Next small features, in recommended order:
    and power-loss recovery guarantees remain open.
 2. Package native runtime dependencies and verify the independent game export
    on clean Arch. Measure bundle size and startup, preserving the lightweight option.
+   The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB
+   Qt subset with actual copies; interpreter bundling, notices and clean-machine
+   dependency verification remain open.
 3. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
 4. Connect local and enterprise provider adapters after the initial fake-provider
