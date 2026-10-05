@@ -72,6 +72,19 @@ support undo/redo. Sprites remain in the palette after undo/removal until anothe
 scene is opened or created. The palette is capped at 128 sprites and 4 MiB of pixel
 data; it does not scan unused files in `assets/`.
 
+Project edits automatically produce a recovery snapshot after two seconds without
+another applied edit. Serialization and writing run in a worker; the normal scene
+and asset files are untouched. Only one snapshot is retained per scene, capped at
+4 MiB with embedded pixels, so recovery does not depend on newly imported assets
+having been saved. Unapplied Inspector fields and standalone scenes are not autosaved.
+
+On reopening a project, choose **Recover edits**, **Discard snapshot**, or **Open
+saved scene**. Recover creates an undoable edit and remains unsaved until **Save**.
+Successful Save, explicit Discard, or Undo back to the saved scene clears recovery.
+Invalid or stale snapshots are retained and reported in Activity instead of
+replacing saved work. This protects against application crashes; power-loss
+persistence and concurrent editing from multiple engine instances are not guaranteed.
+
 Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score
 and announces completion; **Restart** resets the player and coins. Each object has

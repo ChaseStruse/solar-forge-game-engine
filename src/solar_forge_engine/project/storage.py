@@ -59,6 +59,13 @@ def save_scene_data(path: Path, data: dict[str, object]) -> None:
                 raise ValueError(
                     "Legacy scene backup already exists. Use Save As to keep both copies."
                 ) from error
+    atomic_write(path, raw)
+
+
+def atomic_write(path: Path, raw: bytes) -> None:
+    """Publish bytes through a flushed same-directory temporary file."""
+    if path.is_symlink():
+        raise ValueError("Do not write through symbolic links.")
     temporary: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".forge-", delete=False) as handle:

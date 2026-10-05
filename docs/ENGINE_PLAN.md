@@ -1,7 +1,7 @@
 # Solar Forge Game Engine — product and implementation plan
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
-separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, basic project folders, and
+separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, basic project folders, and
 editable coin collector are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
@@ -47,6 +47,15 @@ milestones below are planned work; unmeasured performance budgets remain targets
   and gameplay roles. Imported/loaded sprites remain reusable for the current scene
   session after undo/removal; a new/opened scene resets the palette. It is bounded
   to 128 sprites / 4 MiB pixel data and does not index unused asset files on disk.
+- Project-only recovery snapshots after a two-second edit debounce, serialized and
+  written in a worker thread with at most one job active. A single self-contained
+  snapshot per scene is capped at 4 MiB and atomically replaced; manual scene and
+  asset files are untouched. Opening offers Recover/Discard/Open saved, restoration
+  uses an undoable `RestoreScene` command, and Save/Discard/Undo-to-saved clears the
+  snapshot. Baseline fingerprints normalize scene numbers and reject stale snapshots.
+  Failed/invalid recovery is reported without blocking manual save or saved-project
+  opening. In-flight writes are cleared after Save/Discard; close waits briefly for
+  the worker rather than destroying an active thread.
 - Repeatable 1,000-moving-rectangle software benchmark at 1024×576: 10 warmup frames,
   120 measured frames. Initial Arch host run: median 4.805 ms, p95 4.953 ms, Python
   3.14.7 / Qt 6.11.2 / offscreen QImage rendering. This does not establish sprite,
@@ -68,7 +77,11 @@ asset import/save/reopen/Play was also verified. Sprite palette checks add reuse
 apply/undo, retained previews, save/reopen deduplication, reset and size rejection:
 48 tests passed locally in 0.68 seconds and in Docker in 0.90 seconds. Palette
 layout was visually inspected; native Wayland reuse was smoke-tested. Save As/New
-transitions are covered. Ruff, formatting, and strict mypy pass. Project create/open/Play also
+transitions are covered. Recovery adds atomic failure preservation, automatic timer
+write, undo/redo restore, keep/discard choices, stale/corrupt rejection, in-flight
+save races and error handling: 56 tests passed locally in 0.80 seconds and in Docker
+in 1.07 seconds. Native Wayland autosave/recover/manual-save was verified. Ruff,
+formatting, and strict mypy pass. Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
 startup/shutdown checks also passed on the Arch host.
@@ -229,8 +242,8 @@ Implemented choices are Python 3.14, PySide6 Essentials 6.11.2, Hatchling, uv wi
 one lockfile, Ruff, mypy, pytest, and pytest-qt. Qt Graphics View is shared by editor
 and player. The renderer draws geometry and native sprite pixmaps, decoding each
 unique resolved sprite once per scene rebuild; the frame loop only moves items.
-The built-in simulation is Qt-independent. Audio bindings, background worker jobs,
-asset pipelines beyond bounded PNG normalization, and provider adapters remain planned.
+The built-in simulation is Qt-independent. Recovery writes run in a Qt worker
+thread. Audio bindings, broader asset pipelines and provider adapters remain planned.
 
 Qt's Graphics View provides 2D scene items and views through Python bindings.
 Use it as the first rendering spike so authoring and standalone playback can share
@@ -261,7 +274,7 @@ src/solar_forge_engine/
     editor/             Native window, scene tree, viewport and inspector
     core/               Scene/role/sprite schemas, commands, built-in starter data
     runtime/            Simulation, shared renderer and native player entry point
-    project/            Scene I/O, upgrade backup, PNG normalization, folders and assets
+    project/            Scene I/O, upgrade backup, PNG normalization, folders, assets, recovery
     __main__.py         Native editor entry point
 scripts/                Software rendering benchmark
 tests/                  Scene, editor, player, collector, sprite and project checks
@@ -272,7 +285,7 @@ compose.yaml
 compose.test.yaml
 ```
 
-Add `ai/`, project asset/recovery/export modules, `resources/`, external `templates/`,
+Add `ai/`, project-wide asset indexing/export modules, `resources/`, external `templates/`,
 and `packaging/` when their features are implemented. The current starter is data in
 [`core/templates.py`](../src/solar_forge_engine/core/templates.py); it contains no
 project scripts. A source-run console launcher and Docker image exist; Arch package
@@ -315,7 +328,8 @@ preserves references. Open resolves assets into immutable in-memory Sprite data;
 Play and standalone Save As use that snapshot without external path access.
 Assets publish through a flushed temporary file and exclusive hard link before the
 scene's atomic replacement. Handled failures preserve prior scene data; unused
-assets may remain. Garbage collection and a crash-recovery journal are not implemented.
+assets may remain. Garbage collection is not implemented. Recovery uses a single
+bounded embedded snapshot per scene, not an append-only journal.
 This is not a whole-folder atomic transaction or concurrent filesystem sandbox.
 
 Each standalone version-three `.forge.json` file contains scene name,
@@ -329,7 +343,18 @@ are limited to 4 MiB, preserving the standalone/Play boundary; scenes support 10
 entities. Undo/redo uses bounded in-memory scene history with monotonic revisions.
 Preview state lives in a separate simulation and is not persisted into the scene.
 
-Implemented commands are `CreateEntity`, `SetEntity`, and `DeleteEntity` in
+**Implemented recovery:** `<scene>.recovery.json` is a version-one envelope with
+baseline fingerprint and embedded scene data (maximum 4 MiB total). A two-second
+edit debounce starts one worker-thread write; no frame-loop I/O or unbounded queue.
+Baseline hashes canonicalize int/float geometry to match save/load normalization.
+Invalid or stale snapshots never replace saved scenes automatically. Users choose
+Recover/Discard/Open saved; recovery is undoable and dirty until manually saved.
+Save, explicit Discard, and Undo-to-saved remove the snapshot, including late worker
+completion. No standalone/untitled recovery, unapplied-field capture, snapshot
+history, power-loss durability guarantee, or concurrent multi-instance coordination
+is implemented yet.
+
+Implemented commands are `CreateEntity`, `SetEntity`, `DeleteEntity`, and `RestoreScene` in
 [`core/commands.py`](../src/solar_forge_engine/core/commands.py). Batched edits apply
 atomically with an expected revision; invalid or stale changes leave the document
 and history intact. The UI uses this command layer. No AI tool dispatcher or generic
@@ -584,7 +609,7 @@ experience; these milestones are gates, not promised delivery dates.
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
-| 1 — Reliable workspace | Partial: scene editing, project folders, relative assets, path/hash validation, save/reopen, upgrades, undo and Docker tests | Disk-wide asset indexing, multi-scene workspace, recovery journal and complete project integrity checks; CI automation still absent |
+| 1 — Reliable workspace | Partial: scene editing, project folders, relative assets, path/hash validation, save/reopen, upgrades, undo and Docker tests | Disk-wide asset indexing, multi-scene workspace, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
 | 2 — Playable 2D slice | Partial: editable collector, PNG sprites, keyboard movement, walls, coin triggers, HUD and restart | Asset libraries/animation, audio, configurable input/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
 | 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
@@ -612,20 +637,20 @@ Completed task checklist:
 - [x] Add validated project-folder creation/opening around existing scenes.
 - [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
 - [x] Add a bounded native sprite palette with previews and undoable reuse/application.
-- [ ] Add disk-wide asset indexing/cleanup, multiple-scene browsing and bounded recovery.
+- [x] Add bounded project autosave, user-controlled crash recovery, and in-flight save protection.
+- [ ] Add disk-wide asset indexing/cleanup and multiple-scene browsing.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [ ] Connect the assistant through a fake provider, then verified real adapters.
 
 Next small features, in recommended order:
 
-1. Add bounded autosave and crash recovery for project scenes, with atomic snapshots,
-   clear recovery/discard choices, and tests proving saved files and assets remain
-   intact. This is the highest priority now that richer editing creates more work
-   worth protecting. Keep automatic writes debounced and out of the frame loop.
-2. Add multiple-scene browsing and expand the session palette into a project-wide
-   asset index with reuse and explicit safe cleanup. Preserve backups/recovery
-   references; never silently delete unreachable assets. Continue measuring unique
-   texture workloads and native presentation/startup before closing renderer gates.
+1. Add multiple-scene creation/browsing and safe switching within project folders,
+   with per-scene save/recovery behavior and validated relative paths. This is the
+   next highest priority for building games beyond a single-screen prototype.
+2. Expand the session palette into a project-wide asset index with reuse and explicit
+   safe cleanup. Preserve backups/recovery references; never silently delete
+   unreachable assets. Continue measuring unique-texture workloads and native
+   presentation/startup before closing renderer gates.
 
 3. Add configurable movement/input and audio to the reference game, then a small
    independent native player/export package. Verify it outside the editor on clean Arch.

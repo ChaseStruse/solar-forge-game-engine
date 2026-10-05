@@ -6,7 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, QSize, Qt
+from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QComboBox,
@@ -36,13 +36,16 @@ from solar_forge_engine.core.commands import (
     CreateEntity,
     DeleteEntity,
     Document,
+    RestoreScene,
     SetEntity,
 )
 from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
+from solar_forge_engine.editor.recovery import RecoveryWriter
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
+from solar_forge_engine.project.recovery import clear_recovery, read_recovery
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
 from solar_forge_engine.project.workspace import Project, create_project, open_project
 from solar_forge_engine.runtime.rendering import render_scene, sprite_pixmap
@@ -75,6 +78,12 @@ class EditorWindow(QMainWindow):
         self.project: Project | None = None
         self.saved_scene = self.document.scene
         self.selected_id: str | None = None
+        self._recovery_job: RecoveryWriter | None = None
+        self._recovery_key: tuple[Document, int] | None = None
+        self.recovery_timer = QTimer(self)
+        self.recovery_timer.setSingleShot(True)
+        self.recovery_timer.setInterval(2000)
+        self.recovery_timer.timeout.connect(self.autosave)
         self.preview = QProcess(self)
         self._stopping_preview = False
         self.preview.finished.connect(self._preview_finished)
@@ -236,6 +245,18 @@ class EditorWindow(QMainWindow):
         self.addDockWidget(area, dock)
 
     def refresh(self) -> None:
+        key = (self.document, self.document.revision)
+        if key != self._recovery_key:
+            was_same_document = (
+                self._recovery_key is not None and self._recovery_key[0] is self.document
+            )
+            self._recovery_key = key
+            if self.project is not None and self.dirty:
+                self.recovery_timer.start()
+            else:
+                self.recovery_timer.stop()
+                if was_same_document and self.project is not None and not self.dirty:
+                    self._clear_recovery()
         ids = {entity.id for entity in self.document.scene.entities}
         if self.selected_id not in ids:
             self.selected_id = None
@@ -585,6 +606,7 @@ class EditorWindow(QMainWindow):
         except (OSError, ValueError) as error:
             self._error(f"Could not save scene: {error}")
             return False
+        self._clear_recovery()
         self.path = path
         if choose_path:
             self.project = None
@@ -644,6 +666,17 @@ class EditorWindow(QMainWindow):
         except (OSError, ValueError) as error:
             self._error(f"Could not open project: {error}")
             return False
+        recovered = None
+        try:
+            recovered = read_recovery(project, scene)
+        except (OSError, ValueError) as error:
+            self.log.append(f"Recovery snapshot unavailable: {error}")
+        choice = self._choose_recovery() if recovered is not None else "keep"
+        if choice == "discard":
+            try:
+                clear_recovery(project)
+            except (OSError, ValueError) as error:
+                self.log.append(f"Could not discard recovery: {error}")
         self._close_preview()
         self.document = Document(scene)
         self.project = project
@@ -653,6 +686,9 @@ class EditorWindow(QMainWindow):
         self.refresh()
         self.fit_scene()
         self.log.append(f"Opened project {project.name}")
+        if choice == "recover" and recovered is not None:
+            self.execute(RestoreScene(recovered))
+            self.log.append("Recovered edits. Save to keep them; Undo restores the saved scene.")
         return True
 
     def open_scene(self) -> None:
@@ -699,7 +735,59 @@ class EditorWindow(QMainWindow):
         )
         if answer == buttons.Save:
             return self.save()
-        return answer == buttons.Discard
+        if answer == buttons.Discard:
+            self._clear_recovery()
+            return True
+        return False
+
+    def autosave(self) -> None:
+        if self.project is None or not self.dirty:
+            return
+        if self._recovery_job is not None:
+            self.recovery_timer.start()
+            return
+        job = RecoveryWriter(self.project, self.document.scene, self.saved_scene)
+        self._recovery_job = job
+        job.finished.connect(lambda: self._recovery_finished(job))
+        job.start()
+
+    def _recovery_finished(self, job: RecoveryWriter) -> None:
+        if job is not self._recovery_job:
+            return
+        if job.discard:
+            try:
+                clear_recovery(job.project)
+            except (OSError, ValueError) as error:
+                self.log.append(f"Could not clear recovery: {error}")
+        elif job.error:
+            self.log.append(f"Autosave failed: {job.error}. Manual Save is still available.")
+        else:
+            self.log.append("Recovery snapshot updated.")
+        self._recovery_job = None
+        job.deleteLater()
+
+    def _clear_recovery(self) -> None:
+        self.recovery_timer.stop()
+        if self.project is None:
+            return
+        if self._recovery_job is not None and self._recovery_job.project == self.project:
+            self._recovery_job.discard = True
+        try:
+            clear_recovery(self.project)
+        except (OSError, ValueError) as error:
+            self.log.append(f"Could not clear recovery: {error}")
+
+    def _choose_recovery(self) -> str:
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Recover unsaved scene")
+        dialog.setText("An unsaved recovery snapshot is available for this project.")
+        recover = dialog.addButton("Recover edits", QMessageBox.ButtonRole.AcceptRole)
+        discard = dialog.addButton("Discard snapshot", QMessageBox.ButtonRole.DestructiveRole)
+        dialog.addButton("Open saved scene", QMessageBox.ButtonRole.RejectRole)
+        dialog.exec()
+        if dialog.clickedButton() == recover:
+            return "recover"
+        return "discard" if dialog.clickedButton() == discard else "keep"
 
     def _error(self, message: str) -> None:
         self.log.append(message)
@@ -707,6 +795,13 @@ class EditorWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._confirm_discard():
+            if self._recovery_job is not None:
+                job = self._recovery_job
+                if not job.wait(1000):
+                    self.log.append("Finishing recovery snapshot; close again shortly.")
+                    event.ignore()
+                    return
+                self._recovery_finished(job)
             self._close_preview()
             event.accept()
         else:

@@ -55,6 +55,14 @@ class DeleteEntity:
         return replace(scene, entities=tuple(e for e in scene.entities if e.id != self.entity_id))
 
 
+@dataclass(frozen=True)
+class RestoreScene:
+    scene: Scene
+
+    def apply(self, scene: Scene) -> Scene:
+        return self.scene
+
+
 class Document:
     """Atomic in-memory transactions with bounded history and monotonic revisions."""
 
