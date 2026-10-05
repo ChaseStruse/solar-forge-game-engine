@@ -43,6 +43,7 @@ from solar_forge_engine.core.commands import (
 from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
+from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.recovery import RecoveryWriter
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
@@ -122,6 +123,8 @@ class EditorWindow(QMainWindow):
         self.asset_sprites: list[Sprite] = []
         self._known_assets: set[Sprite] = set()
         self._asset_document: Document | None = None
+        self._asset_index_job: AssetIndexer | None = None
+        self._closing = False
         self._asset_bytes = 0
         asset_panel = QWidget()
         asset_layout = QVBoxLayout(asset_panel)
@@ -139,6 +142,9 @@ class EditorWindow(QMainWindow):
         self.apply_asset_button.clicked.connect(self.apply_asset)
         asset_layout.addWidget(self.apply_asset_button)
         self.asset_list.currentItemChanged.connect(self._update_asset_actions)
+        self.refresh_assets_button = QPushButton("Refresh project assets")
+        self.refresh_assets_button.clicked.connect(self.refresh_project_assets)
+        asset_layout.addWidget(self.refresh_assets_button)
         self.asset_list.itemDoubleClicked.connect(lambda item: self.add_asset())
         self._dock("Assets", asset_panel, Qt.DockWidgetArea.LeftDockWidgetArea)
 
@@ -292,6 +298,9 @@ class EditorWindow(QMainWindow):
         if root != self._scene_root:
             self._scene_root = root
             self.refresh_project_scenes()
+        self.refresh_assets_button.setEnabled(
+            self.project is not None and self._asset_index_job is None
+        )
         self.create_scene_button.setEnabled(self.project is not None)
         self.switch_scene_button.setEnabled(self.project is not None)
         self.refresh_scenes_button.setEnabled(self.project is not None)
@@ -445,23 +454,8 @@ class EditorWindow(QMainWindow):
             self._asset_document = self.document
         limited = False
         for entity in self.document.scene.entities:
-            sprite = entity.sprite
-            if sprite is None or sprite in self._known_assets:
-                continue
-            size = sprite.width * sprite.height * 4
-            if len(self.asset_sprites) >= 128 or self._asset_bytes + size > MAX_FILE_BYTES:
+            if entity.sprite is not None and not self._remember_asset(entity.name, entity.sprite):
                 limited = True
-                continue
-            row = QListWidgetItem(
-                QIcon(sprite_pixmap(sprite)),
-                f"{entity.name} · {sprite.width} × {sprite.height}",
-            )
-            row.setData(Qt.ItemDataRole.UserRole, len(self.asset_sprites))
-            row.setToolTip(entity.name)
-            self.asset_list.addItem(row)
-            self.asset_sprites.append(sprite)
-            self._known_assets.add(sprite)
-            self._asset_bytes += size
         if limited:
             hint = "Palette limit reached (128 sprites / 4 MiB)."
         elif self.asset_sprites:
@@ -470,6 +464,52 @@ class EditorWindow(QMainWindow):
             hint = "Import a PNG to build your sprite palette."
         self.asset_hint.setText(hint)
         self._update_asset_actions()
+
+    def _remember_asset(self, name: str, sprite: Sprite) -> bool:
+        if sprite in self._known_assets:
+            return True
+        size = sprite.width * sprite.height * 4
+        if len(self.asset_sprites) >= 128 or self._asset_bytes + size > MAX_FILE_BYTES:
+            return False
+        row = QListWidgetItem(
+            QIcon(sprite_pixmap(sprite)), f"{name} · {sprite.width} × {sprite.height}"
+        )
+        row.setData(Qt.ItemDataRole.UserRole, len(self.asset_sprites))
+        row.setToolTip(name)
+        self.asset_list.addItem(row)
+        self.asset_sprites.append(sprite)
+        self._known_assets.add(sprite)
+        self._asset_bytes += size
+        return True
+
+    def refresh_project_assets(self) -> None:
+        if self.project is None or self._asset_index_job is not None:
+            return
+        job = AssetIndexer(self.project)
+        self._asset_index_job = job
+        self.refresh_assets_button.setEnabled(False)
+        self.refresh_assets_button.setText("Scanning assets…")
+        job.finished.connect(lambda: self._asset_index_finished(job))
+        job.start()
+
+    def _asset_index_finished(self, job: AssetIndexer) -> None:
+        if job is not self._asset_index_job:
+            return
+        if self.project is not None and self.project.root == job.project.root:
+            for name, sprite in job.sprites:
+                if not self._remember_asset(name, sprite):
+                    self.log.append("Project asset palette limit reached.")
+                    break
+            for warning in job.warnings:
+                self.log.append(warning)
+            self._refresh_assets()
+            self.log.append("Project assets refreshed from saved scenes.")
+        self._asset_index_job = None
+        self.refresh_assets_button.setEnabled(self.project is not None)
+        self.refresh_assets_button.setText("Refresh project assets")
+        job.deleteLater()
+        if not self._closing and self.project is not None and self.project.root != job.project.root:
+            self.refresh_project_assets()
 
     def _update_asset_actions(self) -> None:
         chosen = self.asset_list.currentItem() is not None
@@ -688,6 +728,7 @@ class EditorWindow(QMainWindow):
         self.path = project.scene_path()
         self.saved_scene = self.document.scene
         self.refresh()
+        self.refresh_project_assets()
         self.log.append(f"Created project {project.name} from the current applied scene.")
         return True
 
@@ -728,6 +769,7 @@ class EditorWindow(QMainWindow):
         self.refresh()
         self.fit_scene()
         self.refresh_project_scenes()
+        self.refresh_project_assets()
         self.log.append(f"Opened {project.name} / {scene.name}")
         if choice == "recover" and recovered is not None:
             self.execute(RestoreScene(recovered))
@@ -900,10 +942,21 @@ class EditorWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._confirm_discard():
+            self._closing = True
+            if self._asset_index_job is not None:
+                job_index = self._asset_index_job
+                job_index.requestInterruption()
+                if not job_index.wait(1000):
+                    self.log.append("Finishing asset scan; close again shortly.")
+                    self._closing = False
+                    event.ignore()
+                    return
+                self._asset_index_finished(job_index)
             if self._recovery_job is not None:
                 job = self._recovery_job
                 if not job.wait(1000):
                     self.log.append("Finishing recovery snapshot; close again shortly.")
+                    self._closing = False
                     event.ignore()
                     return
                 self._recovery_finished(job)

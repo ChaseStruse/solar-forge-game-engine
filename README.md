@@ -73,14 +73,18 @@ Older embedded project scenes load unchanged; saving upgrades them after keeping
 an exact `.v1.bak`, `.v2.bak`, or `.v3.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
-sprite removal. Disk-wide asset browsing and cleanup are future work.
+sprite removal. Unused-file browsing and cleanup are future work.
 
-The **Assets** panel previews unique sprites from the loaded scene and imports in
-this session. Double-click or choose **Add to scene** to create a new object;
+The **Assets** panel previews unique sprites from the loaded scene, session imports,
+and other saved project scenes. Project open/switch starts a background scan;
+**Refresh project assets** rescans after external changes. Double-click or choose **Add to scene** to create a new object;
 **Apply to selected object** preserves its geometry and gameplay role. Both actions
 support undo/redo. Sprites remain in the palette after undo/removal until another
 scene is opened or created. The palette is capped at 128 sprites and 4 MiB of pixel
-data; it does not scan unused files in `assets/`.
+data. Indexing reads up to 16 MiB of saved scene files using the existing bounded
+scene/asset validators; malformed scenes are skipped with Activity messages.
+Unused files, backups, and recovery snapshots are not catalog sources. Scan results
+from a previously opened project cannot populate the current project palette.
 
 Project edits automatically produce a recovery snapshot after two seconds without
 another applied edit. Serialization and writing run in a worker; the normal scene
