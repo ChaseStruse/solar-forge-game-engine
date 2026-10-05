@@ -147,11 +147,17 @@ scans. A changed file requires a fresh review, and any existing target blocks re
 even if its bytes match. Scene data and undo history remain unchanged. Restored unused
 files do not automatically appear in the sprite palette, which indexes saved scenes.
 
-Quarantine does not reclaim disk space or permanently delete files. If removing the
-quarantined copy fails after restoration, both copies remain. Raw files carry no
-image dimensions; restoration preserves their bytes, while project loading still
-validates sprite dimensions and content hashes. Permanent purge, concurrent-edit
-guarantees, and power-loss guarantees remain future work.
+To reclaim space, select one file and choose **Review permanent deletion…**. A
+worker rescans quarantine within its existing limits. The confirmation shows its
+path and byte size, offers its SHA-256 in Details, and defaults to **No**. Confirming
+permanently removes only that quarantine file after another content check; there
+is no undo. Changed files require refreshing and reviewing again. Empty batch
+folders remain. Concurrent external editing during deletion is not supported.
+
+If removing the quarantined copy fails after restoration, both copies remain.
+Raw files carry no image dimensions; restoration preserves their bytes, while project loading still
+validates sprite dimensions and content hashes. Concurrent-edit and power-loss
+guarantees remain future work.
 
 Project edits automatically produce a recovery snapshot after two seconds without
 another applied edit. Serialization and writing run in a worker; the normal scene

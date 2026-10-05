@@ -827,6 +827,8 @@ class EditorWindow(QMainWindow):
         if dialog.restored:
             self.log.append("Quarantined assets restored; scene data was not changed.")
             self.refresh_project_assets()
+        if dialog.purged:
+            self.log.append("Quarantined assets permanently deleted; scene data unchanged.")
         dialog.deleteLater()
 
     def review_unused_assets(self) -> None:

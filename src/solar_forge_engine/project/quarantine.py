@@ -3,6 +3,7 @@
 import hashlib
 import os
 import re
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -33,7 +34,10 @@ def inspect_asset(project: Project, reference: str) -> QuarantinedAsset:
     path = folder / reference
     if path.parent.is_symlink() or path.is_symlink() or not path.is_file():
         raise ValueError("Quarantined assets must be regular files without symbolic links.")
-    with path.open("rb") as handle:
+    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, "rb") as handle:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise ValueError("Quarantined assets must be regular files.")
         raw = handle.read(MAX_PIXEL_BYTES + 1)
     if not raw or len(raw) > MAX_PIXEL_BYTES or len(raw) % 4:
         raise ValueError("Quarantined asset has invalid or oversized RGBA bytes.")
@@ -81,3 +85,13 @@ def restore_asset(project: Project, asset: QuarantinedAsset) -> None:
     # If unlink fails, both copies remain available; never roll back by deleting a target
     # that another process might have replaced. Concurrent editing is not supported.
     source.unlink()
+
+
+def purge_asset(project: Project, asset: QuarantinedAsset) -> None:
+    """Remove only a reviewed quarantine file; leave assets and scene data intact.
+
+    Concurrent external modification during this operation is not supported.
+    """
+    if inspect_asset(project, asset.reference) != asset:
+        raise ValueError("Quarantined asset changed after review. Refresh before purging.")
+    (quarantine_folder(project) / asset.reference).unlink()

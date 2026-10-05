@@ -10,7 +10,7 @@ from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.window import EditorWindow
 from solar_forge_engine.project.assets import store_asset
 from solar_forge_engine.project.cleanup import plan_cleanup, quarantine_assets, sprite_reference
-from solar_forge_engine.project.quarantine import list_quarantined, restore_asset
+from solar_forge_engine.project.quarantine import list_quarantined, purge_asset, restore_asset
 from solar_forge_engine.project.workspace import create_project, open_project
 
 
@@ -35,6 +35,89 @@ def test_restore_preserves_bytes_scene_and_empty_batches(tmp_path):
     assert not list_quarantined(project)
     assert project.scene_path().read_bytes() == scene_bytes
     assert open_project(project.root)[1] == Scene()
+
+
+def test_purge_removes_only_reviewed_copy_and_preserves_scene(tmp_path):
+    project, path, entry = quarantined_project(tmp_path)
+    scene_bytes = project.scene_path().read_bytes()
+    source = project.root / ".asset-quarantine" / entry.reference
+    path.write_bytes(source.read_bytes())
+    raw = path.read_bytes()
+    purge_asset(project, entry)
+    assert not source.exists()
+    assert path.read_bytes() == raw
+    assert project.scene_path().read_bytes() == scene_bytes
+    assert not list_quarantined(project)
+
+
+@pytest.mark.parametrize("failure", ["changed", "symlink", "missing", "unlink"])
+def test_purge_revalidation_or_unlink_failure_preserves_other_files(tmp_path, monkeypatch, failure):
+    project, path, entry = quarantined_project(tmp_path)
+    source = project.root / ".asset-quarantine" / entry.reference
+    path.write_bytes(b"keep")
+    if failure == "changed":
+        source.write_bytes(b"edit")
+    elif failure == "symlink":
+        source.unlink()
+        source.symlink_to(path)
+    elif failure == "missing":
+        source.unlink()
+    else:
+        unlink = Path.unlink
+
+        def refuse(self, *args, **kwargs):
+            if self == source:
+                raise OSError("unlink failed")
+            return unlink(self, *args, **kwargs)
+
+        monkeypatch.setattr(Path, "unlink", refuse)
+    with pytest.raises((ValueError, OSError)):
+        purge_asset(project, entry)
+    assert path.read_bytes() == b"keep"
+    if failure != "missing":
+        assert source.exists()
+
+
+def test_browser_purge_cancellation_and_confirmation(qtbot, tmp_path, monkeypatch):
+    project, _, entry = quarantined_project(tmp_path)
+    source = project.root / ".asset-quarantine" / entry.reference
+    dialog = QuarantineDialog(project)
+    qtbot.addWidget(dialog)
+    qtbot.waitUntil(lambda: dialog._job is None)
+    dialog.files.setCurrentRow(0)
+    monkeypatch.setattr(dialog, "_confirm_purge", lambda asset: False)
+    dialog.review_purge()
+    qtbot.waitUntil(lambda: dialog._job is None)
+    assert source.exists()
+    assert not dialog.purged
+    assert "cancelled" in dialog.status.text()
+    monkeypatch.setattr(dialog, "_confirm_purge", lambda asset: True)
+    dialog.review_purge()
+    qtbot.waitUntil(lambda: dialog._job is None)
+    assert not source.exists()
+    assert dialog.purged
+    assert not dialog.files.count()
+    assert not dialog.purge_button.isEnabled()
+
+
+def test_browser_rechecks_file_after_confirmation(qtbot, tmp_path, monkeypatch):
+    project, _, entry = quarantined_project(tmp_path)
+    source = project.root / ".asset-quarantine" / entry.reference
+    dialog = QuarantineDialog(project)
+    qtbot.addWidget(dialog)
+    qtbot.waitUntil(lambda: dialog._job is None)
+    dialog.files.setCurrentRow(0)
+
+    def confirm(asset):
+        source.write_bytes(b"edit")
+        return True
+
+    monkeypatch.setattr(dialog, "_confirm_purge", confirm)
+    dialog.review_purge()
+    qtbot.waitUntil(lambda: dialog._job is None)
+    assert source.read_bytes() == b"edit"
+    assert not dialog.purged
+    assert "changed after review" in dialog.status.text()
 
 
 @pytest.mark.parametrize("conflict", ["existing", "symlink", "changed", "assets_link"])

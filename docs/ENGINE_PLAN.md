@@ -33,6 +33,14 @@ unlocking and unchanged scene bytes were verified, alongside previous drag check
 The Ember Run showcase adds original pixel art, 187 editable objects, 19 animated
 sprites and a twelve-core collection route. Its portable example includes a second
 scene sharing assets; the built-in template is accessible in native and Docker builds.
+Quarantine now supports reviewed permanent deletion of one selected file. A bounded
+worker rescan precedes default-No confirmation with path, size and fingerprint;
+a second content check precedes unlink. Cancellation, changed files and failures
+leave other assets and scene data untouched. Empty batch folders remain, and
+concurrent external editing and power-loss guarantees are still unsupported.
+Purge verification: 200 tests pass locally (15.20 seconds) and in Docker (17.79 seconds).
+Ruff, formatting and strict mypy pass. Native Wayland confirmation, default No,
+cancellation and deletion of an isolated temporary file were verified.
 The architecture and release milestones below remain planned work; unmeasured
 performance budgets remain targets.
 
@@ -226,7 +234,7 @@ libraries, audio, sandboxed script execution, real model adapters, and native ga
 exports are not implemented. The assistant currently uses an offline demo fixture. Project folders support multiple authored scenes with
 relative sprite references, per-scene recovery and a project-wide sprite palette.
 Reviewed unused-asset scanning, reversible quarantine and native browsing/restoration
-are implemented. Permanent purge and runtime scene transitions remain planned.
+are implemented, including reviewed single-file purge. Runtime scene transitions remain planned.
 The Qt backend remains provisional pending representative sprite workloads and
 native presentation benchmarks.
 See the [README](../README.md) for runnable commands. Later sections distinguish
@@ -430,7 +438,7 @@ compose.test.yaml
 ```
 
 The `ai/` package contains the offline provider and bounded proposal decoder.
-Add export modules and quarantine purge controls, `resources/`, external `templates/`,
+Add export modules, `resources/`, external `templates/`,
 and `packaging/` when their features are implemented. The current starter is data in
 [`core/templates.py`](../src/solar_forge_engine/core/templates.py); it contains no
 project scripts. A source-run console launcher and Docker image exist; Arch package
@@ -534,7 +542,7 @@ sprites into the existing bounded palette. An explicit Refresh action handles
 external changes. Corrupt scenes are skipped with warnings. This is an ephemeral
 catalog of saved-scene references, not a persisted index of all asset files.
 
-**Planned project extensions:** quarantine purge, scene organization,
+**Planned project extensions:** scene organization,
 and sandboxed Python `scripts/`. The basic `project.json`, `scenes/`, and `assets/`
 layout and relative sprite references are implemented; standalone scenes still
 embed pixels. Ignore generated caches and builds. Use stable IDs and relative asset references, with
@@ -828,7 +836,7 @@ experience; these milestones are gates, not promised delivery dates.
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
-| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Quarantine purge, scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
+| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
 | 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Expanded asset libraries/animation clips, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
 | 3 — Useful assistant | Partial: offline demo proposals, readable diffs, validated atomic edits, undo/revision protection and cancellation | Verified local/hosted models, compact model context, request timeouts, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
@@ -872,7 +880,8 @@ Completed task checklist:
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
 - [x] Add bounded looping sprite-sheet animation, first-frame editor rendering, and deterministic Play timing/restart.
 - [x] Ship Ember Run: an animated, playable forge showcase and compact editable two-scene example.
-- [ ] Add quarantine purge controls and stronger recovery guarantees.
+- [x] Add worker-based single-file quarantine purge with fresh review, default-No confirmation and revalidation.
+- [ ] Add stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
@@ -882,11 +891,10 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add bounded quarantine purge controls with fresh review and file revalidation.
+1. Add richer scene organization, starting with explicit object draw ordering.
    Continue measuring larger-context model behavior before broadening scene tools.
-2. Add richer scene organization; continue
-   measuring unique-texture workloads and native presentation/startup before
-   closing renderer gates.
+2. Strengthen recovery guarantees and continue measuring unique-texture workloads
+   and native presentation/startup before closing renderer gates.
 3. Add audio, then a small independent native player/export package. Verify it
    outside the editor on clean Arch.
 4. Prove a native and container-compatible sandbox before enabling imported/generated
