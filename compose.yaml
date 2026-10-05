@@ -1,0 +1,27 @@
+services:
+  desktop:
+    build:
+      context: .
+      dockerfile: Dockerfile.run
+      args:
+        SOLAR_FORGE_UID: ${SOLAR_FORGE_UID:-1000}
+        SOLAR_FORGE_GID: ${SOLAR_FORGE_GID:-1000}
+    image: solar-forge-engine:dev
+    init: true
+    network_mode: none
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    environment:
+      QT_QPA_PLATFORM: wayland
+      QT_QPA_PLATFORMTHEME: ""
+      XDG_RUNTIME_DIR: /tmp
+      WAYLAND_DISPLAY: wayland-0
+    volumes:
+      - type: bind
+        source: ${XDG_RUNTIME_DIR:?A Wayland session is required}/${WAYLAND_DISPLAY:?A Wayland session is required}
+        target: /tmp/wayland-0
+        read_only: true
+      - projects:/projects
+
+volumes:
+  projects:

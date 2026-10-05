@@ -1,0 +1,19 @@
+FROM python:3.14.7-slim-bookworm
+COPY --from=ghcr.io/astral-sh/uv:0.12.5 /uv /bin/uv
+ARG SOLAR_FORGE_UID=1000
+ARG SOLAR_FORGE_GID=1000
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libegl1 libgl1 libxkbcommon0 libdbus-1-3 libglib2.0-0 libfontconfig1 \
+    libwayland-cursor0 fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project --no-cache
+COPY src ./src
+RUN uv sync --frozen --no-dev --no-cache
+RUN groupadd --gid "${SOLAR_FORGE_GID}" forge \
+    && useradd --uid "${SOLAR_FORGE_UID}" --gid "${SOLAR_FORGE_GID}" --create-home forge \
+    && mkdir /projects && chown forge:forge /projects
+USER forge
+WORKDIR /projects
+CMD ["/app/.venv/bin/solar-forge-engine"]

@@ -1,1 +1,104 @@
-# solar-forge-game-engine
+# Solar Forge Game Engine
+
+A proposed native Arch Linux desktop engine for making fun, lightweight 2D games.
+Python and PySide6 Qt Widgets, aligned with Solar Forge Life Helper and part of the
+Solar Forge Studios suite. Local-first and LLM-first, with native Linux exports.
+
+No JavaScript, TypeScript, browser UI, embedded webview, or web export.
+
+Solar Forge combines a clear visual editor, editable game code, and an assistant
+that works through inspectable, undoable actions. Manual development and exported
+games should work without an AI service.
+
+**Status: editor and built-in native playback.** Create rectangles, select them in the viewport
+or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
+documents. New/Open/Close protect unsaved changes. Play opens a separate native
+window with keyboard movement, wall collisions, and coin collection. Assets, project folders, AI, sandboxed
+Python scripts, and exports follow in later small features.
+
+## Run on Linux
+
+Use Python 3.14 and uv:
+
+```sh
+uv sync --frozen
+uv run --frozen solar-forge-engine
+```
+
+Choose **Add rectangle**, edit the **Inspector**, and press **Apply changes**.
+Save to a `.forge.json` file. These version-two files contain the entire scene and
+explicit object roles; project folders are future work. Version-one files still
+load as decorations. Before an older file is saved in version-two format, its exact
+bytes are retained in `<filename>.v1.bak`. Existing backups are never overwritten;
+use Save As if that backup name is already occupied. Files never execute scripts.
+
+Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
+around the gray walls and collect all five gold coins. The HUD tracks the score
+and announces completion; **Restart** resets the player and coins. Each object has
+an editable **Role** in the Inspector: Decoration, Player, Wall, or Coin. Names and
+colors do not determine gameplay behavior. Coins use circular visuals and rectangular
+collision bounds. This prototype supports static, axis-aligned walls, not a full
+physics system; place the player outside walls when editing its start position.
+
+Press **Play** (F5). **WASD/arrows** move the controlled object within
+the 1024×576 play area at 240 units/second; diagonals keep the same speed. If the
+scene has a Player role, the first Player is controlled; otherwise the selected object or
+first object is used. Use **Pause**, **Restart**, **Esc**,
+or the editor's **Stop** (Shift+F5). Playback uses the last applied scene snapshot;
+unsaved scene edits are included, but unapplied Inspector fields are not.
+Playback changes never modify the authored scene. Opening/New/closing the editor
+stops its preview process. This data-only preview runs built-in behavior and does
+not execute project scripts or claim to sandbox arbitrary Python.
+
+## Development checks
+
+```sh
+uv sync --frozen --extra test
+uv run --frozen --extra test ruff check src tests scripts
+uv run --frozen --extra test ruff format --check src tests scripts
+uv run --frozen --extra test mypy
+QT_QPA_PLATFORM=offscreen uv run --frozen --extra test pytest -q
+```
+
+Offscreen tests do not establish real Wayland/GPU compatibility. Qt Widgets uses
+the smaller PySide6 Essentials distribution; optional add-on modules are deferred.
+
+For a repeatable software rendering fixture:
+
+```sh
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_rendering.py
+```
+
+It measures 1,000 moving rectangles rendered into a 1024×576 image, reporting
+median/p95 update-and-render time after warmup. It does not measure textured sprites,
+compositor presentation, input latency, or GPU performance.
+
+## Docker
+
+Run the native window from a Linux Wayland session:
+
+```sh
+docker compose up --build desktop
+```
+
+Scene files saved under `/projects` persist in the Compose `projects` volume.
+`docker compose down` retains it; `docker compose down -v` deletes it. To use a host
+project folder, bind it to `/projects` in a local `compose.override.yaml`. On hosts
+whose numeric UID/GID are not 1000, set `SOLAR_FORGE_UID` and `SOLAR_FORGE_GID` to
+the values from `id -u` and `id -g` before building. The app runs without networking.
+
+Run lint, formatting, type checks and tests in the independent headless image:
+
+```sh
+docker compose -f compose.test.yaml run --build --rm test
+```
+
+The test service has no display mount, user project volume, or network access.
+Its configuration works without a Wayland session. Native compositor/GPU testing
+and gameplay preview isolation remain later validation work.
+
+- [Product and implementation plan](docs/ENGINE_PLAN.md)
+- [Instructions for coding agents](AGENTS.md)
+
+The native Python desktop direction is fixed. Runtime rendering performance,
+packaging, and sandboxing still need their planned validation milestones.
