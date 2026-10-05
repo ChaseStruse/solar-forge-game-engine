@@ -6,7 +6,7 @@ from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
-from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, QSize, Qt, QTimer
+from PySide6.QtCore import QProcess, QSignalBlocker, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -28,7 +28,6 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QTextEdit,
     QToolBar,
-    QTreeWidget,
     QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
@@ -50,6 +49,7 @@ from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.assistant import AssistantPanel
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
+from solar_forge_engine.editor.objects import ROLE_DATA, SceneObjects
 from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryWriter
 from solar_forge_engine.editor.startup import StartupWriter
@@ -115,10 +115,10 @@ class EditorWindow(QMainWindow):
         self.workspace.open_button.clicked.connect(self.choose_open_project)
         self.setCentralWidget(self.workspace)
 
-        self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Scene objects")
-        self.tree.setAccessibleName("Scene objects")
-        self._dock("Scene", self.tree, Qt.DockWidgetArea.LeftDockWidgetArea)
+        self.objects = SceneObjects()
+        self.tree = self.objects.tree
+        self._dock("Scene", self.objects, Qt.DockWidgetArea.LeftDockWidgetArea)
+        self.objects.filter_changed.connect(lambda: self.objects.apply_filter(self.selected_id))
         self.tree.currentItemChanged.connect(self._tree_selected)
         self.canvas.selectionChanged.connect(self._canvas_selected)
 
@@ -286,6 +286,9 @@ class EditorWindow(QMainWindow):
         file_menu = self.menuBar().addMenu("&File")
         edit_menu = self.menuBar().addMenu("&Edit")
         scene_menu = self.menuBar().addMenu("&Scene")
+        find_object = scene_menu.addAction("Find object")
+        find_object.setShortcut("Ctrl+L")
+        find_object.triggered.connect(self.find_object)
 
         def action(label: str, shortcut: QKeySequence.StandardKey | str) -> QAction:
             item = QAction(label, self)
@@ -464,11 +467,13 @@ class EditorWindow(QMainWindow):
             for entity in self.document.scene.entities:
                 row = QTreeWidgetItem([entity.name])
                 row.setData(0, Qt.ItemDataRole.UserRole, entity.id)
+                row.setData(0, ROLE_DATA, entity.role.value)
                 self.tree.addTopLevelItem(row)
                 item = items[entity.id]
                 if entity.id == self.selected_id:
                     self.tree.setCurrentItem(row)
                     item.setSelected(True)
+        self.objects.apply_filter(self.selected_id)
         self._refresh_assets()
         self._update_inspector()
         self.undo_action.setEnabled(self.document.can_undo)
@@ -520,25 +525,27 @@ class EditorWindow(QMainWindow):
         for field in self.animation_fields.values():
             field.setEnabled(self.animation_check.isEnabled() and self.animation_check.isChecked())
 
+    def find_object(self) -> None:
+        dock = self.findChild(QDockWidget, "Scene")
+        if dock is not None:
+            dock.show()
+            dock.raise_()
+        self.objects.search.setFocus()
+        self.objects.search.selectAll()
+
     def _tree_selected(self) -> None:
         row = self.tree.currentItem()
         self.selected_id = row.data(0, Qt.ItemDataRole.UserRole) if row else None
         with QSignalBlocker(self.canvas):
             for item in self.canvas.items():
                 item.setSelected(item.data(0) == self.selected_id and self.selected_id is not None)
+        self.objects.apply_filter(self.selected_id)
         self._update_inspector()
 
     def _canvas_selected(self) -> None:
         items = self.canvas.selectedItems()
         self.selected_id = str(items[0].data(0)) if items else None
-        with QSignalBlocker(self.tree):
-            self.tree.clearSelection()
-            self.tree.setCurrentIndex(QModelIndex())
-            for index in range(self.tree.topLevelItemCount()):
-                row = self.tree.topLevelItem(index)
-                if row is not None and row.data(0, Qt.ItemDataRole.UserRole) == self.selected_id:
-                    self.tree.setCurrentItem(row)
-                    break
+        self.objects.apply_filter(self.selected_id)
         self._update_inspector()
 
     def execute(self, command: Command) -> bool:

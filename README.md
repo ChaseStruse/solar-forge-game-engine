@@ -165,6 +165,14 @@ floated. One compact toolbar keeps frequent actions visible; creation, duplicati
 deletion and zoom commands remain in menus with keyboard shortcuts. Grid spacing
 appears when snapping is enabled. [Preview the workspace](docs/screenshots/editor-workshop.png).
 
+Use the **Scene** panel's search to find objects by name or ID, with an optional
+**Role** filter. Search ignores letter case and combines with the role choice.
+**Ctrl+L** opens the Scene panel and focuses search. The count shows matching and
+total objects. Filtering affects only the list; it leaves viewport objects,
+selection, Inspector edits and the game unchanged. A selected object outside the
+filter is identified below the list. Clear search and choose **All roles** to see
+everything again. Filters stay active across scene changes during this session.
+
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
 an animated courier, flickering reactor, industrial pixel art, and twelve energy
 cores to recover. WASD/arrows move; Pause and Restart control playback. All 187

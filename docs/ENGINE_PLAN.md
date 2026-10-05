@@ -6,6 +6,14 @@ sprites, project-relative assets and sprite reuse, autosave/recovery, multiple s
 startup-scene selection, asset quarantine/restoration, movement/input settings,
 viewport drag/snap/zoom/pan, sprite-sheet animation, an offline assistant demo and
 an opt-in loopback Ollama adapter with reviewed scene edits.
+The Scene panel also supports case-insensitive name/ID search and combined role
+filtering, with matching counts and Ctrl+L focus. Filters affect only the object
+list: authoring, viewport visibility and selection remain intact. Selected objects
+outside the filter retain their Inspector and receive an explicit hint. Filters
+refresh after command edits and undo/redo and persist within the editor session.
+Verification: 184 tests pass locally (11.76 seconds) and in Docker (13.95 seconds),
+with Ruff, formatting and strict mypy passing. Native Wayland search, role filters,
+selection preservation and Ctrl+L focus were verified.
 The Ember Run showcase adds original pixel art, 187 editable objects, 19 animated
 sprites and a twelve-core collection route. Its portable example includes a second
 scene sharing assets; the built-in template is accessible in native and Docker builds.
@@ -822,6 +830,7 @@ Completed task checklist:
 - [x] Add undoable per-object movement speed and WASD/arrows presets with compatible scene upgrades.
 - [x] Add single-object viewport dragging, cancellation, and optional grid snapping.
 - [x] Add pointer-centered wheel zoom, toolbar/keyboard zoom, middle-button pan and Fit scene for distant objects.
+- [x] Add view-only object name/ID search, combined role filters, counts and keyboard focus.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
@@ -837,7 +846,7 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add richer scene organization, starting with object filtering for dense scenes.
+1. Add object locking to protect scenery from accidental viewport dragging.
    Continue measuring larger-context model behavior before broadening scene tools.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
