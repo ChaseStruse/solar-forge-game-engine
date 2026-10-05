@@ -40,7 +40,7 @@ from solar_forge_engine.core.commands import (
     RestoreScene,
     SetEntity,
 )
-from solar_forge_engine.core.scene import Entity, Role, Scene
+from solar_forge_engine.core.scene import Entity, InputPreset, Role, Scene
 from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.catalog import AssetIndexer
@@ -194,6 +194,22 @@ class EditorWindow(QMainWindow):
         for role in Role:
             self.role_field.addItem(role.value.title(), role.value)
         form.addRow("&Role", self.role_field)
+        self.speed_field = QDoubleSpinBox()
+        self.speed_field.setRange(0, 2000)
+        self.speed_field.setSuffix(" units/s")
+        self.speed_field.setKeyboardTracking(False)
+        self.speed_field.setToolTip(
+            "Speed of this object when controlled in Play; zero disables movement."
+        )
+        form.addRow("Movement speed", self.speed_field)
+        self.input_field = QComboBox()
+        for label, preset in (
+            ("WASD + arrows", InputPreset.BOTH),
+            ("WASD", InputPreset.WASD),
+            ("Arrows", InputPreset.ARROWS),
+        ):
+            self.input_field.addItem(label, preset.value)
+        form.addRow("Movement keys", self.input_field)
         self.sprite_label = QLabel()
         form.addRow("Sprite", self.sprite_label)
         self.clear_sprite_button = QPushButton("Remove sprite")
@@ -366,6 +382,8 @@ class EditorWindow(QMainWindow):
         )
         self.clear_sprite_button.setEnabled(entity.sprite is not None)
         self.role_field.setCurrentIndex(self.role_field.findData(entity.role.value))
+        self.speed_field.setValue(entity.move_speed)
+        self.input_field.setCurrentIndex(self.input_field.findData(entity.input_preset.value))
         self.name_field.setText(entity.name)
         self.color_field.setText(entity.color)
         for key, field in self.numbers.items():
@@ -632,6 +650,8 @@ class EditorWindow(QMainWindow):
                 "name": self.name_field.text(),
                 "color": self.color_field.text(),
                 "role": self.role_field.currentData(),
+                "move_speed": self.speed_field.value(),
+                "input_preset": self.input_field.currentData(),
                 **{key: field.value() for key, field in self.numbers.items()},
             }
             self.execute(SetEntity(self.selected_id, changes))

@@ -13,7 +13,7 @@ class Simulation:
     def __init__(self, scene: Scene, controlled_id: str) -> None:
         self.scene = scene
         self.controlled = scene.entity(controlled_id)
-        self.speed = 240.0
+        self.speed = self.controlled.move_speed
         self.walls = tuple(
             e for e in scene.entities if e.role == Role.WALL and e.id != controlled_id
         )

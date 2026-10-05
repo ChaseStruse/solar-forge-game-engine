@@ -12,7 +12,7 @@ from solar_forge_engine.core.scene import FORMAT_VERSION, MAX_ENTITIES, Scene
 from solar_forge_engine.core.sprite import MAX_PIXEL_BYTES, Sprite
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene_data
 
-PROJECT_SCENE_VERSION = 4
+PROJECT_SCENE_VERSION = 6
 
 
 def asset_path(root: Path, reference: str) -> Path:
@@ -96,7 +96,7 @@ def load_project_scene(root: Path, path: Path) -> Scene:
         data = json.loads(raw)
     except (ValueError, UnicodeDecodeError, RecursionError) as error:
         raise ValueError("This file is not a valid UTF-8 JSON scene.") from error
-    if not isinstance(data, dict) or data.get("format_version") != PROJECT_SCENE_VERSION:
+    if not isinstance(data, dict) or data.get("format_version") not in (4, PROJECT_SCENE_VERSION):
         return load_scene(path)
     if type(data["format_version"]) is not int or set(data) != {
         "format_version",
@@ -142,7 +142,7 @@ def load_project_scene(root: Path, path: Path) -> Scene:
             "height": normalized.height,
             "pixels": normalized.pixels,
         }
-    data["format_version"] = FORMAT_VERSION
+    data["format_version"] = 3 if data["format_version"] == 4 else FORMAT_VERSION
     scene = Scene.from_data(data)
     if len(json.dumps(scene.to_data(), indent=2).encode()) + 1 > MAX_FILE_BYTES:
         raise ValueError("Resolved scenes must be smaller than 4 MiB.")

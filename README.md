@@ -38,10 +38,10 @@ so moving/deleting the original image does not affect playback. **Remove sprite*
 restores geometric rendering and can be undone. Sprite color is not tinted;
 role and rectangular collision bounds still determine gameplay.
 
-Save to a `.forge.json` file. Version-three files contain the entire scene,
-roles, and optional sprite pixels. Versions one
-and two still load. Before upgrading an older file, its exact bytes are retained
-in `<filename>.v1.bak` or `<filename>.v2.bak`. Existing backups are never overwritten;
+Save to a `.forge.json` file. Version-five files contain the entire scene,
+roles, movement settings, and optional sprite pixels. Versions one, two,
+and three still load. Before upgrading an older file, its exact bytes are retained
+in `<filename>.v<old-version>.bak`. Existing backups are never overwritten;
 use Save As if that backup name is occupied. Scene files remain limited to 4 MiB;
 embedded sprites count toward that limit. Files never execute scripts.
 
@@ -64,13 +64,13 @@ current undo history and sprite palette. **Refresh scenes** picks up files added
 outside the editor. Reopening a project still uses the manifest's default scene;
 switching does not change that default or introduce runtime scene transitions.
 
-Project saves write version-four scene files with relative sprite references to
+Project saves write version-six scene files with relative sprite references to
 `assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;
 files are validated by size, dimensions, and content hash when opened. Move the
 entire folder to keep the project portable. Standalone Save As still embeds pixels
-in version-three scenes, and Play receives resolved data without reading asset paths.
-Older embedded project scenes load unchanged; saving upgrades them after keeping
-an exact `.v1.bak`, `.v2.bak`, or `.v3.bak`. Save publishes assets before atomically
+in version-five scenes, and Play receives resolved data without reading asset paths.
+Older embedded scenes and version-four project scenes load with default movement
+settings; saving upgrades them after keeping an exact version-specific `.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
 sprite removal. Reviewed cleanup is available below.
@@ -118,8 +118,14 @@ colors do not determine gameplay behavior. Coins use circular visuals and rectan
 collision bounds. This prototype supports static, axis-aligned walls, not a full
 physics system; place the player outside walls when editing its start position.
 
-Press **Play** (F5). **WASD/arrows** move the controlled object within
-the 1024×576 play area at 240 units/second; diagonals keep the same speed. If the
+Set **Movement speed** (0–2,000 units/second) and **Movement keys** (WASD, arrows,
+or both) in the Inspector, then **Apply changes**. These settings are undoable,
+copied by duplication, and saved with the object. Zero speed disables movement;
+existing scenes default to 240 units/second with both key sets. Settings affect the
+controlled object in Play; they do not make every object move automatically.
+
+Press **Play** (F5). The selected movement keys move the controlled object within
+the 1024×576 play area; diagonals keep the same speed. If the
 scene has a Player role, the first Player is controlled; otherwise the selected object or
 first object is used. Use **Pause**, **Restart**, **Esc**,
 or the editor's **Stop** (Shift+F5). Playback uses the last applied scene snapshot;

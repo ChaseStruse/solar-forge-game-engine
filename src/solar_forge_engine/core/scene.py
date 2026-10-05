@@ -7,7 +7,7 @@ from enum import StrEnum
 
 from solar_forge_engine.core.sprite import Sprite
 
-FORMAT_VERSION = 3
+FORMAT_VERSION = 5
 MAX_ENTITIES = 10_000
 
 
@@ -16,6 +16,12 @@ class Role(StrEnum):
     PLAYER = "player"
     WALL = "wall"
     COIN = "coin"
+
+
+class InputPreset(StrEnum):
+    BOTH = "wasd_arrows"
+    WASD = "wasd"
+    ARROWS = "arrows"
 
 
 def text(value: object, label: str, limit: int = 100) -> str:
@@ -48,8 +54,14 @@ class Entity:
     color: str = "#f4b544"
     role: Role = Role.DECORATION
     sprite: Sprite | None = None
+    move_speed: float = 240
+    input_preset: InputPreset = InputPreset.BOTH
 
     def __post_init__(self) -> None:
+        if not 0 <= number(self.move_speed, "Movement speed") <= 2000:
+            raise ValueError("Movement speed must be within 0–2,000 units/second.")
+        if not isinstance(self.input_preset, InputPreset):
+            raise ValueError("Unknown input preset.")
         if self.sprite is not None and not isinstance(self.sprite, Sprite):
             raise ValueError("Invalid sprite data.")
         if not isinstance(self.role, Role):
@@ -66,10 +78,24 @@ class Entity:
 
     @classmethod
     def from_data(cls, value: object) -> "Entity":
-        fields = {"id", "name", "x", "y", "width", "height", "color", "role", "sprite"}
+        fields = {
+            "id",
+            "name",
+            "x",
+            "y",
+            "width",
+            "height",
+            "color",
+            "role",
+            "sprite",
+            "move_speed",
+            "input_preset",
+        }
         if not isinstance(value, dict) or set(value) != fields:
             raise ValueError("Invalid entity fields.")
         return cls(
+            move_speed=number(value["move_speed"], "Movement speed"),
+            input_preset=InputPreset(text(value["input_preset"], "Input preset")),
             id=text(value["id"], "Entity ID", 64),
             name=text(value["name"], "Entity name"),
             x=number(value["x"], "x"),
@@ -114,9 +140,9 @@ class Scene:
         if not isinstance(value, dict) or set(value) != {"format_version", "name", "entities"}:
             raise ValueError("Invalid scene document fields.")
         version = value["format_version"]
-        if type(version) is not int or version not in (1, 2, FORMAT_VERSION):
+        if type(version) is not int or version not in (1, 2, 3, FORMAT_VERSION):
             raise ValueError(
-                "Unsupported scene format version; this editor supports versions 1, 2 and 3."
+                "Unsupported scene format version; this editor supports versions 1, 2, 3 and 5."
             )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
@@ -129,5 +155,14 @@ class Scene:
             if any(not isinstance(entry, dict) or "sprite" in entry for entry in entries):
                 raise ValueError("Invalid legacy entity fields.")
             entries = [{**entry, "sprite": None} for entry in entries]
+        if version in (1, 2, 3):
+            if any(
+                not isinstance(entry, dict) or {"move_speed", "input_preset"} & set(entry)
+                for entry in entries
+            ):
+                raise ValueError("Invalid legacy movement fields.")
+            entries = [
+                {**entry, "move_speed": 240, "input_preset": "wasd_arrows"} for entry in entries
+            ]
         entities = [Entity.from_data(entry) for entry in entries]
         return cls(name=text(value["name"], "Scene name"), entities=tuple(entities))

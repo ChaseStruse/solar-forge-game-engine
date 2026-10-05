@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QToolBar,
 )
 
-from solar_forge_engine.core.scene import Scene
+from solar_forge_engine.core.scene import InputPreset, Scene
 from solar_forge_engine.runtime.rendering import render_scene
 from solar_forge_engine.runtime.simulation import FIXED_STEP, WORLD_HEIGHT, WORLD_WIDTH, Simulation
 
@@ -34,6 +34,16 @@ class PlayerWindow(QMainWindow):
     def __init__(self, scene: Scene, controlled_id: str) -> None:
         super().__init__()
         self.simulation = Simulation(scene, controlled_id)
+        preset = self.simulation.controlled.input_preset
+        key_sets = {
+            InputPreset.BOTH: MOVEMENT_KEYS,
+            InputPreset.WASD: {Qt.Key.Key_A, Qt.Key.Key_D, Qt.Key.Key_W, Qt.Key.Key_S},
+            InputPreset.ARROWS: {Qt.Key.Key_Left, Qt.Key.Key_Right, Qt.Key.Key_Up, Qt.Key.Key_Down},
+        }
+        self.left, self.right, self.up, self.down = (
+            keys & key_sets[preset] for keys in (LEFT, RIGHT, UP, DOWN)
+        )
+        self.movement_keys = self.left | self.right | self.up | self.down
         self.keys: set[int] = set()
         self.paused = False
         self._accumulator = 0.0
@@ -53,8 +63,13 @@ class PlayerWindow(QMainWindow):
         toolbar = QToolBar("Playback")
         toolbar.setMovable(False)
         self.addToolBar(toolbar)
+        key_label = {
+            InputPreset.BOTH: "WASD / arrows",
+            InputPreset.WASD: "WASD",
+            InputPreset.ARROWS: "arrows",
+        }[preset]
         toolbar.addWidget(
-            QLabel(f"  {self.simulation.controlled.name} · WASD / arrows · Esc closes   ")
+            QLabel(f"  {self.simulation.controlled.name} · {key_label} · Esc closes   ")
         )
         self.pause_button = QPushButton("Pause")
         self.pause_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -91,8 +106,8 @@ class PlayerWindow(QMainWindow):
             self._accumulator = 0
             return
         self._accumulator += elapsed
-        horizontal = int(bool(self.keys & RIGHT)) - int(bool(self.keys & LEFT))
-        vertical = int(bool(self.keys & DOWN)) - int(bool(self.keys & UP))
+        horizontal = int(bool(self.keys & self.right)) - int(bool(self.keys & self.left))
+        vertical = int(bool(self.keys & self.down)) - int(bool(self.keys & self.up))
         while self._accumulator >= FIXED_STEP:
             self.simulation.step(horizontal, vertical)
             self._accumulator -= FIXED_STEP
@@ -117,13 +132,13 @@ class PlayerWindow(QMainWindow):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Escape:
             self.close()
-        elif event.key() in MOVEMENT_KEYS:
+        elif event.key() in self.movement_keys:
             self.keys.add(event.key())
         else:
             super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
-        if event.key() in MOVEMENT_KEYS and not event.isAutoRepeat():
+        if event.key() in self.movement_keys and not event.isAutoRepeat():
             self.keys.discard(event.key())
         else:
             super().keyReleaseEvent(event)
