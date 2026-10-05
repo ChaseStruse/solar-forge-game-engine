@@ -1,7 +1,7 @@
 # Solar Forge Game Engine — product and implementation plan
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
-separate native player, Docker workflows, object duplication, and
+separate native player, Docker workflows, object duplication, PNG sprite import, and
 editable coin collector are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
@@ -13,7 +13,7 @@ milestones below are planned work; unmeasured performance budgets remain targets
 - Duplicate Object (Ctrl+D) copies applied properties and gameplay roles with a
   fresh ID and a 24-unit offset, selects the copy, and uses the shared create command.
   Names and positions remain within schema limits. Undo/redo and save/reopen are verified.
-- Version-two `.forge.json` scene documents with version-one loading support,
+- Version-three `.forge.json` scene documents with version-one/two loading support,
   bounded/validated reads, atomic writes, and unsaved-change protection on New/Open/Close.
 - Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
 - Separate non-root Docker desktop/test images and independent headless test Compose;
@@ -24,8 +24,13 @@ milestones below are planned work; unmeasured performance budgets remain targets
   packages and Python path environment overrides; no project Python code executes.
 - Editable coin-collector starter: Player/Wall/Coin/Decoration roles, static
   axis-aligned wall collisions, coin triggers, score/completion HUD, and restart.
-  Version-two scenes persist roles; version-one loads without changing disk data,
-  and Save creates a non-overwriting `.v1.bak` before writing the upgraded format.
+  Version-three scenes persist roles and sprites; legacy scenes load without changing
+  disk data. Save creates a non-overwriting `.v1.bak` or `.v2.bak` before upgrading.
+- PNG sprite import (Ctrl+Shift+I), embedded bounded RGBA data, transparency,
+  inspector sizing/removal, and cached native pixmaps shared by editor and player.
+  Imports are capped at 256×256 pixels and 2 MiB; scenes remain capped at 4 MiB.
+  Source paths are not persisted or accessed by playback. Relative project assets
+  remain planned; embedded sprites are an interim portable scene contract.
 - Repeatable 1,000-moving-rectangle software benchmark at 1024×576: 10 warmup frames,
   120 measured frames. Initial Arch host run: median 4.805 ms, p95 4.953 ms, Python
   3.14.7 / Qt 6.11.2 / offscreen QImage rendering. This does not establish sprite,
@@ -35,17 +40,21 @@ Verification: the foundation had 12 focused tests; playback adds movement,
 keyboard/pause/restart, and subprocess lifecycle checks. The collector adds collision,
 score/reset, starter persistence, migration backup, invalid roles, and a complete
 starter route around the walls. Object duplication adds property preservation,
-undo/redo and save/reopen checks for 22 tests total (0.90 seconds in the latest local run). Ruff,
-formatting, and strict mypy pass. Native and container Play startup/shutdown were
-verified on the Arch host's Wayland session, with authored scene data unchanged.
+undo/redo and save/reopen checks. Sprite checks cover transparency, source removal,
+Play, invalid input, bounded dimensions and both legacy upgrades: 30 tests passed
+locally in 1.26 seconds and in Docker in 1.57 seconds. Ruff,
+formatting, and strict mypy pass. PNG editor and Play startup/shutdown were checked
+on Wayland; authored scene data stayed unchanged. Previous native/container collector
+startup/shutdown checks also passed on the Arch host.
 An intentionally failing test previously returned exit status 1 in the independent
 test container. This does not validate an arbitrary-code sandbox or establish full
 compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project folders,
-assets, audio, sandboxed script execution, AI, and native game exports are not
-implemented. A single scene file deliberately precedes multi-file project persistence.
-The Qt backend remains provisional pending sprite and native presentation benchmarks.
+project asset libraries, audio, sandboxed script execution, AI, and native game
+exports are not implemented. A single scene file deliberately precedes multi-file
+project persistence. The Qt backend remains provisional pending representative
+sprite workloads and native presentation benchmarks.
 See the [README](../README.md) for runnable commands. Later sections distinguish
 implemented contracts from the intended project and release architecture.
 
@@ -113,7 +122,8 @@ labels, defaults, and recovery paths are understandable, not just functional.
 **Current usable subset:** choose Coin starter, edit object properties and roles,
 press Play, navigate around walls, collect all five coins, restart, and save/reopen
 the scene. A focused route test verifies the starter can be completed without crossing
-walls. Local project-folder creation, sprite drag/import, sound effects, AI changes,
+walls. PNG sprites can be imported, sized, duplicated, saved and played. Local
+project-folder creation, sprite dragging, sound effects, AI changes,
 and native export remain pending. The five-person usability exercise has not run.
 
 ## 3. Scope and editor design
@@ -136,9 +146,10 @@ Implemented scope is intentionally narrower than the v0.1 requirements above:
   log, shortcuts, and empty-scene guidance. No project browser or asset panel yet.
 - Scene editing: create/delete, name, X/Y, width/height, hex color, role, and undo/redo.
   Inspector changes require Apply. No drag gizmos, rotation, snapping, hierarchy,
-  duplication, or layer controls yet.
+  or layer controls yet. Selected-object duplication is implemented with Ctrl+D.
 - Rendering: native rectangles and circular coin visuals, selection, tooltips, and
-  fit-to-view. No imported sprites, atlases, animation, camera tooling, or game UI editor.
+  fit-to-view, and imported PNG sprites with cached native pixmaps and transparency.
+  No atlases, animation, camera tooling, or game UI editor.
 - Gameplay: 1024×576 arena, keyboard movement at a built-in 240 units/second,
   normalized diagonals, static axis-aligned walls, rectangular coin trigger bounds,
   score/completion display, pause, restart, and focus-loss handling. Initial wall
@@ -186,9 +197,10 @@ database, application domain, or dependencies unrelated to game development.
 
 Implemented choices are Python 3.14, PySide6 Essentials 6.11.2, Hatchling, uv with
 one lockfile, Ruff, mypy, pytest, and pytest-qt. Qt Graphics View is shared by editor
-and player. The renderer currently draws geometric items, not cached sprite pixmaps.
+and player. The renderer draws geometry and native sprite pixmaps, decoding each
+unique embedded sprite once per scene rebuild; the frame loop only moves items.
 The built-in simulation is Qt-independent. Audio bindings, background worker jobs,
-asset processing, and provider adapters have not been introduced.
+asset pipelines beyond bounded PNG normalization, and provider adapters remain planned.
 
 Qt's Graphics View provides 2D scene items and views through Python bindings.
 Use it as the first rendering spike so authoring and standalone playback can share
@@ -217,12 +229,12 @@ pyproject.toml
 uv.lock
 src/solar_forge_engine/
     editor/             Native window, scene tree, viewport and inspector
-    core/               Scene/role schemas, commands, built-in starter data
+    core/               Scene/role/sprite schemas, commands, built-in starter data
     runtime/            Simulation, shared renderer and native player entry point
-    project/            Bounded scene reads and atomic writes with upgrade backup
+    project/            Scene I/O, upgrade backup, bounded PNG normalization
     __main__.py         Native editor entry point
 scripts/                Software rendering benchmark
-tests/                  Scene, editor, player and collector checks
+tests/                  Scene, editor, player, collector and sprite checks
 docs/                   This plan
 Dockerfile.run
 Dockerfile.test
@@ -256,11 +268,12 @@ Arch needs its own ABI/build baseline. [Qt deployment guidance](https://doc.qt.i
 
 ## 5. Project model, runtime, and extension contracts
 
-**Current persistence:** one version-two `.forge.json` file contains scene name,
-stable entity IDs, geometry, color, and explicit Role values. Version-one scenes
+**Current persistence:** one version-three `.forge.json` file contains scene name,
+stable entity IDs, geometry, color, explicit Role values and optional embedded
+sprites (dimensions plus base64 RGBA pixels). Version-one scenes
 load in memory with Decoration roles. Loading does not rewrite the original; saving
-over a version-one document first creates `<filename>.v1.bak`. An occupied backup
-name requires Save As. Scene reads/writes are limited to 4 MiB and scenes to 10,000
+over a version-one/two document first creates `<filename>.v1.bak` or `.v2.bak`.
+An occupied backup name requires Save As. Scene reads/writes are limited to 4 MiB and scenes to 10,000
 entities. Undo/redo uses bounded in-memory scene history with monotonic revisions.
 Preview state lives in a separate simulation and is not persisted into the scene.
 
@@ -475,11 +488,15 @@ startup, and downloads.
 | Routine checks | Under 30 seconds with warm dependencies on the reference machine |
 | Critical native UI suite | Under 2 minutes, excluding initial image download/build |
 
-Recorded evidence so far: the software rectangle fixture reported median 4.805 ms
-and p95 4.953 ms. The latest 21-test suite passed locally in 0.75 seconds and in the
-test container in 0.89 seconds; those pytest timings exclude lint, type checks, image
-builds, and downloads. Startup, editor-action latency, memory, textured-sprite frame
-time, distribution size, and export size have not been measured against the budgets.
+Recorded evidence so far: the initial software rectangle fixture reported median
+4.805 ms and p95 4.953 ms. The October 5 sprite fixture (1,000 moving items sharing
+one 16×16 transparent RGBA texture, 10 warmup/120 measured frames, 1024×576 QImage,
+Python 3.14.7 / Qt 6.11.2 on Arch) reported median 3.622 ms and p95 3.910 ms.
+The rectangle comparison reported median 5.361 ms and p95 5.645 ms. These are
+software rendering measurements, not native presentation or many-texture workloads.
+The 30-test suite passed locally in 1.26 seconds and in Docker in 1.57 seconds;
+pytest timings exclude lint, type checks, image builds and downloads. Startup,
+editor-action latency, memory, distribution and export budgets remain unmeasured.
 Do not treat the software fixture as proof of the native 60 fps presentation target.
 
 If a budget fails, measure before adding complexity or revising it. Lazy-load code
@@ -512,9 +529,9 @@ experience; these milestones are gates, not promised delivery dates.
 
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
-| 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Textured sprites and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
+| 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
 | 1 — Reliable workspace | Scene workspace shipped: editing, save/reopen, upgrade backup, atomic undo and independent Docker tests | Project-folder format/root restrictions, asset workspace, recovery journal and complete project integrity checks; CI automation still absent |
-| 2 — Playable 2D slice | Partial: editable collector, keyboard movement, walls, coin triggers, HUD and restart | Imported/animated assets, audio, configurable input/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
+| 2 — Playable 2D slice | Partial: editable collector, PNG sprites, keyboard movement, walls, coin triggers, HUD and restart | Asset libraries/animation, audio, configurable input/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
 | 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
@@ -535,6 +552,8 @@ Completed task checklist:
 - [x] Implement the editable collector and verify a complete route around its walls.
 - [x] Persist gameplay roles and protect version-one originals during save upgrades.
 - [x] Add selected-object duplication with Ctrl+D through validated, undoable commands.
+- [x] Import bounded PNG sprites with portable pixels and shared cached native rendering.
+- [x] Benchmark a transparent shared-texture sprite fixture.
 - [ ] Close the complete renderer/sandbox/packaging foundation gates.
 - [ ] Replace scene-only persistence with a validated project-folder workflow.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
@@ -542,9 +561,9 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add PNG sprite import/rendering with validated asset paths and a cached native
-   image representation. Reuse it in editor and player; extend the software fixture
-   to textured sprites and record native presentation/startup measurements.
+1. Extend the completed shared-texture sprite fixture to representative unique
+   textures, and record native presentation/startup measurements. PNG import uses
+   bounded embedded pixels until project folders introduce relative asset references.
 2. Introduce project-folder creation/opening, relative asset references, project-root
    restrictions and a tested upgrade path from existing scene documents. Keep saves
    transactional; add a bounded recovery journal after the basic folder contract works.

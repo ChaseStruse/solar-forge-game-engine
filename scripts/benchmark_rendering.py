@@ -1,5 +1,7 @@
-"""Offscreen native rectangle fixture; not a compositor/GPU or sprite benchmark."""
+"""Offscreen native geometry/sprite fixture; not a compositor/GPU benchmark."""
 
+import argparse
+import base64
 import json
 import platform
 import statistics
@@ -10,12 +12,32 @@ from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtWidgets import QApplication, QGraphicsScene
 
 from solar_forge_engine.core.scene import Entity, Scene
+from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.runtime.rendering import render_scene
 
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--sprites", action="store_true", help="Use a shared transparent RGBA texture")
+args = parser.parse_args()
 app = QApplication([])
+sprite = None
+if args.sprites:
+    texture = QImage(16, 16, QImage.Format.Format_RGBA8888)
+    texture.fill(QColor("#f4b544"))
+    for x in range(16):
+        for y in range(16):
+            if (x // 4 + y // 4) % 2:
+                texture.setPixelColor(x, y, QColor(34, 180, 170, 128))
+    sprite = Sprite(16, 16, base64.b64encode(bytes(texture.constBits())).decode("ascii"))
 scene = Scene(
     entities=tuple(
-        Entity(f"rect-{index}", x=(index % 40) * 24, y=(index // 40) * 20, width=16, height=16)
+        Entity(
+            f"rect-{index}",
+            x=(index % 40) * 24,
+            y=(index // 40) * 20,
+            width=16,
+            height=16,
+            sprite=sprite,
+        )
         for index in range(1000)
     )
 )
@@ -35,10 +57,12 @@ for frame in range(130):
     if frame >= 10:
         samples.append((time.perf_counter() - started) * 1000)
 ordered = sorted(samples)
+kind = "sprites" if args.sprites else "rectangles"
 print(
     json.dumps(
         {
-            "fixture": "1000 moving native rectangles, 1024x576 QImage",
+            "fixture": f"1000 moving native {kind}, 1024x576 QImage",
+            "unique_textures": 1 if args.sprites else 0,
             "warmup_frames": 10,
             "measured_frames": len(samples),
             "python": platform.python_version(),

@@ -26,7 +26,16 @@ class SetEntity:
     changes: dict[str, object]
 
     def apply(self, scene: Scene) -> Scene:
-        if not set(self.changes) <= {"name", "x", "y", "width", "height", "color", "role"}:
+        if not set(self.changes) <= {
+            "name",
+            "x",
+            "y",
+            "width",
+            "height",
+            "color",
+            "role",
+            "sprite",
+        }:
             raise ValueError("Only editable entity properties may be changed.")
         entity = Entity.from_data({**asdict(scene.entity(self.entity_id)), **self.changes})
         return replace(

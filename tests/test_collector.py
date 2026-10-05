@@ -70,6 +70,7 @@ def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     data["format_version"] = 1
     for entity in data["entities"]:
         del entity["role"]
+        del entity["sprite"]
     original = json.dumps(data).encode()
     path.write_bytes(original)
     upgraded = load_scene(path)
@@ -77,7 +78,7 @@ def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     assert upgraded.entity("rectangle").role == Role.DECORATION
     save_scene(path, upgraded)
     assert (tmp_path / "old.forge.json.v1.bak").read_bytes() == original
-    assert json.loads(path.read_text())["format_version"] == 2
+    assert json.loads(path.read_text())["format_version"] == 3
     assert load_scene(path) == upgraded
 
 

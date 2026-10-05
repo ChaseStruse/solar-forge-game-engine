@@ -13,8 +13,9 @@ games should work without an AI service.
 **Status: editor and built-in native playback.** Create rectangles, select them in the viewport
 or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
 documents. New/Open/Close protect unsaved changes. Play opens a separate native
-window with keyboard movement, wall collisions, and coin collection. Assets, project folders, AI, sandboxed
-Python scripts, and exports follow in later small features.
+window with keyboard movement, wall collisions, and coin collection. PNG sprites
+are supported; project folders, AI, sandboxed Python scripts, and exports follow
+in later small features.
 
 ## Run on Linux
 
@@ -29,11 +30,20 @@ Choose **Add rectangle**, edit the **Inspector**, and press **Apply changes**.
 Select an object and choose **Duplicate object** (Ctrl+D) to create a selected copy
 24 units to the right and down. Copies preserve size, color and gameplay role,
 use a new ID, and support undo/redo. Duplication uses applied properties.
-Save to a `.forge.json` file. These version-two files contain the entire scene and
-explicit object roles; project folders are future work. Version-one files still
-load as decorations. Before an older file is saved in version-two format, its exact
-bytes are retained in `<filename>.v1.bak`. Existing backups are never overwritten;
-use Save As if that backup name is already occupied. Files never execute scripts.
+
+Choose **Import PNG** (Ctrl+Shift+I) to add a sprite. PNGs must be at most
+256×256 pixels and 2 MiB. Transparent pixels are preserved; width and height in the
+Inspector control its displayed size. Imported pixels are embedded in the scene,
+so moving/deleting the original image does not affect playback. **Remove sprite**
+restores geometric rendering and can be undone. Sprite color is not tinted;
+role and rectangular collision bounds still determine gameplay.
+
+Save to a `.forge.json` file. Version-three files contain the entire scene,
+roles, and optional sprite pixels; project folders are future work. Versions one
+and two still load. Before upgrading an older file, its exact bytes are retained
+in `<filename>.v1.bak` or `<filename>.v2.bak`. Existing backups are never overwritten;
+use Save As if that backup name is occupied. Scene files remain limited to 4 MiB;
+embedded sprites count toward that limit. Files never execute scripts.
 
 Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score
@@ -69,11 +79,12 @@ the smaller PySide6 Essentials distribution; optional add-on modules are deferre
 For a repeatable software rendering fixture:
 
 ```sh
-QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_rendering.py
+QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_rendering.py --sprites
 ```
 
-It measures 1,000 moving rectangles rendered into a 1024×576 image, reporting
-median/p95 update-and-render time after warmup. It does not measure textured sprites,
+It measures 1,000 moving sprites sharing one transparent 16×16 RGBA texture,
+rendered into a 1024×576 image, reporting median/p95 update-and-render time after
+warmup. Omit `--sprites` for rectangles. It does not measure many unique textures,
 compositor presentation, input latency, or GPU performance.
 
 ## Docker

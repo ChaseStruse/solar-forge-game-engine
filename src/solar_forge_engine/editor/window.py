@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QGraphicsScene,
     QGraphicsView,
+    QLabel,
     QLineEdit,
     QMainWindow,
     QMessageBox,
@@ -36,6 +37,7 @@ from solar_forge_engine.core.commands import (
 )
 from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.core.templates import coin_collector
+from solar_forge_engine.project.images import import_png
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
 from solar_forge_engine.runtime.rendering import render_scene
 
@@ -111,6 +113,11 @@ class EditorWindow(QMainWindow):
         for role in Role:
             self.role_field.addItem(role.value.title(), role.value)
         form.addRow("&Role", self.role_field)
+        self.sprite_label = QLabel()
+        form.addRow("Sprite", self.sprite_label)
+        self.clear_sprite_button = QPushButton("Remove sprite")
+        self.clear_sprite_button.clicked.connect(self.clear_sprite)
+        form.addRow(self.clear_sprite_button)
         self.apply_button = QPushButton("Apply changes")
         self.apply_button.clicked.connect(self.apply_inspector)
         form.addRow(self.apply_button)
@@ -159,6 +166,9 @@ class EditorWindow(QMainWindow):
         toolbar.addSeparator()
         add = action("Add rectangle", "Ctrl+Shift+A")
         add.triggered.connect(self.add_rectangle)
+        import_sprite = action("Import PNG", "Ctrl+Shift+I")
+        import_sprite.triggered.connect(self.choose_sprite)
+        scene_menu.addAction(import_sprite)
         self.duplicate_action = action("Duplicate object", "Ctrl+D")
         self.duplicate_action.triggered.connect(self.duplicate_selected)
         self.delete_action = action("Delete object", "Ctrl+Delete")
@@ -231,8 +241,14 @@ class EditorWindow(QMainWindow):
         if self.selected_id is None:
             self.name_field.clear()
             self.color_field.clear()
+            self.sprite_label.clear()
+            self.clear_sprite_button.setEnabled(False)
             return
         entity = self.document.scene.entity(self.selected_id)
+        self.sprite_label.setText(
+            f"{entity.sprite.width} × {entity.sprite.height} pixels" if entity.sprite else "None"
+        )
+        self.clear_sprite_button.setEnabled(entity.sprite is not None)
         self.role_field.setCurrentIndex(self.role_field.findData(entity.role.value))
         self.name_field.setText(entity.name)
         self.color_field.setText(entity.color)
@@ -275,6 +291,44 @@ class EditorWindow(QMainWindow):
         entity = Entity(str(uuid4()), x=100 + offset, y=100 + offset)
         self.selected_id = entity.id
         self.execute(CreateEntity(entity))
+
+    def choose_sprite(self) -> None:
+        filename, _ = QFileDialog.getOpenFileName(
+            self, "Import PNG sprite", "", "PNG image (*.png)"
+        )
+        if filename:
+            self.import_sprite(Path(filename))
+
+    def import_sprite(self, path: Path) -> bool:
+        """Create a portable sprite object without changing the current selection on failure."""
+        try:
+            sprite = import_png(path)
+            entity = Entity(
+                str(uuid4()),
+                name=path.stem[:100] or "Sprite",
+                x=100,
+                y=100,
+                width=sprite.width,
+                height=sprite.height,
+                sprite=sprite,
+            )
+            command = CreateEntity(entity)
+            candidate = command.apply(self.document.scene)
+            if len(json.dumps(candidate.to_data(), indent=2).encode("utf-8")) + 1 > MAX_FILE_BYTES:
+                raise ValueError("The imported sprite would exceed the 4 MiB scene limit.")
+        except (OSError, ValueError) as error:
+            self._error(f"Could not import sprite: {error}")
+            return False
+        if not self.execute(command):
+            return False
+        self.selected_id = entity.id
+        self.refresh()
+        self.log.append(f"Imported {path.name}; sprite pixels are stored inside the scene.")
+        return True
+
+    def clear_sprite(self) -> None:
+        if self.selected_id is not None:
+            self.execute(SetEntity(self.selected_id, {"sprite": None}))
 
     def apply_inspector(self) -> None:
         if self.selected_id is not None:

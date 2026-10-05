@@ -5,7 +5,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from solar_forge_engine.core.scene import Scene
+from solar_forge_engine.core.scene import FORMAT_VERSION, Scene
 
 MAX_FILE_BYTES = 4 * 1024 * 1024
 
@@ -34,9 +34,13 @@ def save_scene(path: Path, scene: Scene) -> None:
             previous_data = json.loads(previous) if len(previous) <= MAX_FILE_BYTES else None
         except ValueError, UnicodeDecodeError, RecursionError:
             previous_data = None
-        if isinstance(previous_data, dict) and previous_data.get("format_version") == 1:
+        if (
+            isinstance(previous_data, dict)
+            and type(previous_data.get("format_version")) is int
+            and previous_data["format_version"] in range(1, FORMAT_VERSION)
+        ):
             Scene.from_data(previous_data)
-            backup = path.with_name(path.name + ".v1.bak")
+            backup = path.with_name(f"{path.name}.v{previous_data['format_version']}.bak")
             try:
                 with backup.open("xb") as handle:
                     handle.write(previous)
@@ -44,7 +48,7 @@ def save_scene(path: Path, scene: Scene) -> None:
                     os.fsync(handle.fileno())
             except FileExistsError as error:
                 raise ValueError(
-                    "Version-one backup already exists. Use Save As to keep both copies."
+                    "Legacy scene backup already exists. Use Save As to keep both copies."
                 ) from error
     temporary: Path | None = None
     try:

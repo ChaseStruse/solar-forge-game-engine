@@ -5,7 +5,9 @@ import re
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 
-FORMAT_VERSION = 2
+from solar_forge_engine.core.sprite import Sprite
+
+FORMAT_VERSION = 3
 MAX_ENTITIES = 10_000
 
 
@@ -45,8 +47,11 @@ class Entity:
     height: float = 64
     color: str = "#f4b544"
     role: Role = Role.DECORATION
+    sprite: Sprite | None = None
 
     def __post_init__(self) -> None:
+        if self.sprite is not None and not isinstance(self.sprite, Sprite):
+            raise ValueError("Invalid sprite data.")
         if not isinstance(self.role, Role):
             raise ValueError("Unknown entity role.")
         if not isinstance(self.id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.id):
@@ -61,7 +66,7 @@ class Entity:
 
     @classmethod
     def from_data(cls, value: object) -> "Entity":
-        fields = {"id", "name", "x", "y", "width", "height", "color", "role"}
+        fields = {"id", "name", "x", "y", "width", "height", "color", "role", "sprite"}
         if not isinstance(value, dict) or set(value) != fields:
             raise ValueError("Invalid entity fields.")
         return cls(
@@ -73,6 +78,7 @@ class Entity:
             height=number(value["height"], "height"),
             color=text(value["color"], "Color"),
             role=Role(text(value["role"], "Role")),
+            sprite=Sprite.from_data(value["sprite"]) if value["sprite"] is not None else None,
         )
 
 
@@ -108,9 +114,9 @@ class Scene:
         if not isinstance(value, dict) or set(value) != {"format_version", "name", "entities"}:
             raise ValueError("Invalid scene document fields.")
         version = value["format_version"]
-        if type(version) is not int or version not in (1, FORMAT_VERSION):
+        if type(version) is not int or version not in (1, 2, FORMAT_VERSION):
             raise ValueError(
-                "Unsupported scene format version; this editor supports versions 1 and 2."
+                "Unsupported scene format version; this editor supports versions 1, 2 and 3."
             )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
@@ -119,5 +125,9 @@ class Scene:
             if any(not isinstance(entry, dict) or "role" in entry for entry in entries):
                 raise ValueError("Invalid version-one entity fields.")
             entries = [{**entry, "role": "decoration"} for entry in entries]
+        if version in (1, 2):
+            if any(not isinstance(entry, dict) or "sprite" in entry for entry in entries):
+                raise ValueError("Invalid legacy entity fields.")
+            entries = [{**entry, "sprite": None} for entry in entries]
         entities = [Entity.from_data(entry) for entry in entries]
         return cls(name=text(value["name"], "Scene name"), entities=tuple(entities))
