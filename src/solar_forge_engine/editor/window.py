@@ -8,6 +8,7 @@ from uuid import uuid4
 from PySide6.QtCore import QModelIndex, QProcess, QSignalBlocker, Qt
 from PySide6.QtGui import QAction, QBrush, QCloseEvent, QColor, QKeySequence
 from PySide6.QtWidgets import (
+    QComboBox,
     QDockWidget,
     QDoubleSpinBox,
     QFileDialog,
@@ -32,7 +33,8 @@ from solar_forge_engine.core.commands import (
     Document,
     SetEntity,
 )
-from solar_forge_engine.core.scene import Entity
+from solar_forge_engine.core.scene import Entity, Role, Scene
+from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
 from solar_forge_engine.runtime.rendering import render_scene
 
@@ -104,6 +106,10 @@ class EditorWindow(QMainWindow):
         self.color_field.setPlaceholderText("#f4b544")
         self.color_field.setMaxLength(7)
         form.addRow("&Color", self.color_field)
+        self.role_field = QComboBox()
+        for role in Role:
+            self.role_field.addItem(role.value.title(), role.value)
+        form.addRow("&Role", self.role_field)
         self.apply_button = QPushButton("Apply changes")
         self.apply_button.clicked.connect(self.apply_inspector)
         form.addRow(self.apply_button)
@@ -137,6 +143,9 @@ class EditorWindow(QMainWindow):
         self.save_action = action("Save", QKeySequence.StandardKey.Save)
         self.save_action.triggered.connect(self.save)
         file_menu.addActions([self.new_action, self.open_action, self.save_action])
+        starter = action("Coin starter", "Ctrl+Shift+N")
+        starter.triggered.connect(self.new_collector)
+        file_menu.addAction(starter)
         save_as = file_menu.addAction("Save &As…")
         save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
         save_as.triggered.connect(lambda: self.save(choose_path=True))
@@ -157,7 +166,9 @@ class EditorWindow(QMainWindow):
         fit.triggered.connect(self.fit_scene)
         toolbar.addSeparator()
         self.play_action = action("▶ Play", "F5")
-        self.play_action.setToolTip("Play the scene; WASD or arrows move the selected object")
+        self.play_action.setToolTip(
+            "Play the Player role, or the selected object when no Player exists"
+        )
         self.play_action.triggered.connect(self.play)
         self.stop_action = action("■ Stop", "Shift+F5")
         self.stop_action.triggered.connect(self.stop_preview)
@@ -218,6 +229,7 @@ class EditorWindow(QMainWindow):
             self.color_field.clear()
             return
         entity = self.document.scene.entity(self.selected_id)
+        self.role_field.setCurrentIndex(self.role_field.findData(entity.role.value))
         self.name_field.setText(entity.name)
         self.color_field.setText(entity.color)
         for key, field in self.numbers.items():
@@ -262,6 +274,7 @@ class EditorWindow(QMainWindow):
             changes: dict[str, object] = {
                 "name": self.name_field.text(),
                 "color": self.color_field.text(),
+                "role": self.role_field.currentData(),
                 **{key: field.value() for key, field in self.numbers.items()},
             }
             self.execute(SetEntity(self.selected_id, changes))
@@ -292,6 +305,10 @@ class EditorWindow(QMainWindow):
             self._error("The scene is too large to preview (4 MiB limit).")
             return
         controlled_id = self.selected_id or self.document.scene.entities[0].id
+        for entity in self.document.scene.entities:
+            if entity.role == Role.PLAYER:
+                controlled_id = entity.id
+                break
         self._stopping_preview = False
         self.preview.setProgram(sys.executable)
         self.preview.setArguments(
@@ -304,7 +321,7 @@ class EditorWindow(QMainWindow):
         self.stop_action.setEnabled(True)
 
     def _preview_started(self) -> None:
-        self.log.append("Play started · WASD / arrows move the selected object · Esc closes")
+        self.log.append("Play started · WASD / arrows move the controlled object · Esc closes")
 
     def _preview_finished(self, exit_code: int, status: QProcess.ExitStatus) -> None:
         detail = f" (exit {exit_code})" if exit_code and not self._stopping_preview else ""
@@ -401,6 +418,18 @@ class EditorWindow(QMainWindow):
             self.selected_id = None
             self.refresh()
             self.fit_scene()
+
+    def new_collector(self) -> None:
+        if not self._confirm_discard():
+            return
+        self._close_preview()
+        self.document = Document(coin_collector())
+        self.saved_scene = Scene()
+        self.path = None
+        self.selected_id = "player"
+        self.refresh()
+        self.fit_scene()
+        self.log.append("Collect all five coins. Gray walls are solid; the teal player moves.")
 
     def _confirm_discard(self) -> bool:
         if not self.dirty:

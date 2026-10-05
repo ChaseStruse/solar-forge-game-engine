@@ -52,7 +52,7 @@ def test_invalid_batch_and_stale_revision_leave_scene_and_history_untouched():
 @pytest.mark.parametrize(
     "mutation",
     [
-        lambda data: data.update(format_version=2),
+        lambda data: data.update(format_version=3),
         lambda data: data.update(format_version=True),
         lambda data: data["entities"].append(data["entities"][0]),
         lambda data: data["entities"][0].update(x=float("nan")),

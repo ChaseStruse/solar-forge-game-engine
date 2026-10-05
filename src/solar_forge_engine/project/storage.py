@@ -27,6 +27,25 @@ def save_scene(path: Path, scene: Scene) -> None:
     raw = (json.dumps(scene.to_data(), indent=2, allow_nan=False) + "\n").encode("utf-8")
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Scene files must be smaller than 4 MiB.")
+    if path.exists():
+        with path.open("rb") as handle:
+            previous = handle.read(MAX_FILE_BYTES + 1)
+        try:
+            previous_data = json.loads(previous) if len(previous) <= MAX_FILE_BYTES else None
+        except ValueError, UnicodeDecodeError, RecursionError:
+            previous_data = None
+        if isinstance(previous_data, dict) and previous_data.get("format_version") == 1:
+            Scene.from_data(previous_data)
+            backup = path.with_name(path.name + ".v1.bak")
+            try:
+                with backup.open("xb") as handle:
+                    handle.write(previous)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+            except FileExistsError as error:
+                raise ValueError(
+                    "Version-one backup already exists. Use Save As to keep both copies."
+                ) from error
     temporary: Path | None = None
     try:
         with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".forge-", delete=False) as handle:

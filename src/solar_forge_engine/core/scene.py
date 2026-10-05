@@ -1,11 +1,19 @@
-"""Version-one scene documents. Loading never executes project code."""
+"""Versioned scene documents. Loading never executes project code."""
 
 import math
 import re
 from dataclasses import asdict, dataclass
+from enum import StrEnum
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 MAX_ENTITIES = 10_000
+
+
+class Role(StrEnum):
+    DECORATION = "decoration"
+    PLAYER = "player"
+    WALL = "wall"
+    COIN = "coin"
 
 
 def text(value: object, label: str, limit: int = 100) -> str:
@@ -36,8 +44,11 @@ class Entity:
     width: float = 64
     height: float = 64
     color: str = "#f4b544"
+    role: Role = Role.DECORATION
 
     def __post_init__(self) -> None:
+        if not isinstance(self.role, Role):
+            raise ValueError("Unknown entity role.")
         if not isinstance(self.id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", self.id):
             raise ValueError("Entity ID must contain 1–64 letters, digits, underscores or hyphens.")
         text(self.name, "Entity name")
@@ -50,7 +61,7 @@ class Entity:
 
     @classmethod
     def from_data(cls, value: object) -> "Entity":
-        fields = {"id", "name", "x", "y", "width", "height", "color"}
+        fields = {"id", "name", "x", "y", "width", "height", "color", "role"}
         if not isinstance(value, dict) or set(value) != fields:
             raise ValueError("Invalid entity fields.")
         return cls(
@@ -61,6 +72,7 @@ class Entity:
             width=number(value["width"], "width"),
             height=number(value["height"], "height"),
             color=text(value["color"], "Color"),
+            role=Role(text(value["role"], "Role")),
         )
 
 
@@ -95,10 +107,17 @@ class Scene:
     def from_data(cls, value: object) -> "Scene":
         if not isinstance(value, dict) or set(value) != {"format_version", "name", "entities"}:
             raise ValueError("Invalid scene document fields.")
-        if type(value["format_version"]) is not int or value["format_version"] != FORMAT_VERSION:
-            raise ValueError("Unsupported scene format version; this editor supports version 1.")
+        version = value["format_version"]
+        if type(version) is not int or version not in (1, FORMAT_VERSION):
+            raise ValueError(
+                "Unsupported scene format version; this editor supports versions 1 and 2."
+            )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
             raise ValueError("Invalid entity list or scene size exceeds the limit.")
+        if version == 1:
+            if any(not isinstance(entry, dict) or "role" in entry for entry in entries):
+                raise ValueError("Invalid version-one entity fields.")
+            entries = [{**entry, "role": "decoration"} for entry in entries]
         entities = [Entity.from_data(entry) for entry in entries]
         return cls(name=text(value["name"], "Scene name"), entities=tuple(entities))

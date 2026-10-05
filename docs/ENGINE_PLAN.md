@@ -18,13 +18,19 @@ performance numbers remain targets, not measured guarantees.
   shared rectangle renderer, fixed-step keyboard movement, pause, restart and Stop.
   Authored scenes remain unchanged. Isolated Python startup ignores working-directory
   packages and Python path environment overrides; no project Python code executes.
+- Editable coin-collector starter: Player/Wall/Coin/Decoration roles, static
+  axis-aligned wall collisions, coin triggers, score/completion HUD, and restart.
+  Version-two scenes persist roles; version-one loads without changing disk data,
+  and Save creates a non-overwriting `.v1.bak` before writing the upgraded format.
 - Repeatable 1,000-moving-rectangle software benchmark at 1024×576: 10 warmup frames,
   120 measured frames. Initial Arch host run: median 4.805 ms, p95 4.953 ms, Python
   3.14.7 / Qt 6.11.2 / offscreen QImage rendering. This does not establish sprite,
   compositor or GPU budgets; the complete backend selection gate remains open.
 
 Verification: the foundation had 12 focused tests; playback adds movement,
-keyboard/pause/restart, and subprocess lifecycle checks for 15 tests total. Ruff,
+keyboard/pause/restart, and subprocess lifecycle checks. The collector adds collision,
+score/reset, starter persistence, migration backup, invalid roles, and a complete
+starter route around the walls for 21 tests total. Ruff,
 formatting, and strict mypy pass. Native and container Play startup/shutdown were
 verified on the Arch host's Wayland session, with authored scene data unchanged.
 An intentionally failing test previously returned exit status 1 in the independent
@@ -32,7 +38,7 @@ test container. This does not validate an arbitrary-code sandbox or establish fu
 compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project folders,
-assets, collisions, sandboxed script execution, AI, and native game exports are not
+assets, audio, sandboxed script execution, AI, and native game exports are not
 implemented. A single scene file deliberately precedes multi-file project persistence.
 The Qt backend remains provisional pending sprite and native presentation benchmarks. See the README
 for commands that are actually runnable; later commands below are design targets.

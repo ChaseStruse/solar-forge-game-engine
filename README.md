@@ -13,7 +13,7 @@ games should work without an AI service.
 **Status: editor and built-in native playback.** Create rectangles, select them in the viewport
 or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
 documents. New/Open/Close protect unsaved changes. Play opens a separate native
-window with keyboard movement. Assets, collisions, project folders, AI, sandboxed
+window with keyboard movement, wall collisions, and coin collection. Assets, project folders, AI, sandboxed
 Python scripts, and exports follow in later small features.
 
 ## Run on Linux
@@ -26,12 +26,24 @@ uv run --frozen solar-forge-engine
 ```
 
 Choose **Add rectangle**, edit the **Inspector**, and press **Apply changes**.
-Save to a `.forge.json` file. These version-one files contain the entire scene;
-the project-folder format in the plan is future work. Files never execute scripts.
+Save to a `.forge.json` file. These version-two files contain the entire scene and
+explicit object roles; project folders are future work. Version-one files still
+load as decorations. Before an older file is saved in version-two format, its exact
+bytes are retained in `<filename>.v1.bak`. Existing backups are never overwritten;
+use Save As if that backup name is already occupied. Files never execute scripts.
 
-Select an object and press **Play** (F5). **WASD/arrows** move that object within
-the 1024×576 play area at 240 units/second; diagonals keep the same speed. Without
-a selection, the first object is controlled. Use **Pause**, **Restart**, **Esc**,
+Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
+around the gray walls and collect all five gold coins. The HUD tracks the score
+and announces completion; **Restart** resets the player and coins. Each object has
+an editable **Role** in the Inspector: Decoration, Player, Wall, or Coin. Names and
+colors do not determine gameplay behavior. Coins use circular visuals and rectangular
+collision bounds. This prototype supports static, axis-aligned walls, not a full
+physics system; place the player outside walls when editing its start position.
+
+Press **Play** (F5). **WASD/arrows** move the controlled object within
+the 1024×576 play area at 240 units/second; diagonals keep the same speed. If the
+scene has a Player role, the first Player is controlled; otherwise the selected object or
+first object is used. Use **Pause**, **Restart**, **Esc**,
 or the editor's **Stop** (Shift+F5). Playback uses the last applied scene snapshot;
 unsaved scene edits are included, but unapplied Inspector fields are not.
 Playback changes never modify the authored scene. Opening/New/closing the editor

@@ -64,6 +64,8 @@ class PlayerWindow(QMainWindow):
         restart.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         restart.clicked.connect(self.restart)
         toolbar.addWidget(restart)
+        self.score_label = QLabel()
+        toolbar.addWidget(self.score_label)
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.timeout.connect(self.tick)
@@ -72,6 +74,13 @@ class PlayerWindow(QMainWindow):
 
     def _sync_position(self) -> None:
         self.items[self.simulation.controlled.id].setPos(self.simulation.x, self.simulation.y)
+        for coin in self.simulation.coins:
+            self.items[coin.id].setVisible(coin.id not in self.simulation.collected)
+        if self.simulation.coins:
+            suffix = " · All coins collected!" if self.simulation.won else ""
+            self.score_label.setText(
+                f"  Coins: {len(self.simulation.collected)}/{len(self.simulation.coins)}{suffix}"
+            )
 
     def tick(self) -> None:
         now = time.monotonic()
