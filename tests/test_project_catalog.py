@@ -20,10 +20,14 @@ def test_project_catalog_reuses_other_scene_asset_without_extra_files(qtbot, tmp
     qtbot.addWidget(editor)
     assert editor.load_workspace(first.root)
     qtbot.waitUntil(lambda: editor._asset_index_job is None)
+    editor.asset_search.setText("missing")
     assert editor.switch_project_scene(second.scene)
     qtbot.waitUntil(lambda: editor._asset_index_job is None)
     assert not editor.document.scene.entities
     assert editor.asset_sprites == [sprite]
+    assert editor.asset_list.item(0).isHidden()
+    assert "No matches" in editor.asset_count.text()
+    editor.asset_search.clear()
     editor.asset_list.setCurrentRow(0)
     editor.add_asset()
     assert editor.document.scene.entities[0].sprite == sprite

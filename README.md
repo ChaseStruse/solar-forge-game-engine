@@ -56,6 +56,13 @@ so moving/deleting the original image does not affect playback. **Remove sprite*
 restores geometric rendering and can be undone. Sprite color is not tinted;
 role and rectangular collision bounds still determine gameplay.
 
+The **Assets** panel shows thumbnail entries with names and pixel dimensions.
+Use its search field to filter by name or size (case-insensitive), or press
+**Ctrl+Alt+L** to focus it. A matching count and clear button help navigate the
+palette. Filtering changes only the list; hidden selections cannot be added or
+applied accidentally. The filter stays active during imports, undo and project
+asset scans; clear it to see the complete palette.
+
 To animate an imported PNG sheet, select its object, enable **Loop sprite sheet in
 Play**, and set **Frame columns**, **Frame rows**, and **Frames/second**, then apply.
 Frames must be equal-sized cells that divide the full image evenly. Sheets remain

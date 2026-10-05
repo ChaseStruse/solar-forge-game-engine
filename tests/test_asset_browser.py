@@ -79,3 +79,42 @@ def test_palette_edit_rejects_oversized_scene_without_changing_selection(
     assert editor.document.revision == revision
     assert editor.selected_id == selected
     editor.saved_scene = previous
+
+
+def test_asset_search_preserves_scene_and_reuses_correct_filtered_sprite(qtbot, tmp_path):
+    editor = EditorWindow()
+    qtbot.addWidget(editor)
+    editor._confirm_discard = lambda: True
+    for name, size, color in (("Hero", 8, "red"), ("Garden", 16, "green")):
+        source = tmp_path / f"{name}.png"
+        image = QImage(size, size, QImage.Format.Format_RGBA8888)
+        image.fill(QColor(color))
+        assert image.save(str(source), "PNG")
+        assert editor.import_sprite(source)
+    scene, revision, selected = editor.document.scene, editor.document.revision, editor.selected_id
+    editor.asset_list.setCurrentRow(0)
+    editor.asset_search.setText("  GARDEN  ")
+    assert editor.asset_list.item(0).isHidden()
+    assert not editor.asset_list.item(1).isHidden()
+    assert editor.asset_count.text() == "1 / 2 sprites"
+    assert not editor.add_asset_button.isEnabled()
+    assert not editor.apply_asset_button.isEnabled()
+    editor.add_asset()
+    editor.apply_asset()
+    assert (editor.document.scene, editor.document.revision, editor.selected_id) == (
+        scene,
+        revision,
+        selected,
+    )
+    editor.asset_list.setCurrentRow(1)
+    editor.add_asset()
+    assert editor.document.scene.entity(editor.selected_id).sprite == editor.asset_sprites[1]
+    editor.undo()
+    assert editor.document.scene == scene
+    editor.asset_search.setText("16 × 16")
+    assert editor.asset_count.text() == "1 / 2 sprites"
+    editor.asset_search.setText("missing")
+    assert "No matches" in editor.asset_count.text()
+    editor.asset_search.clear()
+    assert editor.asset_count.text() == "2 / 2 sprites"
+    assert all(not editor.asset_list.item(i).isHidden() for i in range(2))

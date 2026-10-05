@@ -137,10 +137,20 @@ class EditorWindow(QMainWindow):
         self.asset_hint = QLabel("Import a PNG to build your sprite palette.")
         self.asset_hint.setWordWrap(True)
         asset_layout.addWidget(self.asset_hint)
+        self.asset_search = QLineEdit()
+        self.asset_search.setMaxLength(100)
+        self.asset_search.setPlaceholderText("Find sprite by name or size…")
+        self.asset_search.setAccessibleName("Search reusable sprites")
+        self.asset_search.setClearButtonEnabled(True)
+        asset_layout.addWidget(self.asset_search)
         self.asset_list = QListWidget()
         self.asset_list.setIconSize(QSize(48, 48))
         self.asset_list.setAccessibleName("Reusable scene sprites")
         asset_layout.addWidget(self.asset_list)
+        self.asset_count = QLabel()
+        self.asset_count.setObjectName("muted")
+        self.asset_count.setWordWrap(True)
+        asset_layout.addWidget(self.asset_count)
         self.add_asset_button = QPushButton("Add to scene")
         self.add_asset_button.clicked.connect(self.add_asset)
         asset_layout.addWidget(self.add_asset_button)
@@ -148,6 +158,7 @@ class EditorWindow(QMainWindow):
         self.apply_asset_button.clicked.connect(self.apply_asset)
         asset_layout.addWidget(self.apply_asset_button)
         self.asset_list.currentItemChanged.connect(self._update_asset_actions)
+        self.asset_search.textChanged.connect(self._filter_assets)
         self.refresh_assets_button = QPushButton("Refresh project assets")
         self.refresh_assets_button.clicked.connect(self.refresh_project_assets)
         asset_layout.addWidget(self.refresh_assets_button)
@@ -334,6 +345,9 @@ class EditorWindow(QMainWindow):
         find_object = scene_menu.addAction("Find object")
         find_object.setShortcut("Ctrl+L")
         find_object.triggered.connect(self.find_object)
+        find_sprite = scene_menu.addAction("Find sprite")
+        find_sprite.setShortcut("Ctrl+Alt+L")
+        find_sprite.triggered.connect(self.find_sprite)
         self.lock_action = scene_menu.addAction("Lock viewport dragging")
         self.lock_action.setCheckable(True)
         self.lock_action.setShortcut("Ctrl+Shift+L")
@@ -632,6 +646,14 @@ class EditorWindow(QMainWindow):
         self.objects.search.setFocus()
         self.objects.search.selectAll()
 
+    def find_sprite(self) -> None:
+        dock = self.findChild(QDockWidget, "Assets")
+        if dock is not None:
+            dock.show()
+            dock.raise_()
+        self.asset_search.setFocus()
+        self.asset_search.selectAll()
+
     def _tree_selected(self) -> None:
         row = self.tree.currentItem()
         self.selected_id = row.data(0, Qt.ItemDataRole.UserRole) if row else None
@@ -726,6 +748,27 @@ class EditorWindow(QMainWindow):
         else:
             hint = "Import a PNG to build your sprite palette."
         self.asset_hint.setText(hint)
+        self._filter_assets()
+
+    def _filter_assets(self) -> None:
+        query = self.asset_search.text().strip().casefold()
+        visible = 0
+        for index in range(self.asset_list.count()):
+            row = self.asset_list.item(index)
+            if row is None:
+                continue
+            matches = not query or query in row.text().casefold()
+            row.setHidden(not matches)
+            visible += matches
+        chosen = self.asset_list.currentItem()
+        if chosen is not None and chosen.isHidden():
+            self.asset_list.clearSelection()
+            self.asset_list.setCurrentRow(-1)
+        total = self.asset_list.count()
+        message = f"{visible} / {total} sprites"
+        if total and not visible:
+            message += " · No matches; clear search to see your palette."
+        self.asset_count.setText(message)
         self._update_asset_actions()
 
     def _remember_asset(self, name: str, sprite: Sprite) -> bool:
@@ -735,10 +778,12 @@ class EditorWindow(QMainWindow):
         if len(self.asset_sprites) >= 128 or self._asset_bytes + size > MAX_FILE_BYTES:
             return False
         row = QListWidgetItem(
-            QIcon(sprite_pixmap(sprite)), f"{name} · {sprite.width} × {sprite.height}"
+            QIcon(sprite_pixmap(sprite)), f"{name}\n{sprite.width} × {sprite.height} pixels"
         )
         row.setData(Qt.ItemDataRole.UserRole, len(self.asset_sprites))
-        row.setToolTip(name)
+        row.setToolTip(
+            f"{name}\n{sprite.width} × {sprite.height} pixels\nDouble-click to add to scene."
+        )
         self.asset_list.addItem(row)
         self.asset_sprites.append(sprite)
         self._known_assets.add(sprite)
@@ -850,13 +895,14 @@ class EditorWindow(QMainWindow):
         )
 
     def _update_asset_actions(self) -> None:
-        chosen = self.asset_list.currentItem() is not None
+        row = self.asset_list.currentItem()
+        chosen = row is not None and not row.isHidden()
         self.add_asset_button.setEnabled(chosen)
         self.apply_asset_button.setEnabled(chosen and self.selected_id is not None)
 
     def add_asset(self) -> None:
         row = self.asset_list.currentItem()
-        if row is None:
+        if row is None or row.isHidden():
             return
         sprite = self.asset_sprites[row.data(Qt.ItemDataRole.UserRole)]
         offset = (len(self.document.scene.entities) % 8) * 24
@@ -874,7 +920,7 @@ class EditorWindow(QMainWindow):
 
     def apply_asset(self) -> None:
         row = self.asset_list.currentItem()
-        if row is not None and self.selected_id is not None:
+        if row is not None and not row.isHidden() and self.selected_id is not None:
             sprite = self.asset_sprites[row.data(Qt.ItemDataRole.UserRole)]
             self._execute_sprite(
                 SetEntity(

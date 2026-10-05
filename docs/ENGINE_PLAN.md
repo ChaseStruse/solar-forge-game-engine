@@ -58,7 +58,15 @@ Keyboard navigation follows the visual group order. Native Wayland grouped editi
 Apply, undo/redo, scrolling and keyboard order were verified. The integration suite
 passes all 192 tests locally (14.96 seconds) and in Docker (17.21 seconds); Ruff,
 formatting and strict mypy pass.
-Next UI work: make asset browsing easier to scan.
+The Assets panel now offers bounded case-insensitive name/dimension search,
+thumbnail entries with separate name/size lines, matching counts and an explicit
+no-results hint. Ctrl+Alt+L reveals and focuses sprite search. Filtering changes
+only the list and clears hidden palette selections, guarding Add/Apply actions
+while preserving scene selection and revision. Imports, undo and background project
+scans reapply the active filter; existing palette limits remain unchanged.
+Native Wayland entries, filtering, shortcut focus and scene integrity were verified.
+Asset-search verification: 193 tests pass locally (15.08 seconds) and in Docker
+(17.66 seconds), with Ruff, formatting and strict mypy passing.
 Previews: `docs/screenshots/editor-welcome.png` and `editor-workshop.png`.
 
 Showcase verification: the complete twelve-core route avoids walls, distributed
@@ -858,6 +866,7 @@ Completed task checklist:
 - [x] Add session-only viewport drag locks, bulk decoration locking, markers and safe cancellation.
 - [x] Persist per-scene drag locks in local editor preferences with background I/O and close flushing.
 - [x] Group Inspector properties with adaptive forms and an always-visible Apply action.
+- [x] Add sprite palette search, clearer thumbnail entries and safe filtered reuse.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
@@ -873,9 +882,9 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Improve asset browsing with clearer entries and quick filtering.
+1. Add bounded quarantine purge controls with fresh review and file revalidation.
    Continue measuring larger-context model behavior before broadening scene tools.
-2. Add richer scene organization and quarantine purge controls; continue
+2. Add richer scene organization; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.
 3. Add audio, then a small independent native player/export package. Verify it
