@@ -8,7 +8,7 @@ from pathlib import Path
 
 from solar_forge_engine.core.scene import Scene
 from solar_forge_engine.project.assets import load_project_scene
-from solar_forge_engine.project.storage import MAX_FILE_BYTES, atomic_write
+from solar_forge_engine.project.storage import MAX_FILE_BYTES, atomic_write, scene_write_guard
 from solar_forge_engine.project.workspace import Project
 
 
@@ -31,6 +31,11 @@ def write_recovery(project: Project, scene: Scene, baseline: Scene) -> None:
     raw = (json.dumps(data, allow_nan=False) + "\n").encode()
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Recovery snapshots must be no larger than 4 MiB.")
+    with scene_write_guard(project.scene_path()):
+        _publish_recovery(project, raw, baseline)
+
+
+def _publish_recovery(project: Project, raw: bytes, baseline: Scene) -> None:
     previous = _read_snapshot(project)
     if previous is not None:
         _decode_snapshot(previous, baseline)
@@ -39,7 +44,12 @@ def write_recovery(project: Project, scene: Scene, baseline: Scene) -> None:
         raise ValueError("Saved scene changed externally; reopen it before autosaving.")
     if _read_snapshot(project) != previous:
         raise ValueError("Recovery snapshot changed during autosave; retained without replacing.")
-    atomic_write(recovery_path(project), raw)
+    atomic_write(
+        recovery_path(project),
+        raw,
+        exclusive=previous is None,
+        expected_fingerprint=hashlib.sha256(previous).hexdigest() if previous is not None else None,
+    )
 
 
 def _read_snapshot(project: Project) -> bytes | None:
@@ -102,6 +112,11 @@ def _decode_snapshot(raw: bytes, baseline: Scene) -> Scene | None:
 
 
 def clear_recovery(project: Project, baseline: Scene | None = None) -> None:
+    with scene_write_guard(project.scene_path()):
+        _clear_recovery(project, baseline)
+
+
+def _clear_recovery(project: Project, baseline: Scene | None) -> None:
     if baseline is not None:
         previous = _read_snapshot(project)
         if previous is None:
@@ -109,4 +124,10 @@ def clear_recovery(project: Project, baseline: Scene | None = None) -> None:
         _decode_snapshot(previous, baseline)
         if _read_snapshot(project) != previous:
             raise ValueError("Recovery snapshot changed during cleanup; retained without deleting.")
-    recovery_path(project).unlink(missing_ok=True)
+    path = recovery_path(project)
+    path.unlink(missing_ok=True)
+    descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)

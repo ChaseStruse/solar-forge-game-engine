@@ -217,6 +217,13 @@ changes improve local save integrity without claiming whole-project power-loss s
 Verification: 31 focused storage/sprite/UI checks pass locally; the independent
 Docker image passes Ruff, formatting, mypy and all 264 tests (68.94 seconds).
 Native Wayland worker save, external-conflict preservation, Save As and close also pass.
+Recovery writers and cleaners now share the scene folder guard with manual saves.
+Autosave checks its saved baseline while guarded, publishes missing targets exclusively
+and rechecks existing snapshot fingerprints before replacement. Cleanup flushes the
+containing directory after removal. Focused regressions preserve snapshots during
+manual publication and late external changes; 269 tests pass locally (9.95 seconds)
+and in Docker (11.32 seconds), with Ruff, formatting and mypy passing. This coordinates
+publication, not ownership of one recovery slot between multiple editing sessions.
 
 Scene → Rename scene title now edits the active title through `SetSceneName`, with
 validation, revision protection and undo/redo. Saving retains the project's file,

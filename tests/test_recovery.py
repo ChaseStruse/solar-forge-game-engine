@@ -1,3 +1,5 @@
+import os
+import stat
 from dataclasses import replace
 from threading import Event
 
@@ -5,8 +7,74 @@ import pytest
 
 from solar_forge_engine.core.scene import Entity, Scene
 from solar_forge_engine.editor.window import EditorWindow
+from solar_forge_engine.project import recovery, storage
+from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.recovery import read_recovery, recovery_path, write_recovery
 from solar_forge_engine.project.workspace import create_project
+
+
+@pytest.mark.parametrize("operation", ["write", "clear"])
+def test_recovery_cannot_change_during_manual_scene_publication(tmp_path, monkeypatch, operation):
+    baseline = Scene()
+    project = create_project(tmp_path / "Game", baseline)
+    write_recovery(project, Scene("Earlier edit"), baseline)
+    snapshot = recovery_path(project).read_bytes()
+    saved = project.scene_path().read_bytes()
+    original = storage.os.replace
+
+    def held(source, target):
+        if target == project.scene_path():
+            with pytest.raises(ValueError, match="save is in progress"):
+                if operation == "write":
+                    write_recovery(project, Scene("Late edit"), baseline)
+                else:
+                    recovery.clear_recovery(project, baseline)
+            assert recovery_path(project).read_bytes() == snapshot
+            assert project.scene_path().read_bytes() == saved
+        original(source, target)
+
+    monkeypatch.setattr(storage.os, "replace", held)
+    save_project_scene(project.root, project.scene_path(), Scene("Saved edit"))
+    assert recovery_path(project).read_bytes() == snapshot
+    with pytest.raises(ValueError, match="older saved"):
+        read_recovery(project, Scene("Saved edit"))
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_late_external_recovery_publication_is_preserved(tmp_path, monkeypatch, existing):
+    baseline = Scene()
+    project = create_project(tmp_path / "Game", baseline)
+    if existing:
+        write_recovery(project, Scene("First edit"), baseline)
+    original = recovery.atomic_write
+    external = b"externally written recovery"
+
+    def changed(path, raw, **options):
+        path.write_bytes(external)
+        original(path, raw, **options)
+
+    monkeypatch.setattr(recovery, "atomic_write", changed)
+    with pytest.raises((ValueError, FileExistsError)):
+        write_recovery(project, Scene("Later edit"), baseline)
+    assert recovery_path(project).read_bytes() == external
+    assert not list(project.scene_path().parent.glob(".forge-*"))
+
+
+def test_recovery_removal_flushes_containing_directory(tmp_path, monkeypatch):
+    baseline = Scene()
+    project = create_project(tmp_path / "Game", baseline)
+    write_recovery(project, Scene("Edit"), baseline)
+    flushed = []
+    original = os.fsync
+
+    def record(descriptor):
+        assert not recovery_path(project).exists()
+        flushed.append(os.fstat(descriptor).st_mode)
+        original(descriptor)
+
+    monkeypatch.setattr(recovery.os, "fsync", record)
+    recovery.clear_recovery(project, baseline)
+    assert flushed and all(stat.S_ISDIR(mode) for mode in flushed)
 
 
 def test_recovery_is_atomic_self_contained_and_rejects_stale_baseline(tmp_path, monkeypatch):

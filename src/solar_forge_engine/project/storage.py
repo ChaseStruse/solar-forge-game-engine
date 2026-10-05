@@ -6,6 +6,8 @@ import json
 import os
 import stat
 import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
 from solar_forge_engine.core.limits import MAX_FILE_BYTES as MAX_FILE_BYTES
@@ -62,6 +64,13 @@ def save_scene_data(
     expected_fingerprint: str | None = None,
 ) -> None:
     """Write validated scene data, preserving supported originals before upgrades."""
+    with scene_write_guard(path):
+        _publish_scene_data(path, data, exclusive, expected_fingerprint)
+
+
+@contextmanager
+def scene_write_guard(path: Path) -> Iterator[None]:
+    """Coordinate scene and recovery publication on a local Linux directory inode."""
     # A directory inode survives scene replacement and needs no persistent sidecar.
     # This coordinates engine writers on local Linux filesystems, not arbitrary tools.
     descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
@@ -72,7 +81,7 @@ def save_scene_data(
             raise ValueError(
                 "Another scene save is in progress in this folder. Retry saving."
             ) from error
-        _publish_scene_data(path, data, exclusive, expected_fingerprint)
+        yield
     finally:
         os.close(descriptor)
 
