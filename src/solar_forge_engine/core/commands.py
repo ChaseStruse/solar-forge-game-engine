@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, replace
 from typing import Protocol
 
 from solar_forge_engine.core.scene import Entity, Scene
+from solar_forge_engine.core.sprite import Sprite
 
 
 class Command(Protocol):
@@ -87,6 +88,14 @@ class Document:
     @property
     def can_redo(self) -> bool:
         return bool(self._redo)
+
+    def retained_sprites(self) -> set[Sprite]:
+        return {
+            entity.sprite
+            for scene in (self._scene, *self._undo, *self._redo)
+            for entity in scene.entities
+            if entity.sprite is not None
+        }
 
     def execute(self, *commands: Command, expected_revision: int) -> None:
         if expected_revision != self._revision:

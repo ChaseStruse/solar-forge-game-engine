@@ -73,7 +73,7 @@ Older embedded project scenes load unchanged; saving upgrades them after keeping
 an exact `.v1.bak`, `.v2.bak`, or `.v3.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
-sprite removal. Unused-file browsing and cleanup are future work.
+sprite removal. Reviewed cleanup is available below.
 
 The **Assets** panel previews unique sprites from the loaded scene, session imports,
 and other saved project scenes. Project open/switch starts a background scan;
@@ -85,6 +85,17 @@ data. Indexing reads up to 16 MiB of saved scene files using the existing bounde
 scene/asset validators; malformed scenes are skipped with Activity messages.
 Unused files, backups, and recovery snapshots are not catalog sources. Scan results
 from a previously opened project cannot populate the current project palette.
+
+Choose **Review unused assets** after saving to scan for unused project sprite files
+in a worker. The review shows the count and size; **Show Details** lists filenames.
+Confirmation moves them into `.asset-quarantine/<id>/`; cancellation leaves them alone.
+Saved scenes, upgrade backups, recovery snapshots, and current undo/redo and palette
+sprites are protected. The scan checks at most 512 files/directories and 32 MiB;
+invalid, unknown, symlinked, or unreadable entries stop cleanup. The worker rechecks
+file contents and references before moving anything and rolls back handled move failures.
+Quarantine keeps files for manual restoration to `assets/` without overwriting existing
+files. It does not reclaim disk space or permanently delete files. A restore/purge UI,
+concurrent-edit guarantees, and power-loss guarantees remain future work.
 
 Project edits automatically produce a recovery snapshot after two seconds without
 another applied edit. Serialization and writing run in a worker; the normal scene

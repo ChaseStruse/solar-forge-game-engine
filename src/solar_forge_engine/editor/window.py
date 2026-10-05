@@ -44,6 +44,7 @@ from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.catalog import AssetIndexer
+from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.recovery import RecoveryWriter
 from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
@@ -125,6 +126,7 @@ class EditorWindow(QMainWindow):
         self._asset_document: Document | None = None
         self._asset_index_job: AssetIndexer | None = None
         self._closing = False
+        self._cleanup_job: CleanupWorker | None = None
         self._asset_bytes = 0
         asset_panel = QWidget()
         asset_layout = QVBoxLayout(asset_panel)
@@ -145,6 +147,9 @@ class EditorWindow(QMainWindow):
         self.refresh_assets_button = QPushButton("Refresh project assets")
         self.refresh_assets_button.clicked.connect(self.refresh_project_assets)
         asset_layout.addWidget(self.refresh_assets_button)
+        self.cleanup_assets_button = QPushButton("Review unused assets")
+        self.cleanup_assets_button.clicked.connect(self.review_unused_assets)
+        asset_layout.addWidget(self.cleanup_assets_button)
         self.asset_list.itemDoubleClicked.connect(lambda item: self.add_asset())
         self._dock("Assets", asset_panel, Qt.DockWidgetArea.LeftDockWidgetArea)
 
@@ -300,6 +305,9 @@ class EditorWindow(QMainWindow):
             self.refresh_project_scenes()
         self.refresh_assets_button.setEnabled(
             self.project is not None and self._asset_index_job is None
+        )
+        self.cleanup_assets_button.setEnabled(
+            self.project is not None and not self.dirty and self._cleanup_job is None
         )
         self.create_scene_button.setEnabled(self.project is not None)
         self.switch_scene_button.setEnabled(self.project is not None)
@@ -510,6 +518,69 @@ class EditorWindow(QMainWindow):
         job.deleteLater()
         if not self._closing and self.project is not None and self.project.root != job.project.root:
             self.refresh_project_assets()
+
+    def review_unused_assets(self) -> None:
+        if self.project is None or self.dirty or self._cleanup_job is not None:
+            return
+        protected = self.document.retained_sprites() | self._known_assets
+        job = CleanupWorker(self.project, protected)
+        context = (self.document, self.document.revision)
+        self._cleanup_job = job
+        self.cleanup_assets_button.setEnabled(False)
+        job.finished.connect(lambda: self._cleanup_finished(job, context))
+        job.start()
+
+    def _cleanup_finished(self, job: CleanupWorker, context: tuple[Document, int]) -> None:
+        if job is not self._cleanup_job:
+            return
+        self._cleanup_job = None
+        self.setEnabled(True)
+        job.deleteLater()
+        if job.error:
+            self.log.append(f"Cleanup stopped: {job.error}")
+        elif job.destination is not None:
+            self.log.append(
+                f"Unused assets quarantined in {job.destination.relative_to(job.project.root)}"
+            )
+        elif (
+            not self._closing
+            and self.project == job.project
+            and context == (self.document, self.document.revision)
+            and job.protected == self.document.retained_sprites() | self._known_assets
+        ):
+            if job.plan is not None and job.plan.candidates:
+                dialog = QMessageBox(self)
+                dialog.setWindowTitle("Review unused assets")
+                dialog.setText(
+                    f"Quarantine {len(job.plan.candidates)} unused files "
+                    f"({job.plan.bytes_unused} bytes)?"
+                )
+                dialog.setInformativeText(
+                    "Files remain in .asset-quarantine for manual restoration. Nothing is deleted."
+                )
+                dialog.setDetailedText("\n".join(job.plan.candidates))
+                dialog.setStandardButtons(
+                    QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel
+                )
+                dialog.setDefaultButton(QMessageBox.StandardButton.Cancel)
+                if (
+                    dialog.exec() == QMessageBox.StandardButton.Ok
+                    and context == (self.document, self.document.revision)
+                    and self.project == job.project
+                    and job.protected == self.document.retained_sprites() | self._known_assets
+                ):
+                    operation = CleanupWorker(job.project, job.protected, job.plan)
+                    self._cleanup_job = operation
+                    operation.finished.connect(lambda: self._cleanup_finished(operation, context))
+                    self.setEnabled(False)
+                    operation.start()
+            else:
+                self.log.append("No unused managed assets found.")
+        else:
+            self.log.append("Cleanup review expired because the editor state changed.")
+        self.cleanup_assets_button.setEnabled(
+            self.project is not None and not self.dirty and self._cleanup_job is None
+        )
 
     def _update_asset_actions(self) -> None:
         chosen = self.asset_list.currentItem() is not None
@@ -943,6 +1014,11 @@ class EditorWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._confirm_discard():
             self._closing = True
+            if self._cleanup_job is not None and not self._cleanup_job.wait(1000):
+                self._closing = False
+                self.log.append("Finishing cleanup; close again shortly.")
+                event.ignore()
+                return
             if self._asset_index_job is not None:
                 job_index = self._asset_index_job
                 job_index.requestInterruption()
