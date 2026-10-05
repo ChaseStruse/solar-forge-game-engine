@@ -4,7 +4,8 @@ Status: playable native prototype, updated October 5, 2026. Implemented features
 include native scene editing and playback, Docker workflows, duplication, PNG
 sprites, project-relative assets and sprite reuse, autosave/recovery, multiple scenes,
 startup-scene selection, asset quarantine/restoration, movement/input settings,
-viewport drag/snap/zoom/pan, sprite-sheet animation and an offline assistant demo.
+viewport drag/snap/zoom/pan, sprite-sheet animation, an offline assistant demo and
+an opt-in loopback Ollama adapter with reviewed scene edits.
 The Ember Run showcase adds original pixel art, 187 editable objects, 19 animated
 sprites and a twelve-core collection route. Its portable example includes a second
 scene sharing assets; the built-in template is accessible in native and Docker builds.
@@ -526,8 +527,8 @@ Python protocols and type hints alone are not a security boundary.
 
 ## 6. LLM-first, with local and enterprise support
 
-**Status: initial offline proposal workflow implemented.** The native Assistant tab
-uses a deterministic fake provider with exact demo requests, not a language model.
+**Status: reviewed proposals and initial Ollama adapter implemented.** The native Assistant tab
+defaults to a deterministic fake provider with exact demo requests, not a language model.
 It proposes create/set/delete scene commands, validates the entire batch in a
 throwaway Document, and displays an explicit diff before Apply. Responses are
 limited to 16 KiB / 16 commands; requests to 2,000 characters. No scripts, file
@@ -535,9 +536,23 @@ patches, sprite changes or arbitrary execution tools are exposed. Apply revalida
 and checks document identity/revision, then creates one atomic undoable edit.
 Generation runs in a Qt worker. Discard cancels results, stale responses cannot
 apply, and provider errors leave authoring untouched. Closing waits for an active
-request to finish; forcibly interrupting an unresponsive provider is not supported.
-Real local/enterprise adapters, credentials, bounded network timeouts, general
-language understanding and tool orchestration remain planned. Manual workflows
+request to finish. The Ollama adapter accepts explicit HTTP loopback settings and
+installed model names, uses schema-constrained non-streaming chat, and closes its
+client socket on cancellation or the absolute 1–120-second deadline. Connect waits
+are capped at two seconds. It sends up to 128 objects / 32 KiB of metadata, with no
+pixels or project paths; selected/gameplay objects take priority. HTTP envelopes
+are capped at 64 KiB. Proxies, redirects and cloud-named models are rejected;
+offline inference also requires the operator to disable cloud on the Ollama server.
+Default app/test Compose networking remains disabled; `compose.ollama.yaml` is an
+explicit Linux host-network override for the desktop. No services are managed and
+no models are downloaded. Settings remain session-only.
+Verification: 162 tests pass locally (9.13 seconds) and in Docker (11.05 seconds).
+Ruff, formatting and strict mypy pass. Real loopback HTTP fixtures cover transport,
+schema requests, bad/oversized responses, redirect refusal, cancellation/deadlines,
+review, Apply and Undo. Native Wayland review and opt-in Compose configuration were
+checked. Actual model inference remains unverified: host Ollama was not running.
+Saved connections, model discovery, enterprise adapters, credentials and broader
+tool orchestration remain planned. Manual workflows
 remain independent of the assistant. The broader behavior below is the target design.
 
 The assistant answers questions about selected objects, explains errors, constructs
@@ -791,12 +806,13 @@ Completed task checklist:
 - [ ] Add quarantine purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
+- [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
 - [ ] Add verified local and enterprise model adapters, timeouts and credential handling.
 
 Next small features, in recommended order:
 
-1. Add a local-model adapter with explicit connection settings, compact scene context,
-   bounded network timeouts and cancellation, using the existing reviewed tool schema.
+1. Add local model discovery and saved connection settings, then verify end-to-end
+   inference with an installed model and measure response/context behavior.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.

@@ -2,7 +2,8 @@
 
 import json
 import re
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from typing import Protocol
 from uuid import NAMESPACE_URL, uuid5
 
@@ -14,6 +15,7 @@ class Context:
     scene: Scene
     revision: int
     selected_id: str | None
+    cancelled: Callable[[], bool] = field(default=lambda: False, repr=False, compare=False)
 
 
 class Provider(Protocol):

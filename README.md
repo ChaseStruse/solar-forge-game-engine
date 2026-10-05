@@ -200,10 +200,10 @@ Playback changes never modify the authored scene. Opening/New/closing the editor
 stops its preview process. This data-only preview runs built-in behavior and does
 not execute project scripts or claim to sandbox arbitrary Python.
 
-## Assistant demo
+## Assistant and local models
 
 Open the **Assistant** tab beside the Inspector; scroll, resize or undock the panel
-to see its review controls. It uses a deterministic offline fixture, **not an LLM**.
+to see its review controls. By default it uses a deterministic offline fixture, **not an LLM**.
 No model, credentials or networking are required. Enter a supported request and
 choose **Propose edits**:
 
@@ -224,9 +224,46 @@ changes alone do not retarget it. Unsupported requests show an error without edi
 Requests are capped at 2,000 characters; responses at 16 KiB and 16 commands.
 Only creation, deletion and the listed scene properties are exposed. Script,
 filesystem, sprite/animation and arbitrary-code tools are unavailable. Proposals
-run in a worker, and cancellation discards its result; it cannot forcibly interrupt
-an unresponsive provider. Real model networking, timeouts, credentials and natural
-language understanding remain future work.
+run in a worker. The demo discards canceled results; the Ollama adapter also closes
+the waiting request socket. Model output never runs code or directly modifies files.
+
+For natural-language proposals, choose **Ollama · loopback** in the Assistant tab,
+enter your installed model name and local server address, and choose a deadline
+(1–120 seconds; default 60). Nothing connects until you press **Propose edits**.
+Settings are session-only. Start your own Ollama server with cloud disabled:
+
+```sh
+OLLAMA_NO_CLOUD=1 ollama serve
+```
+
+Use a model already installed locally; the engine does not download models or
+manage Ollama services. If Ollama is managed as a service, configure that service
+instead of starting a second server. Ollama documents cloud disabling in its
+[FAQ](https://docs.ollama.com/faq#how-do-i-disable-ollama-cloud-features).
+The engine accepts HTTP loopback addresses only, bypasses environment proxies,
+rejects redirects and model names containing `cloud`, and does not fall back to
+another provider. Your Ollama server must be configured for offline inference;
+the editor cannot control a server's upstream connections or custom model aliases.
+
+Requests use Ollama's [structured chat API](https://docs.ollama.com/api/chat).
+Only object metadata is supplied: no pixels, project paths or file contents.
+Context includes up to 128 objects within 32 KiB, prioritizing the selected object
+and gameplay roles; omitted objects are reported to the model. Responses have a
+64 KiB HTTP envelope cap and the existing 16 KiB proposal cap. Invalid, incomplete,
+late or stale proposals leave the scene unchanged. Cancellation closes the client
+connection; it does not guarantee immediate release of server-side inference resources.
+
+Native launching can reach host Ollama directly. Default Docker networking remains
+disabled. On Linux, opt into the host network namespace to reach host loopback:
+
+```sh
+docker compose -f compose.yaml -f compose.ollama.yaml up --build desktop
+```
+
+The test container stays isolated and uses temporary loopback HTTP fixtures, with
+no model downloads. Live model inference has not been verified on this machine:
+the installed Ollama server was not running. Enterprise adapters, saved settings,
+model discovery and capability checks remain future work.
 
 ## Development checks
 

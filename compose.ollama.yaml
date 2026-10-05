@@ -1,0 +1,5 @@
+# Opt-in Linux host networking so the desktop can reach a host loopback Ollama server.
+# The default compose.yaml and isolated test service remain network-disabled.
+services:
+  desktop:
+    network_mode: host
