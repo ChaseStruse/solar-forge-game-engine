@@ -3,7 +3,7 @@
 import time
 
 from PySide6.QtCore import QEvent, Qt, QTimer
-from PySide6.QtGui import QBrush, QColor, QKeyEvent, QResizeEvent
+from PySide6.QtGui import QBrush, QColor, QKeyEvent, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QGraphicsScene,
     QGraphicsView,
@@ -22,9 +22,28 @@ RIGHT = {Qt.Key.Key_D, Qt.Key.Key_Right}
 UP = {Qt.Key.Key_W, Qt.Key.Key_Up}
 DOWN = {Qt.Key.Key_S, Qt.Key.Key_Down}
 MOVEMENT_KEYS = LEFT | RIGHT | UP | DOWN
+DENSE_ANIMATION_CHANGES = 1000
 
 
 class GameView(QGraphicsView):
+    def __init__(self, scene: QGraphicsScene) -> None:
+        super().__init__(scene)
+        self._animation_changes = 0
+
+    def queue_animation_updates(self, changed: int) -> None:
+        # Dense frame swaps benefit from avoiding dirty-region merging. Keep sparse
+        # updates cheap, and retain the dense mode until queued changes are painted.
+        self._animation_changes += changed
+        self.setViewportUpdateMode(
+            self.ViewportUpdateMode.FullViewportUpdate
+            if self._animation_changes >= DENSE_ANIMATION_CHANGES
+            else self.ViewportUpdateMode.MinimalViewportUpdate
+        )
+
+    def paintEvent(self, event: QPaintEvent) -> None:
+        super().paintEvent(event)
+        self._animation_changes = 0
+
     def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         self.fitInView(self.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
@@ -101,7 +120,7 @@ class PlayerWindow(QMainWindow):
         self.items[self.simulation.controlled.id].setPos(self.simulation.x, self.simulation.y)
         for coin in self.simulation.coins:
             self.items[coin.id].setVisible(coin.id not in self.simulation.collected)
-        self.animator.update(self._ticks)
+        self.view.queue_animation_updates(self.animator.update(self._ticks))
         if self.simulation.coins:
             suffix = " · All collected! · Restart for another run" if self.simulation.won else ""
             self.score_label.setText(

@@ -87,10 +87,14 @@ class SpriteAnimator:
             self.entries.append((item, animation, cache[key]))
         self._frames: dict[str, int] = {}
 
-    def update(self, ticks: int) -> None:
+    def update(self, ticks: int) -> int:
+        """Return the number of visible items whose frame pixmap actually changed."""
+        changed = 0
         for item, animation, frames in self.entries:
             frame = animation.frame_at(ticks)
             entity_id = str(item.data(0))
             if item.isVisible() and self._frames.get(entity_id) != frame:
                 item.setPixmap(frames[frame])
                 self._frames[entity_id] = frame
+                changed += 1
+        return changed

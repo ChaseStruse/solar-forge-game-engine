@@ -113,6 +113,29 @@ natural and exploratory forced-update results, without introducing timing tests.
 Native Wayland comparisons, offline Docker mode checks, invalid workload bounds,
 Ruff, formatting and strict mypy were verified.
 
+Actual Play animation profiling now uses PlayerWindow's timer, fixed-step movement
+and SpriteAnimator, with 1,000 sprites, one controlled player and bounded two-frame
+60 fps sheets. It checks changed frames and unchanged authored data, records
+120 measured paints after warmup, and compares sparse/dense animation workloads.
+A conservative Play-only policy accumulates actual changed frame pixmaps until
+painting completes: 1,000 pending changes switch to full viewport redraw; sparse
+updates keep minimal redraw. Unchanged/hidden frames do not count, and queued
+dense mode survives a later unchanged sync until painting finishes. The editor
+policy stays unchanged; there are no new UI controls or dependencies.
+Native Wayland 1,000-animation cadence p95 improved from 45.603 ms with minimal
+redraw to 17.276 ms with auto, with queued-paint p95 1.332 ms. Sparse auto runs
+retained paint p95 0.187 ms (no animations) and 0.548 ms (32 animations).
+These are reference observations, not a cross-machine guarantee; the 16.7 ms
+cadence target and compositor/hardware-input gates remain open. The
+[raw Play comparison](performance/2026-10-05-play-animation.json) records policy
+and workload results. Regression checks cover changed/hidden frames and coalesced
+dense painting: 215 tests pass locally (15.79 seconds) and in Docker (18.49 seconds),
+with Ruff, formatting and strict mypy passing.
+
+The actual dense Play benchmark also completed in Docker offscreen mode with
+changing frames and unchanged authored data. Its cadence p95 was 31.233 ms,
+reinforcing that host timing gains are not a container/compositor guarantee.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -938,6 +961,7 @@ Completed task checklist:
 - [x] Benchmark distinct sprite textures, canvas construction and isolated native warm startup.
 - [x] Instrument native viewport paint cadence, update/paint CPU and synthetic selection latency.
 - [x] Profile repaint/index policies across light/heavy motion with natural dirty-region updates.
+- [x] Benchmark actual Play animation and selectively redraw dense frame changes without slowing sparse updates.
 - [ ] Close the complete renderer/sandbox/packaging foundation gates.
 - [x] Add validated project-folder creation/opening around existing scenes.
 - [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
@@ -971,12 +995,13 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Measure animation-heavy Play workloads before selecting an adaptive repaint policy.
-   Compositor-presented frame timing and hardware input latency remain unverified.
+1. Add a minimal audio workflow, starting with WAV import and native preview.
+   Compositor-presented frame timing and hardware input latency remain unverified;
+   continue performance checks alongside the next runtime features.
    Continue measuring larger-context model behavior before broadening scene tools.
 2. Continue scene organization and project integrity work; stronger concurrent-edit
    and power-loss recovery guarantees remain open.
-3. Add audio, then a small independent native player/export package. Verify it
+3. Add a small independent native player/export package. Verify it
    outside the editor on clean Arch.
 4. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.

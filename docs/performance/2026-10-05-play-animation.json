@@ -1,0 +1,637 @@
+{
+  "date": "2026-10-05",
+  "scope": "Actual PlayerWindow fixed-step movement and SpriteAnimator frame swaps, 1000 sprites, distinct textures, two-frame 60 fps sheets. Single runs, 10 warmup/120 measured paints. One controlled player. Qt paint completion, not compositor presentation; desktop theme plugin disabled. Auto uses full repainting after 1000 pending frame swaps, sparse updates remain minimal. Baseline comparisons precede adaptive policy; auto runs use it.",
+  "reference_host": {
+    "cpu": "11th Gen Intel(R) Core(TM) i9-11900H @ 2.50GHz",
+    "logical_cpus": 16
+  },
+  "results": [
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 0,
+      "unique_textures": 1000,
+      "viewport_update": "minimal",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 135,
+      "paint_cpu": {
+        "median_ms": 0.135,
+        "p95_ms": 0.186,
+        "max_ms": 0.27
+      },
+      "sync_cpu": {
+        "median_ms": 0.049,
+        "p95_ms": 0.069,
+        "max_ms": 0.096
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 0.275,
+        "p95_ms": 0.425,
+        "max_ms": 0.528
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 0.468,
+        "p95_ms": 0.651,
+        "max_ms": 0.774
+      },
+      "paint_completion_interval": {
+        "median_ms": 15.918,
+        "p95_ms": 16.96,
+        "max_ms": 32.474
+      },
+      "animation_frames_changed": false,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 0,
+      "unique_textures": 1000,
+      "viewport_update": "full",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 135,
+      "paint_cpu": {
+        "median_ms": 5.283,
+        "p95_ms": 5.587,
+        "max_ms": 5.865
+      },
+      "sync_cpu": {
+        "median_ms": 0.045,
+        "p95_ms": 0.07,
+        "max_ms": 0.095
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 0.775,
+        "p95_ms": 0.932,
+        "max_ms": 1.022
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 6.075,
+        "p95_ms": 6.55,
+        "max_ms": 6.904
+      },
+      "paint_completion_interval": {
+        "median_ms": 15.9,
+        "p95_ms": 17.259,
+        "max_ms": 32.977
+      },
+      "animation_frames_changed": false,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 32,
+      "unique_textures": 1000,
+      "viewport_update": "minimal",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 136,
+      "paint_cpu": {
+        "median_ms": 0.4,
+        "p95_ms": 0.468,
+        "max_ms": 0.626
+      },
+      "sync_cpu": {
+        "median_ms": 0.264,
+        "p95_ms": 0.355,
+        "max_ms": 0.502
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 0.386,
+        "p95_ms": 0.503,
+        "max_ms": 0.735
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 1.05,
+        "p95_ms": 1.332,
+        "max_ms": 1.43
+      },
+      "paint_completion_interval": {
+        "median_ms": 15.98,
+        "p95_ms": 16.967,
+        "max_ms": 32.573
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 32,
+      "unique_textures": 1000,
+      "viewport_update": "full",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 136,
+      "paint_cpu": {
+        "median_ms": 5.514,
+        "p95_ms": 5.909,
+        "max_ms": 6.487
+      },
+      "sync_cpu": {
+        "median_ms": 0.268,
+        "p95_ms": 0.35,
+        "max_ms": 0.519
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 0.83,
+        "p95_ms": 0.965,
+        "max_ms": 1.409
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 6.651,
+        "p95_ms": 7.03,
+        "max_ms": 7.664
+      },
+      "paint_completion_interval": {
+        "median_ms": 16.028,
+        "p95_ms": 17.3,
+        "max_ms": 32.255
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 1000,
+      "unique_textures": 1000,
+      "viewport_update": "minimal",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 149,
+      "paint_cpu": {
+        "median_ms": 8.385,
+        "p95_ms": 8.806,
+        "max_ms": 9.553
+      },
+      "sync_cpu": {
+        "median_ms": 4.313,
+        "p95_ms": 5.376,
+        "max_ms": 5.677
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 8.628,
+        "p95_ms": 9.707,
+        "max_ms": 10.525
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 21.373,
+        "p95_ms": 23.537,
+        "max_ms": 25.487
+      },
+      "paint_completion_interval": {
+        "median_ms": 21.666,
+        "p95_ms": 45.603,
+        "max_ms": 52.7
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 1000,
+      "unique_textures": 1000,
+      "viewport_update": "full",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 135,
+      "paint_cpu": {
+        "median_ms": 5.783,
+        "p95_ms": 6.146,
+        "max_ms": 6.418
+      },
+      "sync_cpu": {
+        "median_ms": 4.815,
+        "p95_ms": 5.325,
+        "max_ms": 6.077
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 1.129,
+        "p95_ms": 1.291,
+        "max_ms": 1.4
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 11.763,
+        "p95_ms": 12.422,
+        "max_ms": 13.455
+      },
+      "paint_completion_interval": {
+        "median_ms": 15.935,
+        "p95_ms": 17.643,
+        "max_ms": 32.945
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 256,
+      "unique_textures": 1000,
+      "viewport_update": "minimal",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 136,
+      "paint_cpu": {
+        "median_ms": 2.399,
+        "p95_ms": 2.629,
+        "max_ms": 11.018
+      },
+      "sync_cpu": {
+        "median_ms": 1.291,
+        "p95_ms": 1.544,
+        "max_ms": 4.168
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 2.172,
+        "p95_ms": 2.469,
+        "max_ms": 11.826
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 5.85,
+        "p95_ms": 6.512,
+        "max_ms": 27.012
+      },
+      "paint_completion_interval": {
+        "median_ms": 15.973,
+        "p95_ms": 23.319,
+        "max_ms": 37.203
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 256,
+      "unique_textures": 1000,
+      "viewport_update": "full",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 135,
+      "paint_cpu": {
+        "median_ms": 5.711,
+        "p95_ms": 6.064,
+        "max_ms": 6.408
+      },
+      "sync_cpu": {
+        "median_ms": 1.473,
+        "p95_ms": 1.666,
+        "max_ms": 2.566
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 0.941,
+        "p95_ms": 1.101,
+        "max_ms": 1.337
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 8.128,
+        "p95_ms": 8.661,
+        "max_ms": 9.118
+      },
+      "paint_completion_interval": {
+        "median_ms": 15.914,
+        "p95_ms": 17.261,
+        "max_ms": 33.126
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 512,
+      "unique_textures": 1000,
+      "viewport_update": "minimal",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 136,
+      "paint_cpu": {
+        "median_ms": 4.461,
+        "p95_ms": 4.809,
+        "max_ms": 5.043
+      },
+      "sync_cpu": {
+        "median_ms": 2.411,
+        "p95_ms": 2.762,
+        "max_ms": 3.128
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 4.473,
+        "p95_ms": 4.959,
+        "max_ms": 5.202
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 11.344,
+        "p95_ms": 12.081,
+        "max_ms": 13.295
+      },
+      "paint_completion_interval": {
+        "median_ms": 16.01,
+        "p95_ms": 17.741,
+        "max_ms": 34.2
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 512,
+      "unique_textures": 1000,
+      "viewport_update": "full",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 135,
+      "paint_cpu": {
+        "median_ms": 5.761,
+        "p95_ms": 6.11,
+        "max_ms": 6.335
+      },
+      "sync_cpu": {
+        "median_ms": 2.757,
+        "p95_ms": 2.999,
+        "max_ms": 3.398
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 1.025,
+        "p95_ms": 1.2,
+        "max_ms": 1.271
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 9.577,
+        "p95_ms": 10.131,
+        "max_ms": 10.553
+      },
+      "paint_completion_interval": {
+        "median_ms": 16.07,
+        "p95_ms": 17.221,
+        "max_ms": 32.605
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 0,
+      "unique_textures": 1000,
+      "viewport_update": "auto",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 136,
+      "paint_cpu": {
+        "median_ms": 0.134,
+        "p95_ms": 0.187,
+        "max_ms": 0.303
+      },
+      "sync_cpu": {
+        "median_ms": 0.074,
+        "p95_ms": 0.112,
+        "max_ms": 0.135
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 0.257,
+        "p95_ms": 0.395,
+        "max_ms": 0.46
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 0.469,
+        "p95_ms": 0.641,
+        "max_ms": 0.734
+      },
+      "paint_completion_interval": {
+        "median_ms": 16.057,
+        "p95_ms": 17.176,
+        "max_ms": 32.076
+      },
+      "animation_frames_changed": false,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 32,
+      "unique_textures": 1000,
+      "viewport_update": "auto",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 135,
+      "paint_cpu": {
+        "median_ms": 0.413,
+        "p95_ms": 0.548,
+        "max_ms": 0.803
+      },
+      "sync_cpu": {
+        "median_ms": 0.299,
+        "p95_ms": 0.425,
+        "max_ms": 0.609
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 0.381,
+        "p95_ms": 0.484,
+        "max_ms": 0.599
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 1.118,
+        "p95_ms": 1.311,
+        "max_ms": 1.628
+      },
+      "paint_completion_interval": {
+        "median_ms": 16.079,
+        "p95_ms": 17.096,
+        "max_ms": 32.244
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    },
+    {
+      "fixture": "PlayerWindow; 1000 sprites; one player; two-frame 60 fps sheets",
+      "animated_items": 1000,
+      "unique_textures": 1000,
+      "viewport_update": "auto",
+      "qpa": "wayland",
+      "python": "3.14.7",
+      "qt": "6.11.2",
+      "platform": "Linux-7.2.5-3-omarchy-x86_64-with-glibc2.44",
+      "screen_refresh_hz": 165.0030059814453,
+      "device_pixel_ratio": 1.25,
+      "actual_viewport_size": [
+        995,
+        550
+      ],
+      "timer_interval_ms": 16,
+      "warmup_paints": 10,
+      "measured_paints": 120,
+      "sync_calls": 136,
+      "paint_cpu": {
+        "median_ms": 5.848,
+        "p95_ms": 6.196,
+        "max_ms": 6.553
+      },
+      "sync_cpu": {
+        "median_ms": 4.964,
+        "p95_ms": 5.414,
+        "max_ms": 5.744
+      },
+      "latest_sync_to_paint_start": {
+        "median_ms": 1.133,
+        "p95_ms": 1.332,
+        "max_ms": 1.475
+      },
+      "sync_to_paint_completion": {
+        "median_ms": 11.948,
+        "p95_ms": 12.726,
+        "max_ms": 13.52
+      },
+      "paint_completion_interval": {
+        "median_ms": 16.076,
+        "p95_ms": 17.276,
+        "max_ms": 33.241
+      },
+      "animation_frames_changed": true,
+      "authored_scene_unchanged": true
+    }
+  ],
+  "docker_offscreen_verification": {
+    "animated_items": 1000,
+    "unique_textures": 1000,
+    "viewport_update": "auto",
+    "qpa": "offscreen",
+    "python": "3.14.7",
+    "qt": "6.11.2",
+    "measured_paints": 120,
+    "paint_cpu_p95_ms": 5.207,
+    "sync_cpu_p95_ms": 6.562,
+    "paint_queue_p95_ms": 1.15,
+    "paint_completion_interval_p95_ms": 31.233,
+    "animation_frames_changed": true,
+    "authored_scene_unchanged": true,
+    "scope": "Container tooling/behavior check; cadence differs from host Wayland, so no cross-platform frame-rate guarantee."
+  }
+}

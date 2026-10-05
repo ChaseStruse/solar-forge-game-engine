@@ -159,3 +159,40 @@ def test_previous_release_recovery_survives_animation_format_upgrade(tmp_path):
     path.write_text(json.dumps(envelope))
     with pytest.raises(ValueError, match="older saved scene"):
         read_recovery(project, baseline)
+
+
+def test_animation_counts_only_changed_visible_frames_and_dense_paint_is_retained(
+    qtbot, monkeypatch
+):
+    from PySide6.QtWidgets import QGraphicsView
+
+    monkeypatch.setattr("solar_forge_engine.runtime.player.DENSE_ANIMATION_CHANGES", 2)
+    scene = Scene(
+        entities=tuple(
+            Entity(f"sprite-{index}", sprite=sheet(), animation=Animation(2, 1, 60))
+            for index in range(3)
+        )
+    )
+    player = PlayerWindow(scene, "sprite-0")
+    qtbot.addWidget(player)
+    player.timer.stop()
+    player.show()
+    qtbot.waitUntil(lambda: player.view._animation_changes == 0)
+    player.items["sprite-2"].hide()
+    player._ticks = 1
+    player._sync_position()
+    assert player.view.viewportUpdateMode() == QGraphicsView.ViewportUpdateMode.FullViewportUpdate
+    before = player.items["sprite-0"].pixmap().cacheKey()
+    assert player.animator.update(1) == 0
+    player._sync_position()
+    assert player.view.viewportUpdateMode() == QGraphicsView.ViewportUpdateMode.FullViewportUpdate
+    assert player.items["sprite-0"].pixmap().cacheKey() == before
+    qtbot.waitUntil(lambda: player.view._animation_changes == 0)
+    player._sync_position()
+    assert (
+        player.view.viewportUpdateMode() == QGraphicsView.ViewportUpdateMode.MinimalViewportUpdate
+    )
+    player.items["sprite-2"].show()
+    assert player.animator.update(1) == 1
+    assert player.animator.update(1) == 0
+    assert player.simulation.scene == scene

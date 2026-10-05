@@ -407,6 +407,22 @@ shows why engine defaults still use minimal updates: full repainting helps heavy
 motion but increases work for ordinary one-object updates. These switches affect
 only the benchmark, not your projects or editor preferences.
 
+Benchmark the real Play window's animation workload:
+
+```sh
+QT_QPA_PLATFORM=wayland QT_QPA_PLATFORMTHEME= uv run --frozen python scripts/benchmark_play.py --animated-items 1000
+```
+
+Keep this temporary window visible and focused. It uses actual fixed-step movement,
+sprite-sheet playback and one controlled player; the fixture has 1,000 sprites.
+`--animated-items` accepts 0–1,000; `--viewport-update minimal` or `full` compares
+forced policies against the default `auto`. Play automatically uses full redraw
+after 1,000 frame changes accumulate before a paint, preserving minimal updates
+for sparse animation. The editor's redraw policy is unchanged. Reports verify
+changing animation frames and unchanged authored data; the
+[Play animation comparison](docs/performance/2026-10-05-play-animation.json)
+records observed improvements and the remaining cadence/presentation limits.
+
 ## Docker
 
 Run the native window from a Linux Wayland session:
