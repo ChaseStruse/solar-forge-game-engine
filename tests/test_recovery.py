@@ -72,7 +72,7 @@ def test_recovery_removal_flushes_containing_directory(tmp_path, monkeypatch):
         flushed.append(os.fstat(descriptor).st_mode)
         original(descriptor)
 
-    monkeypatch.setattr(recovery.os, "fsync", record)
+    monkeypatch.setattr(storage.os, "fsync", record)
     recovery.clear_recovery(project, baseline)
     assert flushed and all(stat.S_ISDIR(mode) for mode in flushed)
 

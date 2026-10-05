@@ -445,6 +445,9 @@ a failed migration-backup flush preserves the original scene.
 Recovery publication and cleanup use the same folder guard; new snapshots publish
 exclusively, existing snapshots carry a final byte-revision check, and deletion
 flushes its directory. Multi-session ownership of recovery snapshots remains open.
+Project manifests use the same safe reader. Startup updates coordinate publication
+and check byte revisions; new project metadata flushes its root and parent before
+creation succeeds.
 
 ## Native game export
 

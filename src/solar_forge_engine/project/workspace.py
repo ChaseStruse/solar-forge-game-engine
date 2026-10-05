@@ -1,5 +1,6 @@
 """Small native project-folder contract; opening projects never executes code."""
 
+import hashlib
 import json
 import os
 import re
@@ -9,7 +10,12 @@ from pathlib import Path, PurePosixPath
 
 from solar_forge_engine.core.scene import Scene, text
 from solar_forge_engine.project.assets import load_project_scene, save_project_scene
-from solar_forge_engine.project.storage import atomic_write
+from solar_forge_engine.project.storage import (
+    atomic_write,
+    flush_directory,
+    publication_guard,
+    read_regular_bytes,
+)
 
 MANIFEST = "project.json"
 MAX_MANIFEST_BYTES = 16 * 1024
@@ -48,10 +54,9 @@ class Project:
 def _read_manifest(root: Path) -> tuple[Project, bytes]:
     root = root.resolve(strict=True)
     manifest = root / MANIFEST
-    if manifest.is_symlink() or not manifest.is_file():
+    raw = read_regular_bytes(manifest, MAX_MANIFEST_BYTES)
+    if raw is None:
         raise ValueError("Choose a project folder containing a regular project.json file.")
-    with manifest.open("rb") as handle:
-        raw = handle.read(MAX_MANIFEST_BYTES + 1)
     if len(raw) > MAX_MANIFEST_BYTES:
         raise ValueError("Project manifests must be no larger than 16 KiB.")
     try:
@@ -96,7 +101,10 @@ def create_project(root: Path, scene: Scene) -> Project:
             "name": project.name,
             "scene": project.scene,
         }
-        (root / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+        atomic_write(
+            root / MANIFEST, (json.dumps(manifest, indent=2) + "\n").encode(), exclusive=True
+        )
+        flush_directory(root.parent)
     except OSError, ValueError:
         shutil.rmtree(root)
         raise
@@ -156,6 +164,11 @@ def open_scene(project: Project, reference: str) -> tuple[Project, Scene]:
 def set_startup_scene(project: Project, reference: str, expected: Project) -> Project:
     """Validate a saved scene and preserve externally changed manifest settings."""
     project.scene_path()
+    with publication_guard(project.root / MANIFEST):
+        return _publish_startup_scene(project, reference, expected)
+
+
+def _publish_startup_scene(project: Project, reference: str, expected: Project) -> Project:
     current, raw = _read_manifest(project.root)
     if current != expected:
         raise ValueError("Project settings changed. Refresh scenes before selecting startup.")
@@ -164,5 +177,9 @@ def set_startup_scene(project: Project, reference: str, expected: Project) -> Pr
         raise ValueError("Project settings changed while validating the startup scene.")
     updated = replace(current, scene=target.scene)
     data = {"format_version": 1, "name": updated.name, "scene": updated.scene}
-    atomic_write(project.root / MANIFEST, (json.dumps(data, indent=2) + "\n").encode())
+    atomic_write(
+        project.root / MANIFEST,
+        (json.dumps(data, indent=2) + "\n").encode(),
+        expected_fingerprint=hashlib.sha256(raw).hexdigest(),
+    )
     return updated

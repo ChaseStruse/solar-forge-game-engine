@@ -14,16 +14,23 @@ from solar_forge_engine.core.limits import MAX_FILE_BYTES as MAX_FILE_BYTES
 from solar_forge_engine.core.scene import Scene
 
 
-def read_scene_bytes(path: Path) -> bytes | None:
-    """Read a bounded regular file without following links or waiting on a FIFO."""
+def read_regular_bytes(path: Path, maximum: int) -> bytes | None:
+    """Read at most maximum + 1 bytes; missing files return None, unsafe files fail."""
     try:
         descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
     except FileNotFoundError:
         return None
     with os.fdopen(descriptor, "rb") as handle:
         if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
-            raise ValueError("Scene files must be regular files.")
-        raw = handle.read(MAX_FILE_BYTES + 1)
+            raise ValueError("Project data files must be regular files.")
+        return handle.read(maximum + 1)
+
+
+def read_scene_bytes(path: Path) -> bytes | None:
+    """Read a bounded regular file without following links or waiting on a FIFO."""
+    raw = read_regular_bytes(path, MAX_FILE_BYTES)
+    if raw is None:
+        return None
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Scene files must be smaller than 4 MiB.")
     return raw
@@ -64,13 +71,13 @@ def save_scene_data(
     expected_fingerprint: str | None = None,
 ) -> None:
     """Write validated scene data, preserving supported originals before upgrades."""
-    with scene_write_guard(path):
+    with publication_guard(path):
         _publish_scene_data(path, data, exclusive, expected_fingerprint)
 
 
 @contextmanager
-def scene_write_guard(path: Path) -> Iterator[None]:
-    """Coordinate scene and recovery publication on a local Linux directory inode."""
+def publication_guard(path: Path) -> Iterator[None]:
+    """Coordinate engine metadata publication on a local Linux directory inode."""
     # A directory inode survives scene replacement and needs no persistent sidecar.
     # This coordinates engine writers on local Linux filesystems, not arbitrary tools.
     descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
@@ -78,9 +85,7 @@ def scene_write_guard(path: Path) -> Iterator[None]:
         try:
             fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as error:
-            raise ValueError(
-                "Another scene save is in progress in this folder. Retry saving."
-            ) from error
+            raise ValueError("Another save is in progress in this folder. Retry saving.") from error
         yield
     finally:
         os.close(descriptor)

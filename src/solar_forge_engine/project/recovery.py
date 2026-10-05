@@ -2,8 +2,6 @@
 
 import hashlib
 import json
-import os
-import stat
 from pathlib import Path
 
 from solar_forge_engine.core.scene import Scene
@@ -12,7 +10,8 @@ from solar_forge_engine.project.storage import (
     MAX_FILE_BYTES,
     atomic_write,
     flush_directory,
-    scene_write_guard,
+    publication_guard,
+    read_regular_bytes,
 )
 from solar_forge_engine.project.workspace import Project
 
@@ -36,7 +35,7 @@ def write_recovery(project: Project, scene: Scene, baseline: Scene) -> None:
     raw = (json.dumps(data, allow_nan=False) + "\n").encode()
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Recovery snapshots must be no larger than 4 MiB.")
-    with scene_write_guard(project.scene_path()):
+    with publication_guard(project.scene_path()):
         _publish_recovery(project, raw, baseline)
 
 
@@ -59,14 +58,9 @@ def _publish_recovery(project: Project, raw: bytes, baseline: Scene) -> None:
 
 def _read_snapshot(project: Project) -> bytes | None:
     path = recovery_path(project)
-    try:
-        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    except FileNotFoundError:
+    raw = read_regular_bytes(path, MAX_FILE_BYTES)
+    if raw is None:
         return None
-    with os.fdopen(descriptor, "rb") as handle:
-        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
-            raise ValueError("Recovery snapshots must be regular files.")
-        raw = handle.read(MAX_FILE_BYTES + 1)
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Recovery snapshot exceeds 4 MiB.")
     return raw
@@ -117,7 +111,7 @@ def _decode_snapshot(raw: bytes, baseline: Scene) -> Scene | None:
 
 
 def clear_recovery(project: Project, baseline: Scene | None = None) -> None:
-    with scene_write_guard(project.scene_path()):
+    with publication_guard(project.scene_path()):
         _clear_recovery(project, baseline)
 
 

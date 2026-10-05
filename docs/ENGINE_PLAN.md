@@ -231,6 +231,15 @@ an asset concurrently linked by another writer. Directory flushing is shared wit
 atomic publication and recovery cleanup. Standalone/project migration ordering,
 failure preservation and new/reused asset ordering regressions pass; all 274 tests
 pass in Docker (11.40 seconds), with Ruff, formatting and mypy passing.
+Project manifests now share the bounded regular-file reader with scenes, recovery
+and sprites. No-follow/nonblocking descriptors prevent link following and FIFO
+waiting. Startup-scene publication holds a project-root guard, preserves stale
+settings and rechecks byte fingerprints before replacement. New-project metadata
+publishes exclusively and flushes the root and parent before success. Unsafe
+manifest, competing/late startup update and creation failure/order checks pass;
+all 280 tests pass locally (10.18 seconds) and in Docker (12.24 seconds), plus Ruff,
+formatting and mypy. Whole-folder transactions and multi-session recovery ownership
+remain open.
 
 Scene → Rename scene title now edits the active title through `SetSceneName`, with
 validation, revision protection and undo/redo. Saving retains the project's file,

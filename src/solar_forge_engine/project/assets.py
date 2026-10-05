@@ -3,9 +3,7 @@
 import base64
 import hashlib
 import json
-import os
 import re
-import stat
 from pathlib import Path
 
 from solar_forge_engine.core.scene import FORMAT_VERSION, MAX_ENTITIES, Scene
@@ -15,6 +13,7 @@ from solar_forge_engine.project.storage import (
     atomic_write,
     flush_directory,
     load_scene,
+    read_regular_bytes,
     read_scene_bytes,
     save_scene_data,
 )
@@ -38,14 +37,9 @@ def digest(width: int, height: int, raw: bytes) -> str:
 
 
 def read_asset(path: Path) -> bytes:
-    try:
-        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-    except FileNotFoundError as error:
-        raise ValueError(f"Sprite asset is missing: {path.name}") from error
-    with os.fdopen(descriptor, "rb") as handle:
-        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
-            raise ValueError(f"Sprite asset is not a regular file: {path.name}")
-        raw = handle.read(MAX_PIXEL_BYTES + 1)
+    raw = read_regular_bytes(path, MAX_PIXEL_BYTES)
+    if raw is None:
+        raise ValueError(f"Sprite asset is missing: {path.name}")
     if len(raw) > MAX_PIXEL_BYTES:
         raise ValueError("Sprite asset exceeds its pixel-data limit.")
     return raw
