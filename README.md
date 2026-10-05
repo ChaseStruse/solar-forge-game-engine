@@ -41,7 +41,9 @@ positions unchanged. Grid preferences are session-only. **Ctrl+wheel** zooms aro
 middle mouse button to pan; the plain wheel scrolls. **Fit scene** (F) frames the
 play area and authored objects, including those outside the arena. Navigation
 cancels unfinished object drags and never changes scene data or undo history.
-Zoom and pan are session-only. Scroll the Inspector to reach all controls in smaller windows.
+Zoom and pan are session-only. The Inspector groups controls into **Object**,
+**Transform**, **Appearance**, and **Movement**. Scroll its properties in smaller
+windows; **Apply changes** stays visible below them. Fields wrap in narrow docks.
 
 Select an object and choose **Duplicate object** (Ctrl+D) to create a selected copy
 24 units to the right and down. Copies preserve size, color and gameplay role,

@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QFileDialog,
     QFormLayout,
     QGraphicsScene,
+    QGroupBox,
     QInputDialog,
     QLabel,
     QLineEdit,
@@ -195,33 +196,46 @@ class EditorWindow(QMainWindow):
         self._dock("Project scenes", scene_scroll, Qt.DockWidgetArea.RightDockWidgetArea)
 
         self.inspector = QWidget()
-        form = QFormLayout(self.inspector)
+        inspector_layout = QVBoxLayout(self.inspector)
+        inspector_layout.setContentsMargins(8, 8, 8, 8)
+        inspector_layout.setSpacing(12)
+        forms: dict[str, QFormLayout] = {}
+        for title in ("Object", "Transform", "Appearance", "Movement"):
+            group = QGroupBox(title)
+            group.setObjectName("inspectorGroup")
+            form = QFormLayout(group)
+            form.setContentsMargins(12, 24, 12, 12)
+            form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+            form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+            inspector_layout.addWidget(group)
+            forms[title] = form
+        inspector_layout.addStretch()
         self.name_field = QLineEdit()
         self.name_field.setMaxLength(100)
-        form.addRow("&Name", self.name_field)
+        forms["Object"].addRow("&Name", self.name_field)
         self.lock_drag_check = QCheckBox("Lock viewport dragging")
         self.lock_drag_check.setToolTip(
             "Drag protection saved locally for named scenes. "
             "Inspector and assistant edits still work."
         )
         self.lock_drag_check.toggled.connect(self.set_selected_lock)
-        form.addRow(self.lock_drag_check)
+        forms["Object"].addRow(self.lock_drag_check)
         self.numbers: dict[str, QDoubleSpinBox] = {}
         for key, label in (("x", "X"), ("y", "Y"), ("width", "Width"), ("height", "Height")):
             field = QDoubleSpinBox()
             field.setRange(1 if key in ("width", "height") else -100_000, 100_000)
             field.setDecimals(2)
             field.setKeyboardTracking(False)
-            form.addRow(f"&{label}", field)
+            forms["Transform"].addRow(f"&{label}", field)
             self.numbers[key] = field
         self.color_field = QLineEdit()
         self.color_field.setPlaceholderText("#f4b544")
         self.color_field.setMaxLength(7)
-        form.addRow("&Color", self.color_field)
+        forms["Appearance"].addRow("&Color", self.color_field)
         self.role_field = QComboBox()
         for role in Role:
             self.role_field.addItem(role.value.title(), role.value)
-        form.addRow("&Role", self.role_field)
+        forms["Object"].addRow("&Role", self.role_field)
         self.speed_field = QDoubleSpinBox()
         self.speed_field.setRange(0, 2000)
         self.speed_field.setSuffix(" units/s")
@@ -229,7 +243,7 @@ class EditorWindow(QMainWindow):
         self.speed_field.setToolTip(
             "Speed of this object when controlled in Play; zero disables movement."
         )
-        form.addRow("Movement speed", self.speed_field)
+        forms["Movement"].addRow("Speed", self.speed_field)
         self.input_field = QComboBox()
         for label, preset in (
             ("WASD + arrows", InputPreset.BOTH),
@@ -237,11 +251,11 @@ class EditorWindow(QMainWindow):
             ("Arrows", InputPreset.ARROWS),
         ):
             self.input_field.addItem(label, preset.value)
-        form.addRow("Movement keys", self.input_field)
+        forms["Movement"].addRow("Keys", self.input_field)
         self.sprite_label = QLabel()
-        form.addRow("Sprite", self.sprite_label)
+        forms["Appearance"].addRow("Sprite", self.sprite_label)
         self.animation_check = QCheckBox("Loop sprite sheet in Play")
-        form.addRow("Animation", self.animation_check)
+        forms["Appearance"].addRow("Animation", self.animation_check)
         self.animation_fields: dict[str, QSpinBox] = {}
         for key, label, limit, default in (
             ("columns", "Frame columns", 256, 1),
@@ -252,7 +266,7 @@ class EditorWindow(QMainWindow):
             animation_field.setRange(1, limit)
             animation_field.setValue(default)
             animation_field.setKeyboardTracking(False)
-            form.addRow(label, animation_field)
+            forms["Appearance"].addRow(label, animation_field)
             self.animation_fields[key] = animation_field
         self.animation_check.setToolTip(
             "Equal-sized frames in row order; the editor displays the first frame."
@@ -260,15 +274,34 @@ class EditorWindow(QMainWindow):
         self.animation_check.toggled.connect(self._update_animation_fields)
         self.clear_sprite_button = QPushButton("Remove sprite")
         self.clear_sprite_button.clicked.connect(self.clear_sprite)
-        form.addRow(self.clear_sprite_button)
+        forms["Appearance"].addRow(self.clear_sprite_button)
         self.apply_button = QPushButton("Apply changes")
         self.apply_button.setObjectName("primary")
         self.apply_button.clicked.connect(self.apply_inspector)
-        form.addRow(self.apply_button)
         inspector_scroll = QScrollArea()
         inspector_scroll.setWidgetResizable(True)
         inspector_scroll.setWidget(self.inspector)
-        self._dock("Inspector", inspector_scroll, Qt.DockWidgetArea.RightDockWidgetArea)
+        inspector_panel = QWidget()
+        panel_layout = QVBoxLayout(inspector_panel)
+        panel_layout.setContentsMargins(0, 0, 0, 0)
+        panel_layout.addWidget(inspector_scroll, 1)
+        panel_layout.addWidget(self.apply_button)
+        self._dock("Inspector", inspector_panel, Qt.DockWidgetArea.RightDockWidgetArea)
+        inspector_fields = [
+            self.name_field,
+            self.lock_drag_check,
+            self.role_field,
+            *self.numbers.values(),
+            self.color_field,
+            self.animation_check,
+            *self.animation_fields.values(),
+            self.clear_sprite_button,
+            self.speed_field,
+            self.input_field,
+            self.apply_button,
+        ]
+        for previous, following in zip(inspector_fields, inspector_fields[1:]):
+            QWidget.setTabOrder(previous, following)
 
         self.log = QTextEdit()
         self.log.setReadOnly(True)
@@ -559,6 +592,7 @@ class EditorWindow(QMainWindow):
         self._update_lock_controls()
         self._update_asset_actions()
         self.inspector.setEnabled(self.selected_id is not None)
+        self.apply_button.setEnabled(self.selected_id is not None)
         self.delete_action.setEnabled(self.selected_id is not None)
         self.duplicate_action.setEnabled(self.selected_id is not None)
         if self.selected_id is None:

@@ -50,7 +50,15 @@ Grid spacing appears only when snapping is enabled. The palette is centralized
 in `editor/theme.py`; a user-facing theme editor remains future work.
 Native Wayland create/undo, welcome transitions and showcase opening were checked;
 142 regression tests pass in Docker, with Ruff, formatting and strict mypy passing.
-Next UI work: group Inspector properties and make asset browsing easier to scan.
+The Inspector now groups Object, Transform, Appearance and Movement properties
+in native solarpunk panels. Forms wrap long rows in narrow docks, and Apply remains
+outside the scroll area and disables when no object is selected. Existing command
+validation, selection and undo/redo workflows remain shared across all groups.
+Keyboard navigation follows the visual group order. Native Wayland grouped editing,
+Apply, undo/redo, scrolling and keyboard order were verified. The integration suite
+passes all 192 tests locally (14.96 seconds) and in Docker (17.21 seconds); Ruff,
+formatting and strict mypy pass.
+Next UI work: make asset browsing easier to scan.
 Previews: `docs/screenshots/editor-welcome.png` and `editor-workshop.png`.
 
 Showcase verification: the complete twelve-core route avoids walls, distributed
@@ -849,6 +857,7 @@ Completed task checklist:
 - [x] Add view-only object name/ID search, combined role filters, counts and keyboard focus.
 - [x] Add session-only viewport drag locks, bulk decoration locking, markers and safe cancellation.
 - [x] Persist per-scene drag locks in local editor preferences with background I/O and close flushing.
+- [x] Group Inspector properties with adaptive forms and an always-visible Apply action.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
@@ -864,7 +873,7 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Group Inspector properties to make editing easier to scan.
+1. Improve asset browsing with clearer entries and quick filtering.
    Continue measuring larger-context model behavior before broadening scene tools.
 2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before

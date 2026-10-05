@@ -23,6 +23,10 @@ QToolButton { padding: 7px 9px; border: 1px solid transparent; border-radius: 5p
 QToolButton:hover { background: #182b1e; border-color: #659c71; }
 QToolButton:checked { background: #233a20; color: #d9f68a; border-color: #83b758; }
 QDockWidget::title { background: #111b14; color: #bbd6c0; padding: 10px; }
+QGroupBox#inspectorGroup { border: 1px solid #2b4030; border-radius: 7px;
+                         margin-top: 8px; }
+QGroupBox#inspectorGroup::title { subcontrol-origin: margin; left: 12px;
+                                padding: 0 5px; color: #b5ef83; font-weight: bold; }
 QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QTreeWidget, QListWidget, QTextEdit {
     background: #030605; border: 1px solid #2b4030; border-radius: 5px; padding: 5px;
     selection-background-color: #29472a; selection-color: #f6ffd9;
