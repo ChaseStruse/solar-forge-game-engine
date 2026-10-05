@@ -4,7 +4,7 @@ Status: implementation started, October 4, 2026. The native scene editor foundat
 is implemented. The architecture and later milestones below describe intended work;
 performance numbers remain targets, not measured guarantees.
 
-### Implemented first checkpoint
+### Implemented foundation checkpoints
 
 - Python 3.14, PySide6 Essentials 6.11.2, uv lockfile, Ruff, mypy and focused pytest.
 - Native Qt shell, Graphics View rectangles, scene tree, property inspector, and
@@ -12,6 +12,14 @@ performance numbers remain targets, not measured guarantees.
 - Version-one `.forge.json` scene documents, bounded/validated loading, atomic writes,
   and unsaved-change handling on New/Open/Close.
 - Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
+- Separate non-root Docker desktop/test images and independent headless test Compose;
+  the native app forwards its window through Wayland and keeps networking disabled.
+
+Verification: 12 focused tests pass locally and in the test container. Ruff checks,
+formatting, and strict mypy pass. Both native and container windows were briefly
+launched successfully on the Arch host's Wayland session. An intentional failure in
+a disposable test container returned exit status 1. This is startup/workflow evidence,
+not a graphics benchmark, sandbox validation, or complete desktop compatibility audit.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project folders,
 assets, gameplay, sandboxed script execution, AI, and native game exports are not
@@ -315,7 +323,8 @@ endpoint. Do not silently enable network access in previews or tests.
 
 Use `compose.yaml` for the native app and a standalone `compose.test.yaml` for tests.
 This avoids requiring Wayland environment variables or evaluating host display
-mounts on a headless runner. Planned commands, not implemented yet:
+mounts on a headless runner. These foundation commands are implemented; container
+compositor/GPU compatibility still requires a native host smoke check:
 
 ```sh
 # Native desktop window through Wayland

@@ -42,6 +42,30 @@ QT_QPA_PLATFORM=offscreen uv run --frozen --extra test pytest -q
 Offscreen tests do not establish real Wayland/GPU compatibility. Qt Widgets uses
 the smaller PySide6 Essentials distribution; optional add-on modules are deferred.
 
+## Docker
+
+Run the native window from a Linux Wayland session:
+
+```sh
+docker compose up --build desktop
+```
+
+Scene files saved under `/projects` persist in the Compose `projects` volume.
+`docker compose down` retains it; `docker compose down -v` deletes it. To use a host
+project folder, bind it to `/projects` in a local `compose.override.yaml`. On hosts
+whose numeric UID/GID are not 1000, set `SOLAR_FORGE_UID` and `SOLAR_FORGE_GID` to
+the values from `id -u` and `id -g` before building. The app runs without networking.
+
+Run lint, formatting, type checks and tests in the independent headless image:
+
+```sh
+docker compose -f compose.test.yaml run --build --rm test
+```
+
+The test service has no display mount, user project volume, or network access.
+Its configuration works without a Wayland session. Native compositor/GPU testing
+and gameplay preview isolation remain later validation work.
+
 - [Product and implementation plan](docs/ENGINE_PLAN.md)
 - [Instructions for coding agents](AGENTS.md)
 
