@@ -14,8 +14,8 @@ games should work without an AI service.
 or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
 documents. New/Open/Close protect unsaved changes. Play opens a separate native
 window with keyboard movement, wall collisions, and coin collection. PNG sprites
-are supported; project folders, AI, sandboxed Python scripts, and exports follow
-in later small features.
+and basic project folders are supported; AI, sandboxed Python scripts, and exports
+follow in later small features.
 
 ## Run on Linux
 
@@ -39,11 +39,21 @@ restores geometric rendering and can be undone. Sprite color is not tinted;
 role and rectangular collision bounds still determine gameplay.
 
 Save to a `.forge.json` file. Version-three files contain the entire scene,
-roles, and optional sprite pixels; project folders are future work. Versions one
+roles, and optional sprite pixels. Versions one
 and two still load. Before upgrading an older file, its exact bytes are retained
 in `<filename>.v1.bak` or `<filename>.v2.bak`. Existing backups are never overwritten;
 use Save As if that backup name is occupied. Scene files remain limited to 4 MiB;
 embedded sprites count toward that limit. Files never execute scripts.
+
+Use **File → Create project from scene…** (Ctrl+Alt+N) and enter a **new folder name**
+to save the current applied scene as a project. Existing folders are never replaced.
+The project contains `project.json`, `scenes/main.forge.json`, and an `assets/`
+directory. **File → Open project…** (Ctrl+Alt+O) selects a project folder. Ordinary
+Save updates its scene; Save As writes a standalone scene and leaves project mode.
+Opening an existing standalone scene and creating a project copies it without
+rewriting the original. The manifest uses a relative scene path; traversal and
+symbolic links in that path are rejected on open and rechecked on save. PNG pixels
+remain embedded; external asset references and multiple-scene browsing are future work.
 
 Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score

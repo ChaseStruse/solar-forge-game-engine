@@ -39,6 +39,7 @@ from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.project.images import import_png
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
+from solar_forge_engine.project.workspace import Project, create_project, open_project
 from solar_forge_engine.runtime.rendering import render_scene
 
 STYLE = """
@@ -66,6 +67,7 @@ class EditorWindow(QMainWindow):
         super().__init__()
         self.document = Document()
         self.path: Path | None = None
+        self.project: Project | None = None
         self.saved_scene = self.document.scene
         self.selected_id: str | None = None
         self.preview = QProcess(self)
@@ -151,6 +153,12 @@ class EditorWindow(QMainWindow):
         self.save_action = action("Save", QKeySequence.StandardKey.Save)
         self.save_action.triggered.connect(self.save)
         file_menu.addActions([self.new_action, self.open_action, self.save_action])
+        create_workspace = file_menu.addAction("Create project from scene…")
+        create_workspace.setShortcut("Ctrl+Alt+N")
+        create_workspace.triggered.connect(self.choose_project_folder)
+        open_workspace = file_menu.addAction("Open project…")
+        open_workspace.setShortcut("Ctrl+Alt+O")
+        open_workspace.triggered.connect(self.choose_open_project)
         starter = action("Coin starter", "Ctrl+Shift+N")
         starter.triggered.connect(self.new_collector)
         file_menu.addAction(starter)
@@ -228,6 +236,8 @@ class EditorWindow(QMainWindow):
             bool(ids) and self.preview.state() == QProcess.ProcessState.NotRunning
         )
         title = self.path.name if self.path else "Untitled scene"
+        if self.project is not None:
+            title = f"{self.project.name} / {title}"
         self.setWindowTitle(f"{'* ' if self.dirty else ''}{title} — Solar Forge Game Engine")
         self.statusBar().showMessage(
             f"{len(ids)} objects · Revision {self.document.revision} · "
@@ -451,11 +461,15 @@ class EditorWindow(QMainWindow):
                 return False
             path = Path(filename)
         try:
+            if self.project is not None and not choose_path:
+                path = self.project.scene_path()
             save_scene(path, self.document.scene)
         except (OSError, ValueError) as error:
             self._error(f"Could not save scene: {error}")
             return False
         self.path = path
+        if choose_path:
+            self.project = None
         self.saved_scene = self.document.scene
         self.log.append(f"Saved {path.name}")
         self.refresh()
@@ -469,6 +483,7 @@ class EditorWindow(QMainWindow):
             self._error(f"Could not open scene: {error}")
             return False
         self.document = Document(scene)
+        self.project = None
         self._close_preview()
         self.saved_scene = scene
         self.path = path
@@ -476,6 +491,50 @@ class EditorWindow(QMainWindow):
         self.refresh()
         self.fit_scene()
         self.log.append(f"Opened {path.name}")
+        return True
+
+    def choose_project_folder(self) -> None:
+        filename, _ = QFileDialog.getSaveFileName(
+            self, "Create a new project folder from this scene", "My Game"
+        )
+        if filename:
+            self.create_workspace(Path(filename))
+
+    def create_workspace(self, root: Path) -> bool:
+        try:
+            project = create_project(root, self.document.scene)
+        except (OSError, ValueError) as error:
+            self._error(f"Could not create project: {error}")
+            return False
+        self.project = project
+        self.path = project.scene_path()
+        self.saved_scene = self.document.scene
+        self.refresh()
+        self.log.append(f"Created project {project.name} from the current applied scene.")
+        return True
+
+    def choose_open_project(self) -> None:
+        if not self._confirm_discard():
+            return
+        directory = QFileDialog.getExistingDirectory(self, "Open Solar Forge project")
+        if directory:
+            self.load_workspace(Path(directory))
+
+    def load_workspace(self, root: Path) -> bool:
+        try:
+            project, scene = open_project(root)
+        except (OSError, ValueError) as error:
+            self._error(f"Could not open project: {error}")
+            return False
+        self._close_preview()
+        self.document = Document(scene)
+        self.project = project
+        self.path = project.scene_path()
+        self.saved_scene = scene
+        self.selected_id = None
+        self.refresh()
+        self.fit_scene()
+        self.log.append(f"Opened project {project.name}")
         return True
 
     def open_scene(self) -> None:
@@ -491,6 +550,7 @@ class EditorWindow(QMainWindow):
             self.document = Document()
             self.saved_scene = self.document.scene
             self.path = None
+            self.project = None
             self.selected_id = None
             self.refresh()
             self.fit_scene()
@@ -502,6 +562,7 @@ class EditorWindow(QMainWindow):
         self.document = Document(coin_collector())
         self.saved_scene = Scene()
         self.path = None
+        self.project = None
         self.selected_id = "player"
         self.refresh()
         self.fit_scene()
