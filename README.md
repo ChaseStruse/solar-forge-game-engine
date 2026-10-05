@@ -556,3 +556,5 @@ and gameplay preview isolation remain later validation work.
 
 The native Python desktop direction is fixed. Runtime rendering performance,
 packaging, and sandboxing still need their planned validation milestones.
+The [sandbox spike](docs/architecture/0002-script-sandbox.md) records native boundary
+checks and the current Docker limitation; Python game behaviors remain disabled.

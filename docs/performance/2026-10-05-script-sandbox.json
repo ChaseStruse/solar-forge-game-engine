@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-05",
+  "scope": "Fixed trusted probe code and synthetic canaries only. Native Arch bootstrap and boundary checks; Docker namespace capability only. No arbitrary Python behavior enabled.",
+  "results": {
+    "native-arch": {
+      "python": "3.14.7",
+      "checks": {
+        "host_file_read_denied": true,
+        "host_file_write_denied": true,
+        "helper_write_denied": true,
+        "host_tcp_denied": true,
+        "host_unix_socket_denied": true,
+        "home_hidden": true,
+        "environment_canary_removed": true,
+        "pid_namespace_changed": true,
+        "network_namespace_changed": true,
+        "nested_user_namespace_denied": true,
+        "private_scratch_works": true,
+        "host_canary_unchanged": true,
+        "helper_unchanged": true,
+        "scratch_not_on_host": true
+      },
+      "bubblewrap": "bubblewrap 0.12.0",
+      "scope": "Fixed trusted boundary probes on native Arch; /usr remains readable. No game scripts, runtime IPC, resource limits or adversarial escape audit."
+    },
+    "docker-test-policy": {
+      "user_namespace": false,
+      "errno": 1,
+      "reason": "Operation not permitted",
+      "scope": "User namespace capability only; no game script executed."
+    }
+  }
+}

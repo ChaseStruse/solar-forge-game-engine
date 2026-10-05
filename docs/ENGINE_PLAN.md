@@ -1120,6 +1120,7 @@ Completed task checklist:
 - [ ] Bundle runtime dependencies and verify exported games on clean Arch.
 - [x] Measure a copied Widgets-only Qt subset and verify editor-free exports on host and Docker Wayland.
 - [ ] Add sandboxed Python game scripting.
+- [x] Probe native namespace boundaries and record the current Docker namespace restriction.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
 - [x] Add bounded installed-model discovery and worker-based saved local preferences, preserving offline startup.
@@ -1137,6 +1138,9 @@ Next small features, in recommended order:
    dependency verification remain open.
 3. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
+   The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
+   boundary checks; the unchanged Docker policy denies user namespaces. A compatible
+   restriction backend, resource limits and hostile-code/lifecycle checks remain open.
 4. Connect local and enterprise provider adapters after the initial fake-provider
    workflow and scene-edit review are verified. Script-edit tools depend on the
    sandboxed execution path.
