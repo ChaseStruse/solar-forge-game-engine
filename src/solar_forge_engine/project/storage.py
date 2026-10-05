@@ -1,5 +1,6 @@
 """Bounded JSON reads and same-directory atomic scene writes."""
 
+import fcntl
 import hashlib
 import json
 import os
@@ -61,6 +62,24 @@ def save_scene_data(
     expected_fingerprint: str | None = None,
 ) -> None:
     """Write validated scene data, preserving supported originals before upgrades."""
+    # A directory inode survives scene replacement and needs no persistent sidecar.
+    # This coordinates engine writers on local Linux filesystems, not arbitrary tools.
+    descriptor = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError as error:
+            raise ValueError(
+                "Another scene save is in progress in this folder. Retry saving."
+            ) from error
+        _publish_scene_data(path, data, exclusive, expected_fingerprint)
+    finally:
+        os.close(descriptor)
+
+
+def _publish_scene_data(
+    path: Path, data: dict[str, object], exclusive: bool, expected_fingerprint: str | None
+) -> None:
     if expected_fingerprint is not None:
         check_file_revision(path, expected_fingerprint)
     if path.is_symlink():

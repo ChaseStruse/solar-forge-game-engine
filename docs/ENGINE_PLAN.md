@@ -194,12 +194,21 @@ saved baseline, and observed byte revisions are checked again before publication
 External edits/removal, malformed files, links and FIFOs leave external data and
 current edits intact; Save As remains available. New targets publish exclusively.
 File and containing-directory flushes improve metadata durability. These checks
-are not cross-process locking; asset-directory, manifest and full power-loss guarantees
-remain open. Native Wayland save/conflict/Save As and clean close were verified.
+now include a nonblocking Linux directory `flock` covering scene validation,
+migration backup and atomic publication. Locking the containing directory survives
+scene replacement without persistent sidecars. Competing engine saves return a
+retry message and preserve edits; process exit releases the lock. Separate-process
+checks exercise contention after the final revision check, stale retries and writer
+termination. Advisory locks do not restrict arbitrary tools; network filesystem,
+asset-directory, manifest and full power-loss guarantees remain open. See
+[Linux flock semantics](https://man7.org/linux/man-pages/man2/flock.2.html).
+Native Wayland save/conflict/Save As and clean close were verified.
 Save verification: 250 tests pass locally (18.04 seconds) and in Docker (21.60 seconds),
 with Ruff, formatting and strict mypy passing. Regression checks cover observed
 external edits/removal, unsafe targets, late changes, event-loop responsiveness,
 close guarding and file/directory flushes.
+With process contention and termination regressions added, 261 tests pass locally
+(20.91 seconds) and in Docker (24.85 seconds), with Ruff, formatting and mypy passing.
 
 Scene → Rename scene title now edits the active title through `SetSceneName`, with
 validation, revision protection and undo/redo. Saving retains the project's file,
@@ -1095,6 +1104,7 @@ Completed task checklist:
 - [x] Ship Ember Run: an animated, playable forge showcase and compact editable two-scene example.
 - [x] Add worker-based single-file quarantine purge with fresh review, default-No confirmation and revalidation.
 - [x] Add background manual saving, observed external-edit checks and directory flushing.
+- [x] Coordinate concurrent engine scene saves with nonblocking publication locks and process-exit recovery.
 - [ ] Add stronger concurrent-edit and power-loss recovery guarantees.
 - [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
 - [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.

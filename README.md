@@ -433,8 +433,11 @@ A saved document changed or removed externally is preserved; Save fails with you
 edits retained, and Save As can keep them in a separate file. A second byte revision
 check precedes atomic replacement. New targets publish exclusively. Regular-file
 reads reject symbolic links/FIFOs and stay bounded. File and directory flushes improve
-publication durability; concurrent-edit locking and full crash/power-loss guarantees
-remain open.
+publication durability. A nonblocking folder lock coordinates engine scene writers
+through publication without creating lock sidecars; competing saves keep your edits
+and report that you can retry. Locks release when the writer exits. This targets
+local Linux filesystems; arbitrary tools can ignore advisory locks, and network
+filesystem, manifest, asset-directory and full power-loss guarantees remain open.
 
 ## Native game export
 

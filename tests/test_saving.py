@@ -1,5 +1,9 @@
+import hashlib
 import os
+import selectors
 import stat
+import subprocess
+import sys
 from threading import Event, get_ident
 
 import pytest
@@ -153,3 +157,59 @@ def test_atomic_publication_flushes_file_and_parent_directory(tmp_path, monkeypa
     save_scene(tmp_path / "scene.forge.json", Scene())
     assert any(stat.S_ISREG(mode) for mode in flushed)
     assert any(stat.S_ISDIR(mode) for mode in flushed)
+
+
+@pytest.mark.parametrize("crash", [False, True])
+def test_competing_process_save_cannot_overwrite_publication_and_lock_releases(tmp_path, crash):
+    path = tmp_path / "scene.forge.json"
+    save_scene(path, Scene("Original"))
+    original = path.read_bytes()
+    fingerprint = hashlib.sha256(original).hexdigest()
+    script = """
+import sys
+from pathlib import Path
+from solar_forge_engine.core.scene import Scene
+from solar_forge_engine.project import storage
+replace = storage.os.replace
+def held(source, target):
+    print('ready', flush=True)
+    if sys.stdin.readline().strip() != 'publish':
+        raise RuntimeError('Publication was not released')
+    replace(source, target)
+storage.os.replace = held
+storage.save_scene(Path(sys.argv[1]), Scene('First writer'), expected_fingerprint=sys.argv[2])
+"""
+    process = subprocess.Popen(
+        [sys.executable, "-I", "-c", script, str(path), fingerprint],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert process.stdout is not None
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            assert selector.select(timeout=5), "The first writer did not reach publication."
+        assert process.stdout.readline().strip() == "ready"
+        with pytest.raises(ValueError, match="save is in progress"):
+            save_scene(path, Scene("Competing writer"), expected_fingerprint=fingerprint)
+        assert path.read_bytes() == original
+        if crash:
+            process.kill()
+            process.communicate(timeout=5)
+            assert path.read_bytes() == original
+            save_scene(path, Scene("Recovered writer"), expected_fingerprint=fingerprint)
+            assert load_scene(path).name == "Recovered writer"
+        else:
+            _, error = process.communicate("publish\n", timeout=5)
+            assert process.returncode == 0, error
+            assert load_scene(path).name == "First writer"
+            with pytest.raises(ValueError, match="changed during saving"):
+                save_scene(path, Scene("Stale writer"), expected_fingerprint=fingerprint)
+            save_scene(path, Scene("New writer"))
+            assert load_scene(path).name == "New writer"
+    finally:
+        if process.poll() is None:
+            process.kill()
+        process.communicate(timeout=5)
