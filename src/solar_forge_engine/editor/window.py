@@ -294,6 +294,28 @@ class EditorWindow(QMainWindow):
         viewport_toolbar.setMovable(False)
         self.addToolBar(viewport_toolbar)
         viewport_toolbar.addAction(fit)
+        for label, shortcut, factor in (
+            ("Zoom out", "Ctrl+-", 1 / 1.2),
+            ("Zoom in", "Ctrl+=", 1.2),
+        ):
+            zoom = scene_menu.addAction(label)
+            zoom.setShortcut(shortcut)
+            zoom.triggered.connect(
+                lambda checked=False, factor=factor: self.view.zoom_to(
+                    self.view.transform().m11() * factor
+                )
+            )
+            viewport_toolbar.addAction(zoom)
+        actual_size = scene_menu.addAction("100%")
+        actual_size.setShortcut("Ctrl+0")
+        actual_size.triggered.connect(lambda: self.view.zoom_to(1))
+        viewport_toolbar.addAction(actual_size)
+        self.zoom_label = QLabel("100%")
+        self.zoom_label.setMinimumWidth(80)
+        self.zoom_label.setAccessibleName("Viewport zoom")
+        self.view.zoom_changed.connect(lambda scale: self.zoom_label.setText(f"{scale * 100:.1f}%"))
+        viewport_toolbar.addWidget(self.zoom_label)
+        self.view.setToolTip("Drag objects to move · Middle-drag to pan · Ctrl+wheel to zoom")
         self.snap_action = scene_menu.addAction("Snap to grid")
         self.snap_action.setCheckable(True)
         self.snap_action.setShortcut("Ctrl+Shift+G")
@@ -732,7 +754,8 @@ class EditorWindow(QMainWindow):
         self.refresh()
 
     def fit_scene(self) -> None:
-        self.view.fitInView(self.canvas.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        bounds = self.canvas.sceneRect().united(self.canvas.itemsBoundingRect())
+        self.view.fit_workspace(bounds)
 
     def play(self) -> None:
         if (

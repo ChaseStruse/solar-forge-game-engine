@@ -2,7 +2,7 @@
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
 separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, multiple-scene authoring, project-wide sprite reuse, basic project folders, and
-editable coin collector, reviewed asset quarantine, configurable movement/input, and viewport dragging/grid snapping are implemented. The remaining architecture and release
+editable coin collector, reviewed asset quarantine, configurable movement/input, and viewport dragging/grid snapping and zoom/pan navigation are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
 ### Implemented foundation checkpoints
@@ -114,7 +114,11 @@ rectangle/sprite previews, single-step undo/redo and save/reopen, snapping versu
 cancellation and revision conflicts: 92 tests passed locally in 1.39 seconds and
 in Docker in 1.83 seconds; Ruff, formatting and strict mypy passed.
 Native Wayland dragging/snapping/undo passed; the final toolbar and scrollable
-Inspector layout were visually inspected.
+Inspector layout were visually inspected. Navigation checks cover pointer anchoring,
+zoom limits, middle-button pan, wheel modifiers, snapped dragging across scales,
+cancellation and fitting distant objects: 97 tests passed locally in 1.53 seconds and in Docker in 1.98 seconds;
+Ruff, formatting and strict mypy passed.
+Native Wayland zoom/pan/drag/undo/Fit passed and the toolbar was visually inspected.
 Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
@@ -227,7 +231,9 @@ Implemented scope is intentionally narrower than the v0.1 requirements above:
   Inspector changes require Apply. Viewport dragging commits one validated position
   edit on release; Escape, focus loss, refresh or changed revision cancels the preview.
   Optional 1–256-unit grid snapping applies to drags; its settings are session-only.
-  No resize/rotation gizmos, hierarchy or layer controls yet. Selected-object duplication is implemented with Ctrl+D.
+  Ctrl+wheel zooms at the pointer; toolbar/keyboard zoom and middle-button pan
+  leave scene data unchanged. Fit scene includes the arena and distant authored objects.
+  Navigation settings are session-only. No resize/rotation gizmos, hierarchy or layer controls yet. Selected-object duplication is implemented with Ctrl+D.
 - Rendering: native rectangles and circular coin visuals, selection, tooltips, and
   fit-to-view, and imported PNG sprites with cached native pixmaps and transparency.
   No atlases, animation, camera tooling, or game UI editor.
@@ -700,6 +706,7 @@ Completed task checklist:
 - [x] Add asynchronous saved-scene project sprite indexing and cross-scene reuse.
 - [x] Add undoable per-object movement speed and WASD/arrows presets with compatible scene upgrades.
 - [x] Add single-object viewport dragging, cancellation, and optional grid snapping.
+- [x] Add pointer-centered wheel zoom, toolbar/keyboard zoom, middle-button pan and Fit scene for distant objects.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [ ] Add quarantine restore/purge controls and stronger recovery guarantees.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
@@ -707,9 +714,9 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add viewport zoom and pan controls so larger scenes remain easy to navigate.
-   Preserve pointer accuracy, grid snapping and Fit scene behavior across zoom levels.
-2. Add richer scene organization and quarantine restore/purge controls; continue
+1. Add native quarantine browsing and safe restore controls, retaining the rule
+   that existing asset files are never overwritten. Permanent purge remains separate.
+2. Add richer scene organization and quarantine purge controls; continue
    measuring unique-texture workloads and native presentation/startup before
    closing renderer gates.
 3. Add audio, then a small independent native player/export package. Verify it

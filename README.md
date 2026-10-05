@@ -35,8 +35,13 @@ do not move objects. Dragging supports rectangles, coins and sprites, one object
 Use **Snap to grid** (Ctrl+Shift+G) and **Grid spacing** in the viewport toolbar
 for nearest-grid positioning. Spacing is 1–256 scene units (default 16); snapping
 starts disabled. The visible grid applies only to dragging, leaving typed Inspector
-positions unchanged. Grid preferences are session-only. Use **Fit scene** (F) to
-frame the workspace; scroll the Inspector to reach all controls in smaller windows.
+positions unchanged. Grid preferences are session-only. **Ctrl+wheel** zooms around the pointer;
+**Zoom in/out** (Ctrl+= / Ctrl+-) zoom around the viewport center, and **100%**
+(Ctrl+0) restores actual size. Manual zoom ranges from 0.1% to 800%. Drag with the
+middle mouse button to pan; the plain wheel scrolls. **Fit scene** (F) frames the
+play area and authored objects, including those outside the arena. Navigation
+cancels unfinished object drags and never changes scene data or undo history.
+Zoom and pan are session-only. Scroll the Inspector to reach all controls in smaller windows.
 
 Select an object and choose **Duplicate object** (Ctrl+D) to create a selected copy
 24 units to the right and down. Copies preserve size, color and gameplay role,
