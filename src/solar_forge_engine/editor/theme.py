@@ -12,97 +12,83 @@ from PySide6.QtWidgets import (
 )
 
 STYLE = """
-QWidget { background: #171c24; color: #e2e6ec; font-size: 12px; }
-QMainWindow::separator { background: #10151c; width: 5px; height: 5px; }
-QMainWindow::separator:hover { background: #ed9951; }
-QMenuBar, QMenu, QToolBar { background: #202732; }
+QWidget { background: #080a09; color: #e4f0e7; font-size: 12px; }
+QMainWindow::separator { background: #000000; width: 5px; height: 5px; }
+QMainWindow::separator:hover { background: #a8ee75; }
+QMenuBar, QMenu, QToolBar { background: #0d120f; }
 QMenuBar::item, QMenu::item { padding: 7px 12px; }
-QMenuBar::item:selected, QMenu::item:selected { background: #493528; }
-QToolBar { spacing: 4px; padding: 5px; border-bottom: 1px solid #303b49; }
+QMenuBar::item:selected, QMenu::item:selected { background: #233a20; }
+QToolBar { spacing: 4px; padding: 5px; border-bottom: 1px solid #253a2b; }
 QToolButton { padding: 7px 9px; border: 1px solid transparent; border-radius: 5px; }
-QToolButton:hover { background: #35404d; border-color: #657585; }
-QToolButton:checked { background: #493528; color: #ffbc78; border-color: #aa7546; }
-QDockWidget::title { background: #252e3a; color: #b9c9d7; padding: 10px; }
+QToolButton:hover { background: #182b1e; border-color: #659c71; }
+QToolButton:checked { background: #233a20; color: #d9f68a; border-color: #83b758; }
+QDockWidget::title { background: #111b14; color: #bbd6c0; padding: 10px; }
 QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QTreeWidget, QListWidget, QTextEdit {
-    background: #101720; border: 1px solid #364353; border-radius: 5px; padding: 5px;
-    selection-background-color: #62402d; selection-color: #fff1db;
+    background: #030605; border: 1px solid #2b4030; border-radius: 5px; padding: 5px;
+    selection-background-color: #29472a; selection-color: #f6ffd9;
 }
 QComboBox::drop-down { border: none; width: 22px; }
 QTreeWidget::item, QListWidget::item { padding: 5px; }
-QTreeWidget::item:hover, QListWidget::item:hover { background: #263442; }
-QTreeWidget::item:selected, QListWidget::item:selected { background: #493528; color: #ffcc93; }
-QHeaderView::section { background: #202c38; color: #92a9bb; padding: 7px; border: none; }
-QPushButton { background: #2c3947; border: 1px solid #4b6072; padding: 8px 12px;
+QTreeWidget::item:hover, QListWidget::item:hover { background: #172b1b; }
+QTreeWidget::item:selected, QListWidget::item:selected { background: #233a20; color: #d2f9a2; }
+QHeaderView::section { background: #142219; color: #a0bfa9; padding: 7px; border: none; }
+QPushButton { background: #17251a; border: 1px solid #395c42; padding: 8px 12px;
               border-radius: 5px; }
-QPushButton:hover { background: #394958; border-color: #ed9951; }
-QPushButton:pressed { background: #493528; }
+QPushButton:hover { background: #233b27; border-color: #a8ee75; }
+QPushButton:pressed { background: #233a20; }
 QPushButton:focus, QToolButton:focus, QLineEdit:focus, QDoubleSpinBox:focus,
-QSpinBox:focus, QComboBox:focus { border: 1px solid #ffc17d; }
-QPushButton#primary { background: #db8c48; color: #181c24; font-weight: bold;
-                      border: 1px solid #ffbe79; padding: 12px 18px; }
-QPushButton#primary:hover { background: #ffb568; }
-QWidget:disabled { color: #77838f; }
-QPushButton:disabled { background: #202b36; border-color: #303c49; }
-QTabBar::tab { background: #202b36; padding: 8px 16px; border-bottom: 2px solid #202b36; }
-QTabBar::tab:selected { background: #303a45; color: #ffbc78; border-bottom-color: #ed9951; }
+QSpinBox:focus, QComboBox:focus { border: 1px solid #eed47b; }
+QPushButton#primary { background: #edce65; color: #10180d; font-weight: bold;
+                      border: 1px solid #f6e59d; padding: 12px 18px; }
+QPushButton#primary:hover { background: #ffe89b; }
+QWidget:disabled { color: #829487; }
+QPushButton:disabled { background: #0d1610; border-color: #293c2e; }
+QTabBar::tab { background: #0d1610; padding: 8px 16px; border-bottom: 2px solid #0d1610; }
+QTabBar::tab:selected { background: #223922; color: #d9f68a; border-bottom-color: #a8ee75; }
 QScrollArea, QGraphicsView { border: none; }
-QScrollBar:vertical { background: #151c24; width: 10px; }
-QScrollBar:horizontal { background: #151c24; height: 10px; }
-QScrollBar::handle { background: #415364; border-radius: 4px; min-width: 20px; min-height: 20px; }
+QScrollBar:vertical { background: #050805; width: 10px; }
+QScrollBar:horizontal { background: #050805; height: 10px; }
+QScrollBar::handle { background: #3e6048; border-radius: 4px; min-width: 20px; min-height: 20px; }
 QScrollBar::add-line, QScrollBar::sub-line { width: 0; height: 0; }
-QStatusBar { background: #202b36; color: #a8bcca; border-top: 1px solid #344555; }
-QToolTip { background: #293848; color: #fff1db; border: 1px solid #ed9951; padding: 6px; }
-QWidget#workspaceHeader { background: #202b36; border-bottom: 1px solid #42515f; }
-QLabel#eyebrow { color: #efad70; font-size: 11px; font-weight: bold; letter-spacing: 2px; }
-QLabel#headline { font-size: 30px; font-weight: bold; color: #fff0dc; }
-QLabel#muted { color: #a7bdcc; }
-QLabel#badge { background: #25413e; color: #98dcc8; padding: 6px 10px; border-radius: 5px; }
-QWidget#welcomeCard { background: #222d39; border: 1px solid #425365; border-radius: 12px; }
+QStatusBar { background: #0d1610; color: #a9c7b0; border-top: 1px solid #304735; }
+QToolTip { background: #122218; color: #f6ffd9; border: 1px solid #a8ee75; padding: 6px; }
+QWidget#workspaceHeader { background: #0d1610; border-bottom: 1px solid #354d39; }
+QLabel#eyebrow { color: #b5ef83; font-size: 11px; font-weight: bold; letter-spacing: 2px; }
+QLabel#headline { font-size: 30px; font-weight: bold; color: #f5f9dc; }
+QLabel#muted { color: #a8c6b1; }
+QLabel#badge { background: #223b24; color: #c3f298; padding: 6px 10px; border-radius: 5px; }
+QWidget#welcomeCard { background: #101b13; border: 1px solid #476740; border-radius: 12px; }
 QWidget#welcomeCard QLabel, QWidget#workspaceHeader QLabel { background: transparent; }
-QToolButton#launch { background: #db8c48; color: #181c24; font-weight: bold; }
-QToolButton#launch:hover { background: #ffb568; }
-QToolButton#launch:disabled { background: #293541; color: #77838f; }
+QToolButton#launch { background: #edce65; color: #10180d; font-weight: bold; }
+QToolButton#launch:hover { background: #ffe89b; }
+QToolButton#launch:disabled { background: #18241b; color: #829487; }
 """
 
 
 class ForgeMark(QWidget):
-    """Small vector ember: no image dependency, timer, or animation loop."""
+    """Small vector sun and leaves: no image dependency, timer, or animation loop."""
 
     def __init__(self, size: int = 42) -> None:
         super().__init__()
         self.setFixedSize(size, size)
-        self.setAccessibleName("Solar Forge ember")
+        self.setAccessibleName("Solar Forge sun and leaves")
 
     def paintEvent(self, event: QPaintEvent) -> None:
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.scale(self.width() / 48, self.height() / 48)
         painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QColor("#364452"))
-        painter.drawRoundedRect(1, 1, 46, 46, 11, 11)
-        painter.setBrush(QColor("#ed9951"))
+        painter.setBrush(QColor("#17251a"))
+        painter.drawRoundedRect(1, 1, 46, 46, 14, 14)
+        painter.setBrush(QColor("#edce65"))
+        painter.drawEllipse(QPointF(31, 16), 8, 8)
+        painter.setBrush(QColor("#a8ee75"))
         painter.drawPolygon(
-            QPolygonF(
-                [
-                    QPointF(x, y)
-                    for x, y in (
-                        (12, 34),
-                        (14, 24),
-                        (21, 27),
-                        (25, 8),
-                        (36, 25),
-                        (36, 34),
-                        (30, 40),
-                        (19, 40),
-                    )
-                ]
-            )
+            QPolygonF([QPointF(x, y) for x, y in ((9, 19), (22, 21), (31, 32), (25, 40), (14, 35))])
         )
-        painter.setBrush(QColor("#ffe0a4"))
+        painter.setBrush(QColor("#59ba91"))
         painter.drawPolygon(
-            QPolygonF(
-                [QPointF(x, y) for x, y in ((20, 34), (24, 24), (29, 31), (28, 38), (23, 38))]
-            )
+            QPolygonF([QPointF(x, y) for x, y in ((38, 25), (37, 37), (27, 41), (27, 33))])
         )
         painter.end()
 
@@ -130,7 +116,7 @@ class ForgeWorkspace(QWidget):
         self.scene_label = label("Your next little world", "muted")
         identity.addWidget(self.scene_label)
         row.addLayout(identity, 1)
-        row.addWidget(label("2D WORKSHOP", "badge"))
+        row.addWidget(label("2D GREENHOUSE", "badge"))
         layout.addWidget(header)
         self.pages = QStackedWidget()
         layout.addWidget(self.pages, 1)
@@ -145,7 +131,7 @@ class ForgeWorkspace(QWidget):
         content.setContentsMargins(28, 28, 28, 28)
         content.setSpacing(16)
         content.addWidget(ForgeMark(64))
-        content.addWidget(label("SMALL WORLDS. BIG SPARKS.", "eyebrow"))
+        content.addWidget(label("GROW A LITTLE WORLD.", "eyebrow"))
         content.addWidget(label("Make something\nworth playing.", "headline"))
         content.addWidget(
             label(

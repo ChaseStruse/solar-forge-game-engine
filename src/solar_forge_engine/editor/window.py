@@ -107,7 +107,7 @@ class EditorWindow(QMainWindow):
         self._drag_context: tuple[Document, int] | None = None
         self.view.drag_started.connect(self._drag_started)
         self.view.position_committed.connect(self._commit_drag)
-        self.view.setBackgroundBrush(QBrush(QColor("#101720")))
+        self.view.setBackgroundBrush(QBrush(QColor("#060a08")))
         self.view.setAccessibleName("2D scene viewport")
         self.workspace = ForgeWorkspace(self.view)
         self.workspace.showcase_button.clicked.connect(self.new_showcase)
@@ -290,7 +290,6 @@ class EditorWindow(QMainWindow):
         def action(label: str, shortcut: QKeySequence.StandardKey | str) -> QAction:
             item = QAction(label, self)
             item.setShortcut(shortcut)
-            toolbar.addAction(item)
             return item
 
         self.new_action = action("New", QKeySequence.StandardKey.New)
@@ -315,13 +314,11 @@ class EditorWindow(QMainWindow):
         save_as = file_menu.addAction("Save &As…")
         save_as.setShortcut(QKeySequence.StandardKey.SaveAs)
         save_as.triggered.connect(lambda: self.save(choose_path=True))
-        toolbar.addSeparator()
         self.undo_action = action("Undo", QKeySequence.StandardKey.Undo)
         self.undo_action.triggered.connect(self.undo)
         self.redo_action = action("Redo", QKeySequence.StandardKey.Redo)
         self.redo_action.triggered.connect(self.redo)
         edit_menu.addActions([self.undo_action, self.redo_action])
-        toolbar.addSeparator()
         add = action("Add rectangle", "Ctrl+Shift+A")
         add.triggered.connect(self.add_rectangle)
         import_sprite = action("Import PNG", "Ctrl+Shift+I")
@@ -335,10 +332,11 @@ class EditorWindow(QMainWindow):
         fit = scene_menu.addAction("Fit scene")
         fit.setShortcut("F")
         fit.triggered.connect(self.fit_scene)
-        self.addToolBarBreak()
-        viewport_toolbar = QToolBar("Viewport tools")
-        viewport_toolbar.setMovable(False)
-        self.addToolBar(viewport_toolbar)
+        toolbar.addActions([self.save_action, self.undo_action, self.redo_action])
+        toolbar.addSeparator()
+        toolbar.addAction(import_sprite)
+        toolbar.addSeparator()
+        viewport_toolbar = toolbar
         viewport_toolbar.addAction(fit)
         for label, shortcut, factor in (
             ("Zoom out", "Ctrl+-", 1 / 1.2),
@@ -351,11 +349,9 @@ class EditorWindow(QMainWindow):
                     self.view.transform().m11() * factor
                 )
             )
-            viewport_toolbar.addAction(zoom)
         actual_size = scene_menu.addAction("100%")
         actual_size.setShortcut("Ctrl+0")
         actual_size.triggered.connect(lambda: self.view.zoom_to(1))
-        viewport_toolbar.addAction(actual_size)
         self.zoom_label = QLabel("100%")
         self.zoom_label.setMinimumWidth(80)
         self.zoom_label.setAccessibleName("Viewport zoom")
@@ -374,8 +370,7 @@ class EditorWindow(QMainWindow):
         self.grid_field.setAccessibleName("Grid spacing")
         self.grid_field.setToolTip("Grid spacing in scene units; affects viewport dragging only")
         self.grid_field.setKeyboardTracking(False)
-        viewport_toolbar.addWidget(QLabel("Grid spacing"))
-        viewport_toolbar.addWidget(self.grid_field)
+        self.grid_action = viewport_toolbar.addWidget(self.grid_field)
         self.snap_action.toggled.connect(self._update_grid)
         self.grid_field.valueChanged.connect(self._update_grid)
         self._update_grid()
@@ -417,7 +412,9 @@ class EditorWindow(QMainWindow):
         self.addDockWidget(area, dock)
 
     def _update_grid(self) -> None:
-        self.view.set_grid(self.snap_action.isChecked(), self.grid_field.value())
+        enabled = self.snap_action.isChecked()
+        self.grid_action.setVisible(enabled)
+        self.view.set_grid(enabled, self.grid_field.value())
 
     def _drag_started(self) -> None:
         self._drag_context = (self.document, self.document.revision)

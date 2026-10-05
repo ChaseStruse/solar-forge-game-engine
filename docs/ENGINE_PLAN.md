@@ -11,12 +11,18 @@ scene sharing assets; the built-in template is accessible in native and Docker b
 The architecture and release milestones below remain planned work; unmeasured
 performance budgets remain targets.
 
-UI direction: the native editor now uses a copper/ember palette, a hand-drawn
-vector forge emblem, a scene header, and an actionable welcome card. Empty scenes
+UI direction: the native editor now uses near-black surfaces with solarpunk leaf
+green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
+and an actionable welcome card. Empty scenes
 offer showcase, create-object and open-project paths; populated scenes retain
 viewport editing. Project Scenes shares the Scene dock's tabs, giving the Inspector
 more vertical room; Play and Apply receive primary accents. All docks remain
 movable and floatable. No animation timers or new dependencies were added.
+One compact toolbar replaces two rows. New/Open/showcase, Add rectangle,
+duplicate/delete and zoom commands remain in menus with their shortcuts;
+Save, undo/redo, PNG import, Fit, snapping and Play remain directly accessible.
+Grid spacing appears only when snapping is enabled. The palette is centralized
+in `editor/theme.py`; a user-facing theme editor remains future work.
 Native Wayland create/undo, welcome transitions and showcase opening were checked;
 142 regression tests pass in Docker, with Ruff, formatting and strict mypy passing.
 Next UI work: group Inspector properties and make asset browsing easier to scan.
