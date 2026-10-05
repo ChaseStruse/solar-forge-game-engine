@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QGraphicsScene,
     QGraphicsView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QListWidget,
@@ -47,7 +48,17 @@ from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
 from solar_forge_engine.project.recovery import clear_recovery, read_recovery
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
-from solar_forge_engine.project.workspace import Project, create_project, open_project
+from solar_forge_engine.project.workspace import (
+    Project,
+    create_project,
+    create_scene,
+    list_scenes,
+    new_scene_target,
+    open_project,
+)
+from solar_forge_engine.project.workspace import (
+    open_scene as open_project_scene,
+)
 from solar_forge_engine.runtime.rendering import render_scene, sprite_pixmap
 
 STYLE = """
@@ -130,6 +141,26 @@ class EditorWindow(QMainWindow):
         self.asset_list.currentItemChanged.connect(self._update_asset_actions)
         self.asset_list.itemDoubleClicked.connect(lambda item: self.add_asset())
         self._dock("Assets", asset_panel, Qt.DockWidgetArea.LeftDockWidgetArea)
+
+        scene_panel = QWidget()
+        scene_layout = QVBoxLayout(scene_panel)
+        self.project_scene_list = QListWidget()
+        self.project_scene_list.setAccessibleName("Project scenes")
+        scene_layout.addWidget(self.project_scene_list)
+        self.create_scene_button = QPushButton("New project scene")
+        self.create_scene_button.clicked.connect(self.choose_new_project_scene)
+        scene_layout.addWidget(self.create_scene_button)
+        self.switch_scene_button = QPushButton("Open selected scene")
+        self.switch_scene_button.clicked.connect(self.open_selected_project_scene)
+        scene_layout.addWidget(self.switch_scene_button)
+        self.refresh_scenes_button = QPushButton("Refresh scenes")
+        self.refresh_scenes_button.clicked.connect(self.refresh_project_scenes)
+        scene_layout.addWidget(self.refresh_scenes_button)
+        self.project_scene_list.itemDoubleClicked.connect(
+            lambda item: self.open_selected_project_scene()
+        )
+        self._scene_root: Path | None = None
+        self._dock("Project scenes", scene_panel, Qt.DockWidgetArea.RightDockWidgetArea)
 
         self.inspector = QWidget()
         form = QFormLayout(self.inspector)
@@ -257,6 +288,13 @@ class EditorWindow(QMainWindow):
                 self.recovery_timer.stop()
                 if was_same_document and self.project is not None and not self.dirty:
                     self._clear_recovery()
+        root = self.project.root if self.project else None
+        if root != self._scene_root:
+            self._scene_root = root
+            self.refresh_project_scenes()
+        self.create_scene_button.setEnabled(self.project is not None)
+        self.switch_scene_button.setEnabled(self.project is not None)
+        self.refresh_scenes_button.setEnabled(self.project is not None)
         ids = {entity.id for entity in self.document.scene.entities}
         if self.selected_id not in ids:
             self.selected_id = None
@@ -666,6 +704,10 @@ class EditorWindow(QMainWindow):
         except (OSError, ValueError) as error:
             self._error(f"Could not open project: {error}")
             return False
+        self._activate_project_scene(project, scene)
+        return True
+
+    def _activate_project_scene(self, project: Project, scene: Scene) -> None:
         recovered = None
         try:
             recovered = read_recovery(project, scene)
@@ -685,10 +727,73 @@ class EditorWindow(QMainWindow):
         self.selected_id = None
         self.refresh()
         self.fit_scene()
-        self.log.append(f"Opened project {project.name}")
+        self.refresh_project_scenes()
+        self.log.append(f"Opened {project.name} / {scene.name}")
         if choice == "recover" and recovered is not None:
             self.execute(RestoreScene(recovered))
             self.log.append("Recovered edits. Save to keep them; Undo restores the saved scene.")
+
+    def refresh_project_scenes(self) -> None:
+        self.project_scene_list.clear()
+        if self.project is None:
+            return
+        try:
+            references = list_scenes(self.project)
+        except (OSError, ValueError) as error:
+            self.log.append(f"Scene browser unavailable: {error}")
+            return
+        for reference in references:
+            row = QListWidgetItem(Path(reference).name.removesuffix(".forge.json"))
+            row.setData(Qt.ItemDataRole.UserRole, reference)
+            row.setToolTip(reference)
+            self.project_scene_list.addItem(row)
+            if reference == self.project.scene:
+                self.project_scene_list.setCurrentItem(row)
+
+    def choose_new_project_scene(self) -> None:
+        if self.project is None:
+            return
+        name, accepted = QInputDialog.getText(self, "New project scene", "Scene name:")
+        if accepted:
+            self.new_project_scene(name)
+
+    def new_project_scene(self, name: str) -> bool:
+        if self.project is None:
+            return False
+        try:
+            new_scene_target(self.project, name)
+        except (OSError, ValueError) as error:
+            self._error(f"Could not create scene: {error}")
+            return False
+        if not self._confirm_discard():
+            return False
+        try:
+            project, scene = create_scene(self.project, name)
+        except (OSError, ValueError) as error:
+            self._error(f"Could not create scene: {error}")
+            return False
+        self._activate_project_scene(project, scene)
+        return True
+
+    def open_selected_project_scene(self) -> None:
+        row = self.project_scene_list.currentItem()
+        if row is not None:
+            self.switch_project_scene(row.data(Qt.ItemDataRole.UserRole))
+
+    def switch_project_scene(self, reference: str) -> bool:
+        if self.project is None:
+            return False
+        if reference == self.project.scene:
+            return True
+        try:
+            project, scene = open_project_scene(self.project, reference)
+        except (OSError, ValueError) as error:
+            self._error(f"Could not open scene: {error}")
+            return False
+        if not self._confirm_discard():
+            self.refresh_project_scenes()
+            return False
+        self._activate_project_scene(project, scene)
         return True
 
     def open_scene(self) -> None:

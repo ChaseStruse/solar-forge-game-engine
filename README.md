@@ -54,6 +54,16 @@ Opening an existing standalone scene and creating a project copies it without
 rewriting the original. The manifest uses a relative scene path; traversal and
 symbolic links in that path are rejected on open and rechecked on save.
 
+The **Project scenes** panel lists up to 128 top-level scene files. **New project
+scene** creates an empty named scene without overwriting an existing file. Names
+use 1–64 letters, digits, spaces, underscores or hyphens, starting with a letter or
+digit. Double-click a scene or choose **Open selected scene** to switch; unsaved
+changes offer Save/Discard/Cancel. Invalid targets leave the current scene intact.
+Save and recovery apply to the active scene; switching stops Play and resets the
+current undo history and sprite palette. **Refresh scenes** picks up files added
+outside the editor. Reopening a project still uses the manifest's default scene;
+switching does not change that default or introduce runtime scene transitions.
+
 Project saves write version-four scene files with relative sprite references to
 `assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;
 files are validated by size, dimensions, and content hash when opened. Move the
@@ -63,7 +73,7 @@ Older embedded project scenes load unchanged; saving upgrades them after keeping
 an exact `.v1.bak`, `.v2.bak`, or `.v3.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
-sprite removal. Disk-wide asset browsing, cleanup, and multiple scenes are future work.
+sprite removal. Disk-wide asset browsing and cleanup are future work.
 
 The **Assets** panel previews unique sprites from the loaded scene and imports in
 this session. Double-click or choose **Add to scene** to create a new object;

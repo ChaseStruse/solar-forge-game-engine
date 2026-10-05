@@ -61,7 +61,7 @@ def store_asset(path: Path, raw: bytes) -> None:
             temporary.unlink(missing_ok=True)
 
 
-def save_project_scene(root: Path, path: Path, scene: Scene) -> None:
+def save_project_scene(root: Path, path: Path, scene: Scene, *, exclusive: bool = False) -> None:
     data = scene.to_data()
     # Keep snapshots bounded for the standalone scene and data-only Play contracts.
     if len(json.dumps(data, indent=2).encode()) + 1 > MAX_FILE_BYTES:
@@ -84,7 +84,7 @@ def save_project_scene(root: Path, path: Path, scene: Scene) -> None:
     for target, raw in assets.items():
         target.parent.mkdir(exist_ok=True)
         store_asset(target, raw)
-    save_scene_data(path, data)
+    save_scene_data(path, data, exclusive=exclusive)
 
 
 def load_project_scene(root: Path, path: Path) -> Scene:

@@ -1,8 +1,10 @@
 """Small native project-folder contract; opening projects never executes code."""
 
 import json
+import os
+import re
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path, PurePosixPath
 
 from solar_forge_engine.core.scene import Scene, text
@@ -87,3 +89,53 @@ def create_project(root: Path, scene: Scene) -> Project:
         shutil.rmtree(root)
         raise
     return project
+
+
+MAX_PROJECT_SCENES = 128
+
+
+def list_scenes(project: Project) -> list[str]:
+    project.scene_path()
+    # The first browser covers the top-level scenes directory and the active scene.
+    folder = project.root / "scenes"
+    if folder.is_symlink() or not folder.is_dir():
+        raise ValueError("Project scenes must use a regular scenes directory.")
+    references = {project.scene}
+    with os.scandir(folder) as entries:
+        for entry in entries:
+            if not entry.name.endswith(".forge.json"):
+                continue
+            reference = f"scenes/{entry.name}"
+            replace(project, scene=reference).scene_path()
+            if not entry.is_file(follow_symlinks=False):
+                continue
+            references.add(reference)
+            if len(references) > MAX_PROJECT_SCENES:
+                raise ValueError("The scene browser supports at most 128 scenes.")
+    return sorted(references)
+
+
+def new_scene_target(project: Project, name: str) -> Project:
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}", name):
+        raise ValueError("Scene names need 1–64 letters, digits, spaces, underscores or hyphens.")
+    if len(list_scenes(project)) >= MAX_PROJECT_SCENES:
+        raise ValueError("The scene browser supports at most 128 scenes.")
+    target = replace(project, scene=f"scenes/{name}.forge.json")
+    if target.scene_path().exists():
+        raise FileExistsError("A scene with this filename already exists.")
+    return target
+
+
+def create_scene(project: Project, name: str) -> tuple[Project, Scene]:
+    target = new_scene_target(project, name)
+    scene = Scene(name=name)
+    save_project_scene(target.root, target.scene_path(), scene, exclusive=True)
+    return target, scene
+
+
+def open_scene(project: Project, reference: str) -> tuple[Project, Scene]:
+    target = replace(project, scene=reference)
+    path = target.scene_path()
+    if not path.is_file():
+        raise ValueError("The selected scene is missing or is not a regular file.")
+    return target, load_project_scene(target.root, path)

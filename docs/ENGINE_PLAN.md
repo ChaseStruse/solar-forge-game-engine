@@ -1,7 +1,7 @@
 # Solar Forge Game Engine — product and implementation plan
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
-separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, basic project folders, and
+separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, a reusable sprite palette, bounded autosave/recovery, multiple-scene authoring, basic project folders, and
 editable coin collector are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
@@ -56,6 +56,12 @@ milestones below are planned work; unmeasured performance budgets remain targets
   Failed/invalid recovery is reported without blocking manual save or saved-project
   opening. In-flight writes are cleared after Save/Discard; close waits briefly for
   the worker rather than destroying an active thread.
+- Project Scenes panel: create named empty scenes, list up to 128 top-level scene
+  files, refresh external changes, and switch via double-click or Open selected.
+  Validation rejects unsafe paths/duplicate names before any discard prompt, and
+  new scene publication is exclusive and atomic. Save/Discard/Cancel protects dirty
+  edits; activation stops Play, resets undo/palette, and offers per-scene recovery.
+  The manifest default remains unchanged; runtime transitions are not implemented.
 - Repeatable 1,000-moving-rectangle software benchmark at 1024×576: 10 warmup frames,
   120 measured frames. Initial Arch host run: median 4.805 ms, p95 4.953 ms, Python
   3.14.7 / Qt 6.11.2 / offscreen QImage rendering. This does not establish sprite,
@@ -81,7 +87,11 @@ transitions are covered. Recovery adds atomic failure preservation, automatic ti
 write, undo/redo restore, keep/discard choices, stale/corrupt rejection, in-flight
 save races and error handling: 56 tests passed locally in 0.80 seconds and in Docker
 in 1.07 seconds. Native Wayland autosave/recover/manual-save was verified. Ruff,
-formatting, and strict mypy pass. Project create/open/Play also
+formatting, and strict mypy pass. Multiple-scene checks add create/save/switch,
+cancellation, per-scene recovery, invalid/duplicate names, exclusive-write failure
+and symlink rejection: 63 tests passed locally in 0.88 seconds and in Docker in
+1.21 seconds. The panel was visually inspected; native Wayland scene creation,
+save, switch and Play were verified. Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
 startup/shutdown checks also passed on the Arch host.
@@ -91,9 +101,9 @@ compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project asset
 libraries, audio, sandboxed script execution, AI, and native game
-exports are not implemented. Project folders currently wrap one scene with relative
-sprite references and a session sprite palette. Disk-wide asset browsing, cleanup
-and multiple-scene workflows remain planned.
+exports are not implemented. Project folders support multiple authored scenes with
+relative sprite references, per-scene recovery and a session sprite palette.
+Disk-wide asset browsing, cleanup and runtime scene transitions remain planned.
 The Qt backend remains provisional pending representative sprite workloads and
 native presentation benchmarks.
 See the [README](../README.md) for runnable commands. Later sections distinguish
@@ -185,8 +195,8 @@ Implemented scope is intentionally narrower than the v0.1 requirements above:
 
 - Workspace: native scene tree, viewport, property inspector, menus/toolbar, activity
   log, shortcuts, empty-scene guidance, and create/open project-folder actions.
-  Assets panel previews and reuses loaded/imported sprites. No multiple-scene project
-  browser or disk-wide unused-asset index yet.
+  Assets panel previews and reuses loaded/imported sprites; Project Scenes supports
+  create/switch/refresh. No disk-wide unused-asset index yet.
 - Scene editing: create/delete, name, X/Y, width/height, hex color, role, and undo/redo.
   Inspector changes require Apply. No drag gizmos, rotation, snapping, hierarchy,
   or layer controls yet. Selected-object duplication is implemented with Ctrl+D.
@@ -361,7 +371,14 @@ and history intact. The UI uses this command layer. No AI tool dispatcher or gen
 component registration exists yet. Typed roles are the current built-in gameplay
 contract, preceding the richer component design below.
 
-**Planned project extensions:** disk-wide asset indexing/cleanup, multiple scene selection,
+Project scene browsing covers up to 128 top-level scene files plus the active
+manifest scene when nested. New scenes use exclusive atomic file publication and
+validated names; existing files are never overwritten. Scene activation clears
+current undo/palette state and handles that scene’s recovery snapshot. Project
+reopen selects the manifest default, which switching does not modify. Nested scene
+tree UI, scene renaming/deletion, and runtime transitions remain planned.
+
+**Planned project extensions:** disk-wide asset indexing/cleanup, scene organization,
 and sandboxed Python `scripts/`. The basic `project.json`, `scenes/`, and `assets/`
 layout and relative sprite references are implemented; standalone scenes still
 embed pixels. Ignore generated caches and builds. Use stable IDs and relative asset references, with
@@ -609,7 +626,7 @@ experience; these milestones are gates, not promised delivery dates.
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
-| 1 — Reliable workspace | Partial: scene editing, project folders, relative assets, path/hash validation, save/reopen, upgrades, undo and Docker tests | Disk-wide asset indexing, multi-scene workspace, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
+| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Disk-wide asset indexing, scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
 | 2 — Playable 2D slice | Partial: editable collector, PNG sprites, keyboard movement, walls, coin triggers, HUD and restart | Asset libraries/animation, audio, configurable input/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
 | 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
@@ -638,19 +655,20 @@ Completed task checklist:
 - [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
 - [x] Add a bounded native sprite palette with previews and undoable reuse/application.
 - [x] Add bounded project autosave, user-controlled crash recovery, and in-flight save protection.
-- [ ] Add disk-wide asset indexing/cleanup and multiple-scene browsing.
+- [x] Add bounded multiple-scene creation/browsing and safe switching with per-scene recovery.
+- [ ] Add disk-wide asset indexing/reuse and safe cleanup.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [ ] Connect the assistant through a fake provider, then verified real adapters.
 
 Next small features, in recommended order:
 
-1. Add multiple-scene creation/browsing and safe switching within project folders,
-   with per-scene save/recovery behavior and validated relative paths. This is the
-   next highest priority for building games beyond a single-screen prototype.
-2. Expand the session palette into a project-wide asset index with reuse and explicit
-   safe cleanup. Preserve backups/recovery references; never silently delete
-   unreachable assets. Continue measuring unique-texture workloads and native
-   presentation/startup before closing renderer gates.
+1. Expand the session palette into a project-wide asset index so assets can be
+   reused across scenes. Validate metadata and paths, bound indexing work, and keep
+   disk work out of the UI thread. This is the next highest priority now that a
+   project can contain multiple scenes.
+2. Add explicit safe cleanup and richer scene organization. Preserve backups/recovery
+   references; never silently delete unreachable assets. Continue measuring unique
+   texture workloads and native presentation/startup before closing renderer gates.
 
 3. Add configurable movement/input and audio to the reference game, then a small
    independent native player/export package. Verify it outside the editor on clean Arch.
