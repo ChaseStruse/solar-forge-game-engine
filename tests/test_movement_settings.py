@@ -43,6 +43,7 @@ def test_legacy_movement_defaults_upgrade_backups_and_cleanup(tmp_path, version)
     project = create_project(tmp_path / "Game", scene)
     path = project.scene_path()
     data = scene.to_data() if version == 3 else json.loads(path.read_bytes())
+    data.pop("coin_sound", None)
     data["format_version"] = version
     for entry in data["entities"]:
         del entry["animation"]

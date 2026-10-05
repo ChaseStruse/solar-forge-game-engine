@@ -22,7 +22,7 @@ def test_shared_project_assets_survive_move_and_play_and_standalone_save(qtbot, 
     root = tmp_path / "project"
     project = create_project(root, scene)
     disk = json.loads(project.scene_path().read_bytes())
-    assert disk["format_version"] == 8
+    assert disk["format_version"] == 10
     assert len(list((root / "assets").iterdir())) == 1
     reference = disk["entities"][0]["sprite"]["asset"]
     assert reference.startswith("assets/")
@@ -101,9 +101,9 @@ def test_embedded_project_scene_upgrade_preserves_original_bytes(tmp_path):
     original = textured_scene()
     save_scene(project.scene_path(), original)
     previous = project.scene_path().read_bytes()
-    assert json.loads(previous)["format_version"] == 7
+    assert json.loads(previous)["format_version"] == 9
     assert open_project(root)[1] == original
     save_project_scene(root, project.scene_path(), original)
-    backup = project.scene_path().with_name(project.scene_path().name + ".v7.bak")
+    backup = project.scene_path().with_name(project.scene_path().name + ".v9.bak")
     assert backup.read_bytes() == previous
     assert open_project(root)[1] == original

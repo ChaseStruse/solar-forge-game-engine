@@ -3,6 +3,7 @@
 from dataclasses import asdict, dataclass, replace
 from typing import Protocol
 
+from solar_forge_engine.core.audio import SoundClip
 from solar_forge_engine.core.scene import Entity, Scene
 from solar_forge_engine.core.sprite import Sprite
 
@@ -73,6 +74,16 @@ class MoveEntity:
         entities = [item for item in scene.entities if item.id != self.entity_id]
         entities.insert(self.index, entity)
         return replace(scene, entities=tuple(entities))
+
+
+@dataclass(frozen=True)
+class SetCoinSound:
+    data: object
+
+    def apply(self, scene: Scene) -> Scene:
+        return replace(
+            scene, coin_sound=SoundClip.from_data(self.data) if self.data is not None else None
+        )
 
 
 @dataclass(frozen=True)

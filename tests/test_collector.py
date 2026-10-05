@@ -67,6 +67,7 @@ def test_starter_can_be_edited_saved_and_reopened_with_roles(qtbot, tmp_path):
 def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     path = tmp_path / "old.forge.json"
     data = Scene(entities=(Entity("rectangle"),)).to_data()
+    data.pop("coin_sound", None)
     data["format_version"] = 1
     for entity in data["entities"]:
         del entity["animation"]
@@ -81,7 +82,7 @@ def test_version_one_migration_preserves_original_bytes_before_save(tmp_path):
     assert upgraded.entity("rectangle").role == Role.DECORATION
     save_scene(path, upgraded)
     assert (tmp_path / "old.forge.json.v1.bak").read_bytes() == original
-    assert json.loads(path.read_text())["format_version"] == 7
+    assert json.loads(path.read_text())["format_version"] == 9
     assert load_scene(path) == upgraded
 
 

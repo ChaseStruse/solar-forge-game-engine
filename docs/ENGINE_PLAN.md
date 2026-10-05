@@ -163,6 +163,17 @@ input, conflicts, deduplication, moved projects, both stdin modes, unavailable p
 and termination of an unresponsive player. These checks establish successful playback
 processes, not subjective audio quality or broad device/compositor compatibility.
 
+The coin-sound data foundation now adds one optional bounded PCM clip per scene.
+Standalone format 9 and project format 10 embed that clip so saved scenes, recovery
+and data-only Play snapshots do not depend on source paths or the sound library.
+Project sprite references remain unchanged. Earlier formats load with no sound;
+upgrades preserve exact versioned backups, and prior v5/v7 recovery hashes remain
+compatible when the baseline has no sound. `SetCoinSound` provides validated,
+revision-checked undo/redo. Assigned PCM remains within the existing 4 MiB scene
+limit; relative audio references and larger music clips are deferred. The schema
+checkpoint passed 93 focused integrity/audio tests, Ruff and strict mypy; gameplay
+and assignment controls follow in the next checkpoint.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes

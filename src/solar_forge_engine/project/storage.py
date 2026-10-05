@@ -17,7 +17,7 @@ def load_scene(path: Path) -> Scene:
         raise ValueError("Scene files must be smaller than 4 MiB.")
     try:
         data = json.loads(raw)
-        if isinstance(data, dict) and data.get("format_version") in (4, 6, 8):
+        if isinstance(data, dict) and data.get("format_version") in (4, 6, 8, 10):
             raise ValueError("This scene uses project assets. Use File → Open project instead.")
         return Scene.from_data(data)
     except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as error:
@@ -47,12 +47,12 @@ def save_scene_data(path: Path, data: dict[str, object], *, exclusive: bool = Fa
         if (
             isinstance(previous_data, dict)
             and type(previous_data.get("format_version")) is int
-            and previous_data["format_version"] in (1, 2, 3, 4, 5, 6, 7)
+            and previous_data["format_version"] in (1, 2, 3, 4, 5, 6, 7, 8, 9)
             and previous_data["format_version"] < data["format_version"]
         ):
             # Project v4/v6 carry asset references; retain its opaque bytes exactly.
             # Its references are validated by the project loader, not Scene.from_data.
-            if previous_data["format_version"] not in (4, 6):
+            if previous_data["format_version"] not in (4, 6, 8):
                 Scene.from_data(previous_data)
             backup = path.with_name(f"{path.name}.v{previous_data['format_version']}.bak")
             try:

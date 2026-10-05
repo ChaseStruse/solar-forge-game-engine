@@ -6,9 +6,10 @@ from dataclasses import asdict, dataclass
 from enum import StrEnum
 
 from solar_forge_engine.core.animation import Animation
+from solar_forge_engine.core.audio import SoundClip
 from solar_forge_engine.core.sprite import Sprite
 
-FORMAT_VERSION = 7
+FORMAT_VERSION = 9
 MAX_ENTITIES = 10_000
 
 
@@ -126,9 +127,12 @@ class Entity:
 class Scene:
     name: str = "Untitled scene"
     entities: tuple[Entity, ...] = ()
+    coin_sound: SoundClip | None = None
 
     def __post_init__(self) -> None:
         text(self.name, "Scene name")
+        if self.coin_sound is not None and not isinstance(self.coin_sound, SoundClip):
+            raise ValueError("Invalid coin-collection sound.")
         if not isinstance(self.entities, tuple) or len(self.entities) > MAX_ENTITIES:
             raise ValueError(f"A scene supports at most {MAX_ENTITIES:,} entities.")
         if any(not isinstance(entity, Entity) for entity in self.entities):
@@ -146,17 +150,23 @@ class Scene:
         return {
             "format_version": FORMAT_VERSION,
             "name": self.name,
+            "coin_sound": asdict(self.coin_sound) if self.coin_sound else None,
             "entities": [asdict(entity) for entity in self.entities],
         }
 
     @classmethod
     def from_data(cls, value: object) -> "Scene":
-        if not isinstance(value, dict) or set(value) != {"format_version", "name", "entities"}:
+        if not isinstance(value, dict):
+            raise ValueError("Invalid scene document fields.")
+        fields = {"format_version", "name", "entities"}
+        if value.get("format_version") == FORMAT_VERSION:
+            fields.add("coin_sound")
+        if set(value) != fields:
             raise ValueError("Invalid scene document fields.")
         version = value["format_version"]
-        if type(version) is not int or version not in (1, 2, 3, 5, FORMAT_VERSION):
+        if type(version) is not int or version not in (1, 2, 3, 5, 7, FORMAT_VERSION):
             raise ValueError(
-                "Unsupported scene format version; this editor supports versions 1, 2, 3, 5 and 7."
+                "Unsupported scene format version; supported versions: 1, 2, 3, 5, 7 and 9."
             )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
@@ -183,4 +193,10 @@ class Scene:
                 raise ValueError("Invalid legacy animation fields.")
             entries = [{**entry, "animation": None} for entry in entries]
         entities = [Entity.from_data(entry) for entry in entries]
-        return cls(name=text(value["name"], "Scene name"), entities=tuple(entities))
+        return cls(
+            name=text(value["name"], "Scene name"),
+            entities=tuple(entities),
+            coin_sound=SoundClip.from_data(value["coin_sound"])
+            if version == FORMAT_VERSION and value["coin_sound"] is not None
+            else None,
+        )

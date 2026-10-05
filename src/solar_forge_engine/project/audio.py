@@ -1,5 +1,6 @@
 """Bounded, project-owned PCM sounds; no executable content or source paths persist."""
 
+import base64
 import hashlib
 import io
 import os
@@ -8,9 +9,13 @@ import stat
 import wave
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
+from solar_forge_engine.core.audio import SoundClip
 from solar_forge_engine.project.storage import atomic_write
-from solar_forge_engine.project.workspace import Project
+
+if TYPE_CHECKING:
+    from solar_forge_engine.project.workspace import Project
 
 MAX_SOUND_BYTES = 4 * 1024 * 1024
 MAX_LIBRARY_BYTES = 32 * 1024 * 1024
@@ -79,9 +84,10 @@ def decode_wav(raw: bytes, reference: str = "") -> tuple[Sound, bytes]:
     return sound, pcm
 
 
-def _folder(project: Project) -> Path:
-    project.scene_path()
-    folder = project.root / "audio"
+def audio_folder(root: Path) -> Path:
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError("Sounds must stay in a regular project folder.")
+    folder = root / "audio"
     if folder.is_symlink() or (folder.exists() and not folder.is_dir()):
         raise ValueError("Project audio must use a regular audio directory.")
     return folder
@@ -90,7 +96,14 @@ def _folder(project: Project) -> Path:
 def load_sound(project: Project, reference: str) -> tuple[Sound, bytes]:
     if not reference.startswith("audio/") or not _SOUND_NAME.fullmatch(reference[6:]):
         raise ValueError("Invalid project sound reference.")
-    raw = _read(_folder(project) / reference[6:])
+    project.scene_path()
+    return _load_sound(project.root, reference)
+
+
+def _load_sound(root: Path, reference: str) -> tuple[Sound, bytes]:
+    if not reference.startswith("audio/") or not _SOUND_NAME.fullmatch(reference[6:]):
+        raise ValueError("Invalid project sound reference.")
+    raw = _read(audio_folder(root) / reference[6:])
     match = _SOUND_NAME.fullmatch(reference[6:])
     assert match is not None
     if hashlib.sha256(raw).hexdigest() != match[2]:
@@ -99,7 +112,12 @@ def load_sound(project: Project, reference: str) -> tuple[Sound, bytes]:
 
 
 def list_sounds(project: Project) -> tuple[Sound, ...]:
-    folder = _folder(project)
+    project.scene_path()
+    return _list_sounds(project.root)
+
+
+def _list_sounds(root: Path) -> tuple[Sound, ...]:
+    folder = audio_folder(root)
     if not folder.exists():
         return ()
     sounds: list[Sound] = []
@@ -115,31 +133,46 @@ def list_sounds(project: Project) -> tuple[Sound, ...]:
             total += entry.stat(follow_symlinks=False).st_size
             if total > MAX_LIBRARY_BYTES:
                 raise ValueError("The sound library supports at most 32 MiB.")
-            sounds.append(load_sound(project, f"audio/{entry.name}")[0])
+            sounds.append(_load_sound(root, f"audio/{entry.name}")[0])
     return tuple(sorted(sounds, key=lambda sound: sound.reference))
 
 
 def import_wav(project: Project, source: Path) -> Sound:
     sound, pcm = decode_wav(_read(source))
-    # Strip source metadata and publish a canonical PCM-only file.
+    clip = SoundClip(sound.rate, sound.channels, sound.width, base64.b64encode(pcm).decode("ascii"))
+    project.scene_path()
+    return store_clip(project.root, clip, source.stem)
+
+
+def load_clip(root: Path, reference: str) -> SoundClip:
+    sound, pcm = _load_sound(root, reference)
+    return SoundClip(sound.rate, sound.channels, sound.width, base64.b64encode(pcm).decode("ascii"))
+
+
+def store_clip(root: Path, clip: SoundClip, name: str = "coin-sound") -> Sound:
+    # Strip source metadata and publish canonical PCM only.
     buffer = io.BytesIO()
+    pcm = base64.b64decode(clip.samples)
+    frames = len(pcm) // (clip.channels * clip.width)
     with wave.open(buffer, "wb") as handle:
-        handle.setparams((sound.channels, sound.width, sound.rate, sound.frames, "NONE", ""))
+        handle.setparams((clip.channels, clip.width, clip.rate, frames, "NONE", ""))
         handle.writeframes(pcm)
     raw = buffer.getvalue()
+    if len(raw) > MAX_SOUND_BYTES:
+        raise ValueError("Sounds must be no larger than 4 MiB.")
     fingerprint = hashlib.sha256(raw).hexdigest()
-    existing = list_sounds(project)
+    existing = _list_sounds(root)
     for entry in existing:
         if entry.reference.endswith(f"--{fingerprint}.wav"):
             return entry
     if len(existing) >= MAX_SOUNDS:
         raise ValueError("The sound library supports at most 128 clips.")
-    folder = _folder(project)
+    folder = audio_folder(root)
     total = sum((folder / Path(entry.reference).name).stat().st_size for entry in existing)
     if total + len(raw) > MAX_LIBRARY_BYTES:
         raise ValueError("The sound library supports at most 32 MiB.")
-    name = re.sub(r"[^a-z0-9]+", "-", source.stem.lower()).strip("-")[:48] or "sound"
-    reference = f"audio/{name}--{fingerprint}.wav"
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")[:48] or "sound"
+    reference = f"audio/{slug}--{fingerprint}.wav"
     folder.mkdir(exist_ok=True)
     atomic_write(folder / Path(reference).name, raw, exclusive=True)
-    return Sound(reference, sound.frames, sound.rate, sound.channels, sound.width)
+    return Sound(reference, frames, clip.rate, clip.channels, clip.width)
