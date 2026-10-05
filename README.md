@@ -33,7 +33,7 @@ use a new ID, and support undo/redo. Duplication uses applied properties.
 
 Choose **Import PNG** (Ctrl+Shift+I) to add a sprite. PNGs must be at most
 256×256 pixels and 2 MiB. Transparent pixels are preserved; width and height in the
-Inspector control its displayed size. Imported pixels are embedded in the scene,
+Inspector control its displayed size. Imported pixels are copied into game data,
 so moving/deleting the original image does not affect playback. **Remove sprite**
 restores geometric rendering and can be undone. Sprite color is not tinted;
 role and rectangular collision bounds still determine gameplay.
@@ -52,8 +52,18 @@ directory. **File → Open project…** (Ctrl+Alt+O) selects a project folder. O
 Save updates its scene; Save As writes a standalone scene and leaves project mode.
 Opening an existing standalone scene and creating a project copies it without
 rewriting the original. The manifest uses a relative scene path; traversal and
-symbolic links in that path are rejected on open and rechecked on save. PNG pixels
-remain embedded; external asset references and multiple-scene browsing are future work.
+symbolic links in that path are rejected on open and rechecked on save.
+
+Project saves write version-four scene files with relative sprite references to
+`assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;
+files are validated by size, dimensions, and content hash when opened. Move the
+entire folder to keep the project portable. Standalone Save As still embeds pixels
+in version-three scenes, and Play receives resolved data without reading asset paths.
+Older embedded project scenes load unchanged; saving upgrades them after keeping
+an exact `.v1.bak`, `.v2.bak`, or `.v3.bak`. Save publishes assets before atomically
+replacing the scene. A failed save may leave unused asset files, while the previous
+scene stays usable. Assets are not automatically deleted, including after undo or
+sprite removal. Asset browsing, cleanup, and multiple scenes are future work.
 
 Choose **Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score

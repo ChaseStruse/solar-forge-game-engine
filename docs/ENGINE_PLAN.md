@@ -1,7 +1,7 @@
 # Solar Forge Game Engine — product and implementation plan
 
 Status: playable native prototype, updated October 5, 2026. The scene editor,
-separate native player, Docker workflows, object duplication, PNG sprite import, basic project folders, and
+separate native player, Docker workflows, object duplication, PNG sprite import, project-relative assets, basic project folders, and
 editable coin collector are implemented. The remaining architecture and release
 milestones below are planned work; unmeasured performance budgets remain targets.
 
@@ -29,13 +29,19 @@ milestones below are planned work; unmeasured performance budgets remain targets
 - PNG sprite import (Ctrl+Shift+I), embedded bounded RGBA data, transparency,
   inspector sizing/removal, and cached native pixmaps shared by editor and player.
   Imports are capped at 256×256 pixels and 2 MiB; scenes remain capped at 4 MiB.
-  Source paths are not persisted or accessed by playback. Relative project assets
-  remain planned; embedded sprites are an interim portable scene contract.
+  Source paths are not persisted or accessed by playback. Standalone scenes embed
+  pixels; project saves deduplicate them into validated, relative asset files.
 - Create project from the current applied scene and open project folders through
   the native File menu. Version-one `project.json` identifies a relative scene in
-  `scenes/`; `assets/` is reserved. Existing folders are never adopted/overwritten.
+  `scenes/`; `assets/` stores content-addressed RGBA sprite files. Existing folders are never adopted/overwritten.
   Scene paths reject traversal and symlinks on open/save; failed creation removes
   the newly created folder. Standalone scenes and embedded sprites remain supported.
+- Version-four project scenes use relative `assets/<hash>.rgba` sprite references;
+  opening verifies dimensions, bounded bytes and content hashes, then resolves them
+  into portable version-three scene data. Identical sprites share a file. Play does
+  not read project paths. Assets publish before atomic scene replacement; failed
+  saves can leave unused assets, while previous scenes and their references survive.
+  Embedded project upgrades preserve exact `.v1.bak`, `.v2.bak` or `.v3.bak` bytes.
 - Repeatable 1,000-moving-rectangle software benchmark at 1024×576: 10 warmup frames,
   120 measured frames. Initial Arch host run: median 4.805 ms, p95 4.953 ms, Python
   3.14.7 / Qt 6.11.2 / offscreen QImage rendering. This does not establish sprite,
@@ -49,8 +55,11 @@ undo/redo and save/reopen checks. Sprite checks cover transparency, source remov
 Play, invalid input, bounded dimensions and both legacy upgrades: 30 tests passed
 locally in 1.26 seconds and in Docker in 1.57 seconds before project-folder work.
 Project checks add save/reopen, copy preservation, failure cleanup and path boundaries
-for 39 tests total (local 0.45 seconds; Docker 0.61 seconds). Save As/New transitions
-are covered. Ruff, formatting, and strict mypy pass. Project create/open/Play also
+for 39 tests at that checkpoint (local 0.45 seconds; Docker 0.61 seconds). Asset
+checks add moved-project/Play portability, deduplication, standalone saves, hash
+validation, path rejection, failed-save preservation and embedded upgrades: 46 tests
+passed locally in 0.65 seconds and in Docker in 0.85 seconds. Native Wayland
+asset import/save/reopen/Play was also verified. Save As/New transitions are covered. Ruff, formatting, and strict mypy pass. Project create/open/Play also
 passed a native Wayland smoke check. PNG editor and Play startup/shutdown were checked
 on Wayland; authored scene data stayed unchanged. Previous native/container collector
 startup/shutdown checks also passed on the Arch host.
@@ -60,8 +69,8 @@ compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project asset
 libraries, audio, sandboxed script execution, AI, and native game
-exports are not implemented. Project folders currently wrap one scene with embedded
-sprites; external asset references and multiple-scene workflows remain planned.
+exports are not implemented. Project folders currently wrap one scene with relative
+sprite references; asset browsing, cleanup and multiple-scene workflows remain planned.
 The Qt backend remains provisional pending representative sprite workloads and
 native presentation benchmarks.
 See the [README](../README.md) for runnable commands. Later sections distinguish
@@ -208,7 +217,7 @@ database, application domain, or dependencies unrelated to game development.
 Implemented choices are Python 3.14, PySide6 Essentials 6.11.2, Hatchling, uv with
 one lockfile, Ruff, mypy, pytest, and pytest-qt. Qt Graphics View is shared by editor
 and player. The renderer draws geometry and native sprite pixmaps, decoding each
-unique embedded sprite once per scene rebuild; the frame loop only moves items.
+unique resolved sprite once per scene rebuild; the frame loop only moves items.
 The built-in simulation is Qt-independent. Audio bindings, background worker jobs,
 asset pipelines beyond bounded PNG normalization, and provider adapters remain planned.
 
@@ -241,7 +250,7 @@ src/solar_forge_engine/
     editor/             Native window, scene tree, viewport and inspector
     core/               Scene/role/sprite schemas, commands, built-in starter data
     runtime/            Simulation, shared renderer and native player entry point
-    project/            Scene I/O, upgrade backup, PNG normalization, project folders
+    project/            Scene I/O, upgrade backup, PNG normalization, folders and assets
     __main__.py         Native editor entry point
 scripts/                Software rendering benchmark
 tests/                  Scene, editor, player, collector, sprite and project checks
@@ -279,7 +288,8 @@ Arch needs its own ABI/build baseline. [Qt deployment guidance](https://doc.qt.i
 ## 5. Project model, runtime, and extension contracts
 
 **Current persistence:** a version-one `project.json` manifest identifies one
-relative scene inside `scenes/`; `assets/` is reserved for the upcoming asset workflow.
+relative scene inside `scenes/`; `assets/` contains immutable content-addressed
+RGBA sprite pixels referenced by version-four project scenes.
 Manifest reads are limited to 16 KiB, strictly validated, and never execute code.
 Opening and saving revalidate paths against traversal and symlinks. Creation requires
 a new folder, copies the current scene, preserves the source file, and cleans up
@@ -287,12 +297,24 @@ on handled failure. Save As leaves project mode and writes a standalone scene.
 This is path validation, not protection against concurrent hostile filesystem changes
 or an OS sandbox.
 
-Each version-three `.forge.json` file contains scene name,
+Project sprite references are constrained to `assets/<64 lowercase hex digits>.rgba`.
+The hash covers dimensions and raw RGBA pixels; opening rejects missing, damaged,
+oversized and symlinked assets. Copies reuse one file, and moving the whole folder
+preserves references. Open resolves assets into immutable in-memory Sprite data;
+Play and standalone Save As use that snapshot without external path access.
+Assets publish through a flushed temporary file and exclusive hard link before the
+scene's atomic replacement. Handled failures preserve prior scene data; unused
+assets may remain. Garbage collection and a crash-recovery journal are not implemented.
+This is not a whole-folder atomic transaction or concurrent filesystem sandbox.
+
+Each standalone version-three `.forge.json` file contains scene name,
 stable entity IDs, geometry, color, explicit Role values and optional embedded
 sprites (dimensions plus base64 RGBA pixels). Version-one scenes
 load in memory with Decoration roles. Loading does not rewrite the original; saving
-over a version-one/two document first creates `<filename>.v1.bak` or `.v2.bak`.
-An occupied backup name requires Save As. Scene reads/writes are limited to 4 MiB and scenes to 10,000
+over a legacy scene first creates a version-specific `.v1.bak`, `.v2.bak` or `.v3.bak`
+as appropriate to the target format.
+An occupied backup name requires Save As. Both on-disk scenes and resolved snapshots
+are limited to 4 MiB, preserving the standalone/Play boundary; scenes support 10,000
 entities. Undo/redo uses bounded in-memory scene history with monotonic revisions.
 Preview state lives in a separate simulation and is not persisted into the scene.
 
@@ -303,10 +325,10 @@ and history intact. The UI uses this command layer. No AI tool dispatcher or gen
 component registration exists yet. Typed roles are the current built-in gameplay
 contract, preceding the richer component design below.
 
-**Planned project extensions:** relative asset references, multiple scene selection,
+**Planned project extensions:** asset browsing/cleanup, multiple scene selection,
 and sandboxed Python `scripts/`. The basic `project.json`, `scenes/`, and `assets/`
-layout is implemented; assets are still embedded in scenes. Ignore
-generated caches and builds. Use stable IDs and relative asset references, with
+layout and relative sprite references are implemented; standalone scenes still
+embed pixels. Ignore generated caches and builds. Use stable IDs and relative asset references, with
 separate scene files for manageable diffs. Never store keys or machine-specific
 absolute paths in projects.
 
@@ -551,7 +573,7 @@ experience; these milestones are gates, not promised delivery dates.
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
-| 1 — Reliable workspace | Partial: scene editing, create/open project folders, path validation, save/reopen, upgrade backup, undo and Docker tests | Relative assets, multi-scene workspace, recovery journal and complete project integrity checks; CI automation still absent |
+| 1 — Reliable workspace | Partial: scene editing, project folders, relative assets, path/hash validation, save/reopen, upgrades, undo and Docker tests | Asset browser, multi-scene workspace, recovery journal and complete project integrity checks; CI automation still absent |
 | 2 — Playable 2D slice | Partial: editable collector, PNG sprites, keyboard movement, walls, coin triggers, HUD and restart | Asset libraries/animation, audio, configurable input/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
 | 3 — Useful assistant | Not started | Fake-provider tool path first; then verified local and hosted adapters, context/diffs, cancellation, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
@@ -577,18 +599,19 @@ Completed task checklist:
 - [x] Benchmark a transparent shared-texture sprite fixture.
 - [ ] Close the complete renderer/sandbox/packaging foundation gates.
 - [x] Add validated project-folder creation/opening around existing scenes.
-- [ ] Add relative asset references, multiple-scene browsing and bounded recovery.
+- [x] Add relative, content-addressed sprite assets with validated loading and upgrade backups.
+- [ ] Add asset browsing/cleanup, multiple-scene browsing and bounded recovery.
 - [ ] Deliver assets, audio, Python game scripting and native game export.
 - [ ] Connect the assistant through a fake provider, then verified real adapters.
 
 Next small features, in recommended order:
 
 1. Extend the completed shared-texture sprite fixture to representative unique
-   textures, and record native presentation/startup measurements. PNG import uses
-   bounded embedded pixels until project folders introduce relative asset references.
-2. Extend the implemented project-folder contract with relative asset references
-   and a tested upgrade path from embedded sprites. Keep saves transactional and
-   validate every asset path; add a bounded recovery journal and multiple-scene browsing.
+   textures, and record native presentation/startup measurements. Project assets
+   resolve into bounded pixels before reaching the shared renderer or Play process.
+2. Extend the implemented relative asset workflow with browsing/reuse and safe
+   cleanup. Add a bounded recovery journal and multiple-scene browsing, preserving
+   backups and validating every path. Do not silently delete unreachable assets.
 3. Add configurable movement/input and audio to the reference game, then a small
    independent native player/export package. Verify it outside the editor on clean Arch.
 4. Prove a native and container-compatible sandbox before enabling imported/generated

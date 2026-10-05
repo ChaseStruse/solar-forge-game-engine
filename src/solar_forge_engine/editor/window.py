@@ -37,6 +37,7 @@ from solar_forge_engine.core.commands import (
 )
 from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.core.templates import coin_collector
+from solar_forge_engine.project.assets import save_project_scene
 from solar_forge_engine.project.images import import_png
 from solar_forge_engine.project.storage import MAX_FILE_BYTES, load_scene, save_scene
 from solar_forge_engine.project.workspace import Project, create_project, open_project
@@ -333,7 +334,7 @@ class EditorWindow(QMainWindow):
             return False
         self.selected_id = entity.id
         self.refresh()
-        self.log.append(f"Imported {path.name}; sprite pixels are stored inside the scene.")
+        self.log.append(f"Imported {path.name}")
         return True
 
     def clear_sprite(self) -> None:
@@ -463,7 +464,9 @@ class EditorWindow(QMainWindow):
         try:
             if self.project is not None and not choose_path:
                 path = self.project.scene_path()
-            save_scene(path, self.document.scene)
+                save_project_scene(self.project.root, path, self.document.scene)
+            else:
+                save_scene(path, self.document.scene)
         except (OSError, ValueError) as error:
             self._error(f"Could not save scene: {error}")
             return False

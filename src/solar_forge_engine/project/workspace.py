@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 
 from solar_forge_engine.core.scene import Scene, text
-from solar_forge_engine.project.storage import load_scene, save_scene
+from solar_forge_engine.project.assets import load_project_scene, save_project_scene
 
 MANIFEST = "project.json"
 MAX_MANIFEST_BYTES = 16 * 1024
@@ -65,7 +65,7 @@ def open_project(root: Path) -> tuple[Project, Scene]:
     path = project.scene_path()
     if not path.is_file():
         raise ValueError("The project's scene file is missing or is not a regular file.")
-    return project, load_scene(path)
+    return project, load_project_scene(project.root, path)
 
 
 def create_project(root: Path, scene: Scene) -> Project:
@@ -76,7 +76,7 @@ def create_project(root: Path, scene: Scene) -> Project:
     try:
         (root / "scenes").mkdir()
         (root / "assets").mkdir()
-        save_scene(project.scene_path(), scene)
+        save_project_scene(project.root, project.scene_path(), scene)
         manifest = {
             "format_version": 1,
             "name": project.name,

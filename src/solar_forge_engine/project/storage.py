@@ -5,7 +5,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from solar_forge_engine.core.scene import FORMAT_VERSION, Scene
+from solar_forge_engine.core.scene import Scene
 
 MAX_FILE_BYTES = 4 * 1024 * 1024
 
@@ -16,15 +16,23 @@ def load_scene(path: Path) -> Scene:
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Scene files must be smaller than 4 MiB.")
     try:
-        return Scene.from_data(json.loads(raw))
+        data = json.loads(raw)
+        if isinstance(data, dict) and data.get("format_version") == 4:
+            raise ValueError("This scene uses project assets. Use File → Open project instead.")
+        return Scene.from_data(data)
     except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as error:
         raise ValueError("This file is not a valid UTF-8 JSON scene.") from error
 
 
 def save_scene(path: Path, scene: Scene) -> None:
+    save_scene_data(path, scene.to_data())
+
+
+def save_scene_data(path: Path, data: dict[str, object]) -> None:
+    """Write validated scene data, preserving supported originals before upgrades."""
     if path.is_symlink():
         raise ValueError("Choose a regular file instead of saving through a symbolic link.")
-    raw = (json.dumps(scene.to_data(), indent=2, allow_nan=False) + "\n").encode("utf-8")
+    raw = (json.dumps(data, indent=2, allow_nan=False) + "\n").encode("utf-8")
     if len(raw) > MAX_FILE_BYTES:
         raise ValueError("Scene files must be smaller than 4 MiB.")
     if path.exists():
@@ -37,7 +45,8 @@ def save_scene(path: Path, scene: Scene) -> None:
         if (
             isinstance(previous_data, dict)
             and type(previous_data.get("format_version")) is int
-            and previous_data["format_version"] in range(1, FORMAT_VERSION)
+            and previous_data["format_version"] in (1, 2, 3)
+            and previous_data["format_version"] < data["format_version"]
         ):
             Scene.from_data(previous_data)
             backup = path.with_name(f"{path.name}.v{previous_data['format_version']}.bak")

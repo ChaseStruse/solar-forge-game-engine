@@ -62,7 +62,7 @@ def test_project_creation_refuses_existing_folder_and_rolls_back_failure(tmp_pat
     def fail_save(*args):
         raise OSError("disk unavailable")
 
-    monkeypatch.setattr("solar_forge_engine.project.workspace.save_scene", fail_save)
+    monkeypatch.setattr("solar_forge_engine.project.workspace.save_project_scene", fail_save)
     root = tmp_path / "failed"
     with pytest.raises(OSError, match="disk unavailable"):
         create_project(root, Scene())
