@@ -241,6 +241,11 @@ all 280 tests pass locally (10.18 seconds) and in Docker (12.24 seconds), plus R
 formatting and mypy. Whole-folder transactions and multi-session recovery ownership
 remain open.
 
+Activity now uses native plain-text controls and literal append operations, retaining
+the existing bounded history and theme. Error dialogs and quarantine review also
+force literal text. A regression opens an HTML-like scene title and an error with
+an image reference, proving the text survives and the referenced image is not rendered.
+
 Scene → Rename scene title now edits the active title through `SetSceneName`, with
 validation, revision protection and undo/redo. Saving retains the project's file,
 startup manifest, recovery and lock paths. Cancellation and invalid/expired edits

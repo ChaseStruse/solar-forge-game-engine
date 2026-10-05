@@ -24,10 +24,10 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMessageBox,
+    QPlainTextEdit,
     QPushButton,
     QScrollArea,
     QSpinBox,
-    QTextEdit,
     QToolBar,
     QTreeWidgetItem,
     QVBoxLayout,
@@ -328,16 +328,17 @@ class EditorWindow(QMainWindow):
         for previous, following in zip(inspector_fields, inspector_fields[1:]):
             QWidget.setTabOrder(previous, following)
 
-        self.log = QTextEdit()
+        self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
-        self.log.setAcceptRichText(False)
         self.log.document().setMaximumBlockCount(100)
         self.log.setMaximumHeight(130)
         self._dock("Activity", self.log, Qt.DockWidgetArea.BottomDockWidgetArea)
-        self.log.append("Create a rectangle, edit its properties, and save your first scene.")
+        self.log.appendPlainText(
+            "Create a rectangle, edit its properties, and save your first scene."
+        )
         self.lock_preferences = LockPersistence(self)
         self.lock_preferences.restored.connect(self._set_viewport_locks)
-        self.lock_preferences.warning.connect(self.log.append)
+        self.lock_preferences.warning.connect(self.log.appendPlainText)
 
         self.assistant = AssistantPanel(lambda: (self.document, self.selected_id), self.refresh)
         assistant_scroll = QScrollArea()
@@ -527,11 +528,11 @@ class EditorWindow(QMainWindow):
 
     def _commit_drag(self, entity_id: str, x: float, y: float) -> None:
         if entity_id in self.view.locked_ids:
-            self.log.append("Drag canceled because the object is locked.")
+            self.log.appendPlainText("Drag canceled because the object is locked.")
             self.refresh()
             return
         if self._drag_context != (self.document, self.document.revision):
-            self.log.append("Drag canceled because the scene changed.")
+            self.log.appendPlainText("Drag canceled because the scene changed.")
             self.refresh()
             return
         self.execute(SetEntity(entity_id, {"x": x, "y": y}))
@@ -639,7 +640,7 @@ class EditorWindow(QMainWindow):
                 if entity.role == Role.DECORATION
             }
         )
-        self.log.append(
+        self.log.appendPlainText(
             "Decorations locked against viewport dragging. Named scenes save locks locally."
         )
 
@@ -773,7 +774,7 @@ class EditorWindow(QMainWindow):
             return False
         if not self._add_sprite_entity(entity):
             return False
-        self.log.append(f"Imported {path.name}")
+        self.log.appendPlainText(f"Imported {path.name}")
         return True
 
     def _execute_bounded(self, command: Command, *, expected_revision: int | None = None) -> bool:
@@ -869,12 +870,12 @@ class EditorWindow(QMainWindow):
         if self.project is not None and self.project.root == job.project.root:
             for name, sprite in job.sprites:
                 if not self._remember_asset(name, sprite):
-                    self.log.append("Project asset palette limit reached.")
+                    self.log.appendPlainText("Project asset palette limit reached.")
                     break
             for warning in job.warnings:
-                self.log.append(warning)
+                self.log.appendPlainText(warning)
             self._refresh_assets()
-            self.log.append("Project assets refreshed from saved scenes.")
+            self.log.appendPlainText("Project assets refreshed from saved scenes.")
         self._asset_index_job = None
         self.refresh_assets_button.setEnabled(self.project is not None)
         self.refresh_assets_button.setText("Refresh project assets")
@@ -916,10 +917,12 @@ class EditorWindow(QMainWindow):
         dialog = QuarantineDialog(self.project, self)
         dialog.exec()
         if dialog.restored:
-            self.log.append("Quarantined assets restored; scene data was not changed.")
+            self.log.appendPlainText("Quarantined assets restored; scene data was not changed.")
             self.refresh_project_assets()
         if dialog.purged:
-            self.log.append("Quarantined assets permanently deleted; scene data unchanged.")
+            self.log.appendPlainText(
+                "Quarantined assets permanently deleted; scene data unchanged."
+            )
         dialog.deleteLater()
 
     def review_unused_assets(self) -> None:
@@ -941,9 +944,9 @@ class EditorWindow(QMainWindow):
         self.setEnabled(True)
         job.deleteLater()
         if job.error:
-            self.log.append(f"Cleanup stopped: {job.error}")
+            self.log.appendPlainText(f"Cleanup stopped: {job.error}")
         elif job.destination is not None:
-            self.log.append(
+            self.log.appendPlainText(
                 f"Unused assets quarantined in {job.destination.relative_to(job.project.root)}"
             )
         elif (
@@ -979,9 +982,9 @@ class EditorWindow(QMainWindow):
                     self.setEnabled(False)
                     operation.start()
             else:
-                self.log.append("No unused managed assets found.")
+                self.log.appendPlainText("No unused managed assets found.")
         else:
-            self.log.append("Cleanup review expired because the editor state changed.")
+            self.log.appendPlainText("Cleanup review expired because the editor state changed.")
         self.quarantine_button.setEnabled(self.project is not None and self._cleanup_job is None)
         self.cleanup_assets_button.setEnabled(
             self.project is not None and not self.dirty and self._cleanup_job is None
@@ -1119,18 +1122,20 @@ class EditorWindow(QMainWindow):
         self.stop_action.setEnabled(True)
 
     def _preview_started(self) -> None:
-        self.log.append("Play started · WASD / arrows move the controlled object · Esc closes")
+        self.log.appendPlainText(
+            "Play started · WASD / arrows move the controlled object · Esc closes"
+        )
 
     def _preview_finished(self, exit_code: int, status: QProcess.ExitStatus) -> None:
         detail = f" (exit {exit_code})" if exit_code and not self._stopping_preview else ""
-        self.log.append(f"Play stopped{detail}. Authored scene retained.")
+        self.log.appendPlainText(f"Play stopped{detail}. Authored scene retained.")
         self.stop_action.setEnabled(False)
         self.play_action.setEnabled(bool(self.document.scene.entities))
 
     def _preview_error(self, error: QProcess.ProcessError) -> None:
         if self._stopping_preview and error == QProcess.ProcessError.Crashed:
             return
-        self.log.append(f"Preview process: {self.preview.errorString()}")
+        self.log.appendPlainText(f"Preview process: {self.preview.errorString()}")
         if self.preview.state() == QProcess.ProcessState.NotRunning:
             self.stop_action.setEnabled(False)
             self.play_action.setEnabled(bool(self.document.scene.entities))
@@ -1139,13 +1144,13 @@ class EditorWindow(QMainWindow):
         message = bytes(self.preview.readAllStandardError().data()).decode(
             "utf-8", errors="replace"
         )
-        self.log.append(message[:4000])
+        self.log.appendPlainText(message[:4000])
 
     def _preview_ready(self) -> None:
         message = bytes(self.preview.readAllStandardOutput().data()).decode(
             "utf-8", errors="replace"
         )
-        self.log.append(message[:4000].strip())
+        self.log.appendPlainText(message[:4000].strip())
 
     def stop_preview(self) -> None:
         if self.preview.state() != QProcess.ProcessState.NotRunning:
@@ -1179,7 +1184,7 @@ class EditorWindow(QMainWindow):
         job = ExportWorker(path, self.document.scene)
         self._export_job = job
         self.export_action.setEnabled(False)
-        self.log.append(f"Exporting {job.scene.name}…")
+        self.log.appendPlainText(f"Exporting {job.scene.name}…")
         job.finished.connect(lambda: self._export_finished(job))
         job.start()
         return True
@@ -1191,7 +1196,7 @@ class EditorWindow(QMainWindow):
         if job.error:
             self._error(f"Could not export game: {job.error}")
         else:
-            self.log.append(
+            self.log.appendPlainText(
                 f"Exported {job.scene.name} to {job.path.name} ({job.size} bytes). "
                 "Requires Python 3.14 and PySide6-Essentials 6.11.2. "
                 "Editor and Docker are not needed."
@@ -1225,7 +1230,7 @@ class EditorWindow(QMainWindow):
         self._save_job = job
         enabled = self.isEnabled()
         self.setEnabled(False)
-        self.log.append(f"Saving {path.name}…")
+        self.log.appendPlainText(f"Saving {path.name}…")
         loop = QEventLoop(self)
         job.finished.connect(loop.quit)
         job.start()
@@ -1239,7 +1244,9 @@ class EditorWindow(QMainWindow):
             self._error(f"Could not save scene: {job.error}")
             return False
         if self.document is not document:
-            self.log.append(f"Saved {path.name}; the active document changed during saving.")
+            self.log.appendPlainText(
+                f"Saved {path.name}; the active document changed during saving."
+            )
             return False
         self._clear_recovery()
         self.path = path
@@ -1247,7 +1254,7 @@ class EditorWindow(QMainWindow):
         if choose_path:
             self.project = None
         self.saved_scene = snapshot
-        self.log.append(f"Saved {path.name}")
+        self.log.appendPlainText(f"Saved {path.name}")
         self.refresh()
         return True
 
@@ -1267,7 +1274,7 @@ class EditorWindow(QMainWindow):
         self.selected_id = None
         self.refresh()
         self.fit_scene()
-        self.log.append(f"Opened {path.name}")
+        self.log.appendPlainText(f"Opened {path.name}")
         return True
 
     def choose_project_folder(self) -> None:
@@ -1289,7 +1296,7 @@ class EditorWindow(QMainWindow):
         self.saved_scene = self.document.scene
         self.refresh()
         self.refresh_project_assets()
-        self.log.append(f"Created project {project.name} from the current applied scene.")
+        self.log.appendPlainText(f"Created project {project.name} from the current applied scene.")
         return True
 
     def choose_open_project(self) -> None:
@@ -1313,13 +1320,13 @@ class EditorWindow(QMainWindow):
         try:
             recovered = read_recovery(project, scene)
         except (OSError, ValueError) as error:
-            self.log.append(f"Recovery snapshot unavailable: {error}")
+            self.log.appendPlainText(f"Recovery snapshot unavailable: {error}")
         choice = self._choose_recovery() if recovered is not None else "keep"
         if choice == "discard":
             try:
                 clear_recovery(project)
             except (OSError, ValueError) as error:
-                self.log.append(f"Could not discard recovery: {error}")
+                self.log.appendPlainText(f"Could not discard recovery: {error}")
         self._close_preview()
         self.document = Document(scene)
         self.project = project
@@ -1331,10 +1338,12 @@ class EditorWindow(QMainWindow):
         self.fit_scene()
         self.refresh_project_scenes()
         self.refresh_project_assets()
-        self.log.append(f"Opened {project.name} / {scene.name}")
+        self.log.appendPlainText(f"Opened {project.name} / {scene.name}")
         if choice == "recover" and recovered is not None:
             self.execute(RestoreScene(recovered))
-            self.log.append("Recovered edits. Save to keep them; Undo restores the saved scene.")
+            self.log.appendPlainText(
+                "Recovered edits. Save to keep them; Undo restores the saved scene."
+            )
 
     def _update_startup_actions(self) -> None:
         row = self.project_scene_list.currentItem()
@@ -1367,9 +1376,11 @@ class EditorWindow(QMainWindow):
         self.setEnabled(True)
         job.deleteLater()
         if job.error:
-            self.log.append(f"Startup scene unchanged: {job.error}")
+            self.log.appendPlainText(f"Startup scene unchanged: {job.error}")
         else:
-            self.log.append(f"Startup scene set to {job.reference}; active scene unchanged.")
+            self.log.appendPlainText(
+                f"Startup scene set to {job.reference}; active scene unchanged."
+            )
         self.refresh_project_scenes()
 
     def refresh_project_scenes(self) -> None:
@@ -1387,7 +1398,7 @@ class EditorWindow(QMainWindow):
                 "Startup scene unavailable; refresh after fixing project settings."
             )
             self._update_startup_actions()
-            self.log.append(f"Scene browser unavailable: {error}")
+            self.log.appendPlainText(f"Scene browser unavailable: {error}")
             return
         for reference in references:
             row = QListWidgetItem(Path(reference).name.removesuffix(".forge.json"))
@@ -1487,7 +1498,7 @@ class EditorWindow(QMainWindow):
         )
         self.refresh()
         self.fit_scene()
-        self.log.append(message)
+        self.log.appendPlainText(message)
 
     def _confirm_discard(self) -> bool:
         if not self.dirty:
@@ -1523,11 +1534,13 @@ class EditorWindow(QMainWindow):
             return
         if isinstance(job, RecoveryCleaner):
             if job.error:
-                self.log.append(f"Recovery retained: {job.error}")
+                self.log.appendPlainText(f"Recovery retained: {job.error}")
         elif job.error:
-            self.log.append(f"Autosave failed: {job.error}. Manual Save is still available.")
+            self.log.appendPlainText(
+                f"Autosave failed: {job.error}. Manual Save is still available."
+            )
         elif not job.discard:
-            self.log.append("Recovery snapshot updated.")
+            self.log.appendPlainText("Recovery snapshot updated.")
         self._recovery_job = None
         job.deleteLater()
         self._start_recovery_cleanup()
@@ -1572,43 +1585,49 @@ class EditorWindow(QMainWindow):
         return "discard" if dialog.clickedButton() == discard else "keep"
 
     def _error(self, message: str) -> None:
-        self.log.append(message)
-        QMessageBox.warning(self, "Scene could not be changed", message)
+        self.log.appendPlainText(message)
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Scene could not be changed")
+        dialog.setIcon(QMessageBox.Icon.Warning)
+        dialog.setTextFormat(Qt.TextFormat.PlainText)
+        dialog.setText(message)
+        dialog.setStandardButtons(QMessageBox.StandardButton.Ok)
+        dialog.exec()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self._export_job is not None:
-            self.log.append("Finishing native export; close again shortly.")
+            self.log.appendPlainText("Finishing native export; close again shortly.")
             event.ignore()
             return
         if self._save_job is not None:
-            self.log.append("Finishing the scene save; close again shortly.")
+            self.log.appendPlainText("Finishing the scene save; close again shortly.")
             event.ignore()
             return
         if self.assistant.busy:
             self.assistant.discard()
-            self.log.append("Finishing assistant request; close again shortly.")
+            self.log.appendPlainText("Finishing assistant request; close again shortly.")
             event.ignore()
             return
         if self._startup_job is not None:
-            self.log.append("Finishing startup scene update; close again shortly.")
+            self.log.appendPlainText("Finishing startup scene update; close again shortly.")
             event.ignore()
             return
         if self._confirm_discard():
             if not self.lock_preferences.drain(1000):
-                self.log.append("Finishing editor lock settings; close again shortly.")
+                self.log.appendPlainText("Finishing editor lock settings; close again shortly.")
                 event.ignore()
                 return
             self._closing = True
             if self._cleanup_job is not None and not self._cleanup_job.wait(1000):
                 self._closing = False
-                self.log.append("Finishing cleanup; close again shortly.")
+                self.log.appendPlainText("Finishing cleanup; close again shortly.")
                 event.ignore()
                 return
             if self._asset_index_job is not None:
                 job_index = self._asset_index_job
                 job_index.requestInterruption()
                 if not job_index.wait(1000):
-                    self.log.append("Finishing asset scan; close again shortly.")
+                    self.log.appendPlainText("Finishing asset scan; close again shortly.")
                     self._closing = False
                     event.ignore()
                     return
@@ -1619,7 +1638,7 @@ class EditorWindow(QMainWindow):
                 job = self._recovery_job
                 remaining = max(0, 1000 - recovery_deadline.elapsed())
                 if not remaining or not job.wait(remaining):
-                    self.log.append("Finishing recovery snapshot; close again shortly.")
+                    self.log.appendPlainText("Finishing recovery snapshot; close again shortly.")
                     self._closing = False
                     event.ignore()
                     return

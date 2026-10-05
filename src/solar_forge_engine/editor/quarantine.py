@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from PySide6.QtCore import QThread
+from PySide6.QtCore import Qt, QThread
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import (
     QDialog,
@@ -129,6 +129,7 @@ class QuarantineDialog(QDialog):
         review = QMessageBox(self)
         review.setWindowTitle("Permanently delete quarantined asset?")
         review.setIcon(QMessageBox.Icon.Warning)
+        review.setTextFormat(Qt.TextFormat.PlainText)
         review.setText(f"Delete one quarantined file ({asset.size} bytes)?")
         review.setInformativeText(
             f"{asset.reference}\n\nThis cannot be undone. Scene data and assets/ are unchanged."

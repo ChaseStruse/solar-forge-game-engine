@@ -448,6 +448,8 @@ flushes its directory. Multi-session ownership of recovery snapshots remains ope
 Project manifests use the same safe reader. Startup updates coordinate publication
 and check byte revisions; new project metadata flushes its root and parent before
 creation succeeds.
+Activity and error dialogs display project text literally, preserving HTML-like
+names without treating them as formatting or image references.
 
 ## Native game export
 

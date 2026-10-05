@@ -27,7 +27,8 @@ QGroupBox#inspectorGroup { border: 1px solid #2b4030; border-radius: 7px;
                          margin-top: 8px; }
 QGroupBox#inspectorGroup::title { subcontrol-origin: margin; left: 12px;
                                 padding: 0 5px; color: #b5ef83; font-weight: bold; }
-QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QTreeWidget, QListWidget, QTextEdit {
+QLineEdit, QDoubleSpinBox, QSpinBox, QComboBox, QTreeWidget, QListWidget,
+QTextEdit, QPlainTextEdit {
     background: #030605; border: 1px solid #2b4030; border-radius: 5px; padding: 5px;
     selection-background-color: #29472a; selection-color: #f6ffd9;
 }
