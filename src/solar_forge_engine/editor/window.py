@@ -44,6 +44,7 @@ from solar_forge_engine.core.commands import (
     RestoreScene,
     SetCoinSound,
     SetEntity,
+    SetSceneName,
 )
 from solar_forge_engine.core.scene import Entity, InputPreset, Role, Scene
 from solar_forge_engine.core.showcase import ember_run
@@ -351,6 +352,8 @@ class EditorWindow(QMainWindow):
         file_menu = self.menuBar().addMenu("&File")
         edit_menu = self.menuBar().addMenu("&Edit")
         scene_menu = self.menuBar().addMenu("&Scene")
+        rename = scene_menu.addAction("Rename scene title…")
+        rename.triggered.connect(self.rename_scene)
         find_object = scene_menu.addAction("Find object")
         find_object.setShortcut("Ctrl+L")
         find_object.triggered.connect(self.find_object)
@@ -869,6 +872,18 @@ class EditorWindow(QMainWindow):
         job.deleteLater()
         if not self._closing and self.project is not None and self.project.root != job.project.root:
             self.refresh_project_assets()
+
+    def rename_scene(self) -> None:
+        document, revision = self.document, self.document.revision
+        name, accepted = QInputDialog.getText(
+            self, "Rename scene title", "Scene name", text=document.scene.name
+        )
+        if not accepted:
+            return
+        if self.document is not document:
+            self._error("The scene changed. Reopen Rename before changing its title.")
+            return
+        self.execute(SetSceneName(name), expected_revision=revision)
 
     def browse_sounds(self) -> None:
         if self.project is None:

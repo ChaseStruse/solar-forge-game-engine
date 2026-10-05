@@ -99,6 +99,9 @@ Opening an existing standalone scene and creating a project copies it without
 rewriting the original. The manifest uses a relative scene path; traversal and
 symbolic links in that path are rejected on open and rechecked on save.
 
+**Scene → Rename scene title…** changes the active title through an undoable edit.
+Save persists it without changing the filename, startup scene, or recovery path.
+
 The **Project scenes** panel lists up to 128 top-level scene files. **New project
 scene** creates an empty named scene without overwriting an existing file. Names
 use 1–64 letters, digits, spaces, underscores or hyphens, starting with a letter or

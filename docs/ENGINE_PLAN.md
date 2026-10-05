@@ -201,6 +201,12 @@ with Ruff, formatting and strict mypy passing. Regression checks cover observed
 external edits/removal, unsafe targets, late changes, event-loop responsiveness,
 close guarding and file/directory flushes.
 
+Scene → Rename scene title now edits the active title through `SetSceneName`, with
+validation, revision protection and undo/redo. Saving retains the project's file,
+startup manifest, recovery and lock paths. Cancellation and invalid/expired edits
+preserve the current scene. The small scene-organization checkpoint passed 22
+focused scene/document/project tests, Ruff and strict mypy; no format change is needed.
+
 UI direction: the native editor now uses near-black surfaces with solarpunk leaf
 green, mint and solar-gold accents, a vector sun-and-leaves emblem, a scene header,
 and an actionable welcome card. Empty scenes
@@ -1045,6 +1051,7 @@ Completed task checklist:
 - [x] Group Inspector properties with adaptive forms and an always-visible Apply action.
 - [x] Add sprite palette search, clearer thumbnail entries and safe filtered reuse.
 - [x] Add validated object draw ordering, boundary-aware actions and consistent editor/Play stacking.
+- [x] Add undoable scene-title editing without changing project file/startup paths.
 - [x] Add bounded unused-file review, reference protection, revalidation and reversible quarantine.
 - [x] Add native bounded quarantine browsing and exclusive, revalidated restoration.
 - [x] Add explicit startup-scene selection with validation and atomic manifest updates.
