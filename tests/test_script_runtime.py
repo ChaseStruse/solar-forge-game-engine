@@ -15,7 +15,7 @@ def scripted(source):
 def test_restricted_worker_callbacks_input_state_logs_and_clean_stop(qtbot):
     scene = scripted("""def start(ctx):
     ctx.state["started"] = True
-    print("started")
+    print("started", ctx.id)
 
 def on_key(ctx, key, pressed):
     if pressed and key == "space":
@@ -39,7 +39,7 @@ def stop(ctx):
     qtbot.waitUntil(lambda: host.ready or host.failed, timeout=6000)
     try:
         assert not faults
-        assert results[0].logs == ("started",)
+        assert results[0].logs == ("started player",)
         assert host.step(
             0.05,
             1.0,
@@ -185,3 +185,85 @@ def update(ctx, dt):
     player.close()
     qtbot.waitUntil(lambda: not new_host.active)
     assert not player.isVisible()
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "while True: pass\n",
+        "def stop(ctx):\n    while True: pass\n",
+    ],
+)
+def test_initialization_and_stop_loops_cannot_leave_workers_alive(qtbot, source):
+    host = ScriptHost(scripted(source))
+    faults = []
+    host.fault.connect(faults.append)
+    host.start()
+    if source.startswith("while"):
+        qtbot.waitUntil(lambda: host.failed, timeout=6000)
+    else:
+        qtbot.waitUntil(lambda: host.ready or host.failed, timeout=6000)
+        assert not host.failed
+        host.stop()
+        qtbot.waitUntil(lambda: host.failed, timeout=1000)
+    qtbot.waitUntil(lambda: not host.active)
+    assert "deadline" in faults[0].message
+
+
+def test_unavailable_restrictions_fail_before_any_project_source(qtbot, tmp_path, monkeypatch):
+    from solar_forge_engine.runtime import script_host
+
+    original = script_host.bootstrap()
+    replacement = """def denied():
+    raise RuntimeError('restriction unavailable fixture')
+module.enforce = denied
+raise SystemExit(module.worker_main())"""
+    monkeypatch.setattr(
+        script_host,
+        "bootstrap",
+        lambda: original.replace(
+            "raise SystemExit(module.worker_main())",
+            replacement,
+        ),
+    )
+    marker = tmp_path / "must-not-exist"
+    scene = scripted(f"open({str(marker)!r}, 'w').write('bad')\ndef start(ctx):\n    pass\n")
+    host = ScriptHost(scene)
+    faults = []
+    host.fault.connect(faults.append)
+    host.start()
+    qtbot.waitUntil(lambda: host.failed and not host.active, timeout=6000)
+    assert "restriction unavailable fixture" in faults[0].message
+    assert not marker.exists()
+
+
+def test_invalid_response_cannot_partially_apply_or_crash_number_validation(qtbot):
+    import json
+
+    from solar_forge_engine.runtime.script_protocol import parse_result
+
+    binding = scripted("def start(ctx):\n    pass\n").scripts[0]
+    packet = {
+        "id": 0,
+        "actions": [
+            {"entity_id": "player", "kind": "move", "values": [1, 0]},
+            {"entity_id": "player", "kind": "move", "values": [10**400, 0]},
+        ],
+        "logs": [],
+        "error": None,
+    }
+    with pytest.raises(ValueError, match="finite"):
+        parse_result(packet, 0, {"player": binding.path})
+    source = (
+        "import os\ndef start(ctx):\n    os.write(1, "
+        + repr((json.dumps(packet) + "\n").encode())
+        + ")\n"
+    )
+    host = ScriptHost(scripted(source))
+    faults, results = [], []
+    host.fault.connect(faults.append)
+    host.result.connect(results.append)
+    host.start()
+    qtbot.waitUntil(lambda: host.failed and not host.active, timeout=6000)
+    assert "finite" in faults[0].message
+    assert not results

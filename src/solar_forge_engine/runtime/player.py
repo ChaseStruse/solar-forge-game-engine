@@ -84,6 +84,8 @@ class PlayerWindow(QMainWindow):
         self.script_host: ScriptHost | None = None
         self._script_time = 0.0
         self._script_started = False
+        self._log_window = time.monotonic()
+        self._log_count = 0
         self.sound_player.finished.connect(self._audio_finished)
         self.simulation = Simulation(scene, controlled_id)
         preset = self.simulation.controlled.input_preset
@@ -179,8 +181,15 @@ class PlayerWindow(QMainWindow):
     def _script_result(self, host: ScriptHost, result: ScriptResult) -> None:
         if host is not self.script_host:
             return
+        if time.monotonic() - self._log_window >= 1:
+            self._log_window, self._log_count = time.monotonic(), 0
         for message in result.logs:
-            print("SCRIPT_LOG " + json.dumps(message), flush=True)
+            if self._log_count < 32:
+                print("SCRIPT_LOG " + json.dumps(message), flush=True)
+                self._log_count += 1
+            elif self._log_count == 32:
+                print('SCRIPT_LOG "Further Python logs suppressed for this second."', flush=True)
+                self._log_count += 1
         if result.fault is not None or self._closing or self._restart_pending or host.stopping:
             return
         if not self.paused and (not self._script_started or self.isActiveWindow()):

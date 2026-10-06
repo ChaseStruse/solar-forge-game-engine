@@ -35,7 +35,7 @@ class ScriptResult:
 def scalar(value: object) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError("Behavior coordinates must be numbers.")
-    if not math.isfinite(value) or abs(value) > 100_000:
+    if abs(value) > 100_000 or not math.isfinite(value):
         raise ValueError("Behavior coordinates must be finite and within ±100,000.")
     return float(value)
 

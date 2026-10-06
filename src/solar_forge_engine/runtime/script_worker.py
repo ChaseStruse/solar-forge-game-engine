@@ -4,6 +4,7 @@ import io
 import json
 import math
 import random
+import re
 import sys
 import traceback
 from collections.abc import Callable
@@ -24,14 +25,26 @@ CALLBACKS = ("start", "update", "on_collision", "on_collect", "on_key", "stop")
 class Output(io.TextIOBase):
     def __init__(self) -> None:
         self.messages: list[str] = []
+        self._partial = ""
 
     def write(self, text: str) -> int:
-        if len(self.messages) < MAX_LOGS and text.strip():
-            self.messages.append(text[:512])
+        remaining = text
+        while remaining and len(self.messages) < MAX_LOGS:
+            chunk, separator, remaining = remaining.partition("\n")
+            self._partial = (self._partial + chunk[:512])[:512]
+            if not separator:
+                break
+            self.flush()
         return len(text)
 
+    def clear(self) -> None:
+        self.messages.clear()
+        self._partial = ""
+
     def flush(self) -> None:
-        pass
+        if self._partial.strip() and len(self.messages) < MAX_LOGS:
+            self.messages.append(self._partial)
+        self._partial = ""
 
 
 class Input:
@@ -99,12 +112,18 @@ class Context:
         self._emit("rotation", scalar(degrees))
 
     def set_color(self, color: str) -> None:
+        if not isinstance(color, str) or not re.fullmatch(r"#[0-9a-fA-F]{6}", color):
+            raise ValueError("Colors must use six-digit hex values.")
         self._emit("color", color)
 
     def set_visible(self, visible: bool) -> None:
+        if type(visible) is not bool:
+            raise ValueError("Visibility must be True or False.")
         self._emit("visible", visible)
 
     def add_score(self, points: int) -> None:
+        if type(points) is not int or abs(points) > 1000:
+            raise ValueError("Score changes must be integers within ±1,000.")
         self._emit("score", points)
 
 
@@ -163,7 +182,7 @@ def worker_main() -> int:
             return 1
         request = json.loads(raw)
         identity = request["id"]
-        output.messages.clear()
+        output.clear()
         actions: list[dict[str, object]] = []
         current_id, current_path = "", ""
         try:
@@ -198,6 +217,7 @@ def worker_main() -> int:
                             behavior.call("on_" + event["kind"], context, event["other"])
                     behavior.call("update", context, request["dt"])
                 previous_keys = set(keys)
+            output.flush()
             send(
                 channel,
                 {"id": identity, "actions": actions, "logs": output.messages, "error": None},
@@ -215,6 +235,7 @@ def worker_main() -> int:
                 "line": min(max(line, 1), 65536),
                 "message": f"{type(error).__name__}: {error}"[:2048],
             }
+            output.flush()
             send(channel, {"id": identity, "actions": [], "logs": output.messages, "error": fault})
             return 1
     return 0

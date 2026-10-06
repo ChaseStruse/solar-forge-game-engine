@@ -45,6 +45,7 @@ from solar_forge_engine.core.commands import (
     SetCoinSound,
     SetEntity,
     SetSceneName,
+    SetScript,
 )
 from solar_forge_engine.core.scene import Entity, InputPreset, Role, Scene
 from solar_forge_engine.core.showcase import ember_run
@@ -60,6 +61,7 @@ from solar_forge_engine.editor.objects import ROLE_DATA, SceneObjects
 from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryCleaner, RecoveryWriter
 from solar_forge_engine.editor.saving import SceneSaver
+from solar_forge_engine.editor.scripts import ScriptPanel
 from solar_forge_engine.editor.startup import StartupWriter
 from solar_forge_engine.editor.theme import STYLE, ForgeWorkspace
 from solar_forge_engine.editor.viewport import SceneView
@@ -79,6 +81,7 @@ from solar_forge_engine.project.workspace import (
     open_scene as open_project_scene,
 )
 from solar_forge_engine.runtime.rendering import render_scene, sprite_pixmap
+from solar_forge_engine.runtime.script_protocol import parse_result
 from solar_forge_engine.runtime.simulation import controlled_entity
 
 SCENE_FILTER = "Solar Forge scene (*.forge.json)"
@@ -103,6 +106,8 @@ class EditorWindow(QMainWindow):
         self.recovery_timer.timeout.connect(self.autosave)
         self.preview = QProcess(self)
         self._stopping_preview = False
+        self._preview_buffer = bytearray()
+        self._preview_scripts: dict[str, str] = {}
         self.preview.finished.connect(self._preview_finished)
         self.preview.errorOccurred.connect(self._preview_error)
         self.preview.readyReadStandardError.connect(self._preview_output)
@@ -336,6 +341,13 @@ class EditorWindow(QMainWindow):
         self.log.appendPlainText(
             "Create a rectangle, edit its properties, and save your first scene."
         )
+        self.scripts = ScriptPanel(self._apply_scripts, self._error)
+        self.scripts.draft_changed.connect(self._script_draft_changed)
+        self.scripts.navigate.connect(self._navigate_script)
+        self._dock("Python", self.scripts, Qt.DockWidgetArea.BottomDockWidgetArea)
+        python_dock = self.findChild(QDockWidget, "Python")
+        if python_dock is not None:
+            python_dock.hide()
         self.lock_preferences = LockPersistence(self)
         self.lock_preferences.restored.connect(self._set_viewport_locks)
         self.lock_preferences.warning.connect(self.log.appendPlainText)
@@ -357,6 +369,9 @@ class EditorWindow(QMainWindow):
         file_menu = self.menuBar().addMenu("&File")
         edit_menu = self.menuBar().addMenu("&Edit")
         scene_menu = self.menuBar().addMenu("&Scene")
+        edit_python = scene_menu.addAction("Python behavior…")
+        edit_python.setShortcut("Ctrl+Alt+P")
+        edit_python.triggered.connect(self.edit_python)
         rename = scene_menu.addAction("Rename scene title…")
         rename.triggered.connect(self.rename_scene)
         find_object = scene_menu.addAction("Find object")
@@ -510,7 +525,46 @@ class EditorWindow(QMainWindow):
 
     @property
     def dirty(self) -> bool:
-        return self.document.scene != self.saved_scene
+        return self.document.scene != self.saved_scene or (
+            self.scripts.document is self.document and self.scripts.pending
+        )
+
+    def edit_python(self) -> None:
+        dock = self.findChild(QDockWidget, "Python")
+        if dock is not None:
+            dock.show()
+            dock.raise_()
+            self.resizeDocks([dock], [390], Qt.Orientation.Vertical)
+        self.scripts.code.setFocus()
+
+    def _navigate_script(self, identity: str) -> None:
+        self.selected_id = identity
+        self.refresh()
+        self.edit_python()
+
+    def _apply_scripts(self, commands: tuple[SetScript, ...], revision: int) -> bool:
+        try:
+            candidate = self.document.scene
+            for command in commands:
+                candidate = command.apply(candidate)
+            if len(json.dumps(candidate.to_data(), indent=2).encode()) + 1 > MAX_FILE_BYTES:
+                raise ValueError("These behaviors would exceed the 4 MiB scene limit.")
+            self.document.execute(*commands, expected_revision=revision)
+        except ValueError as error:
+            self._error(str(error))
+            return False
+        self.refresh()
+        return True
+
+    def _script_draft_changed(self) -> None:
+        title = self.windowTitle().removeprefix("* ")
+        self.setWindowTitle(("* " if self.dirty else "") + title)
+        self.workspace.update_scene(
+            self.document.scene.name, len(self.document.scene.entities), self.dirty
+        )
+        self.statusBar().showMessage("Python draft changed; Save, Play or Export applies it.")
+        if self.project is not None and self.dirty:
+            self.recovery_timer.start()
 
     def _dock(self, title: str, widget: QWidget, area: Qt.DockWidgetArea) -> None:
         dock = QDockWidget(title, self)
@@ -645,6 +699,7 @@ class EditorWindow(QMainWindow):
         )
 
     def _update_inspector(self) -> None:
+        self.scripts.sync(self.document, self.selected_id)
         self._update_lock_controls()
         self._update_asset_actions()
         self.inspector.setEnabled(self.selected_id is not None)
@@ -1052,10 +1107,14 @@ class EditorWindow(QMainWindow):
             self.execute(SetEntity(self.selected_id, changes))
 
     def delete_selected(self) -> None:
+        if not self.scripts.flush():
+            return
         if self.selected_id is not None:
             self.execute(DeleteEntity(self.selected_id))
 
     def duplicate_selected(self) -> None:
+        if not self.scripts.flush():
+            return
         if self.selected_id is None:
             return
         original = self.document.scene.entity(self.selected_id)
@@ -1066,7 +1125,29 @@ class EditorWindow(QMainWindow):
             x=min(original.x + 24, 100_000),
             y=min(original.y + 24, 100_000),
         )
-        if self.execute(CreateEntity(duplicate)):
+        binding = next(
+            (
+                binding
+                for binding in self.document.scene.scripts
+                if binding.entity_id == original.id
+            ),
+            None,
+        )
+        try:
+            commands: tuple[Command, ...] = (CreateEntity(duplicate),)
+            if binding is not None:
+                duplicated = replace(binding, entity_id=duplicate.id)
+                commands += (SetScript(duplicate.id, asdict(duplicated)),)
+            candidate = self.document.scene
+            for command in commands:
+                candidate = command.apply(candidate)
+            if len(json.dumps(candidate.to_data(), indent=2).encode()) + 1 > MAX_FILE_BYTES:
+                raise ValueError("Duplicating this object would exceed the 4 MiB scene limit.")
+            self.document.execute(*commands, expected_revision=self.document.revision)
+        except ValueError as error:
+            self._error(str(error))
+            return
+        else:
             self.selected_id = duplicate.id
             self.refresh()
 
@@ -1088,10 +1169,16 @@ class EditorWindow(QMainWindow):
         self.execute(MoveEntity(self.selected_id, target))
 
     def undo(self) -> None:
+        if self.scripts.code.hasFocus():
+            self.scripts.code.undo()
+            return
         self.document.undo()
         self.refresh()
 
     def redo(self) -> None:
+        if self.scripts.code.hasFocus():
+            self.scripts.code.redo()
+            return
         self.document.redo()
         self.refresh()
 
@@ -1105,6 +1192,14 @@ class EditorWindow(QMainWindow):
             or self.preview.state() != QProcess.ProcessState.NotRunning
         ):
             return
+        if not self.scripts.flush():
+            return
+        self.scripts.errors.clear()
+        self.scripts.errors.hide()
+        self._preview_buffer.clear()
+        self._preview_scripts = {
+            binding.entity_id: binding.path for binding in self.document.scene.scripts
+        }
         snapshot = json.dumps(self.document.scene.to_data(), allow_nan=False).encode("utf-8")
         if len(snapshot) > MAX_FILE_BYTES:
             self._error("The scene is too large to preview (4 MiB limit).")
@@ -1147,10 +1242,42 @@ class EditorWindow(QMainWindow):
         self.log.appendPlainText(message[:4000])
 
     def _preview_ready(self) -> None:
-        message = bytes(self.preview.readAllStandardOutput().data()).decode(
-            "utf-8", errors="replace"
-        )
-        self.log.appendPlainText(message[:4000].strip())
+        self._preview_buffer.extend(bytes(self.preview.readAllStandardOutput().data()))
+        while b"\n" in self._preview_buffer:
+            raw, _, rest = self._preview_buffer.partition(b"\n")
+            self._preview_buffer = bytearray(rest)
+            message = raw[:16384].decode("utf-8", errors="replace")
+            if message.startswith("SCRIPT_ERROR "):
+                try:
+                    fault = parse_result(
+                        {
+                            "id": 0,
+                            "actions": [],
+                            "logs": [],
+                            "error": json.loads(message.removeprefix("SCRIPT_ERROR ")),
+                        },
+                        0,
+                        self._preview_scripts,
+                    ).fault
+                except ValueError, TypeError, RecursionError:
+                    self.log.appendPlainText("Invalid Python diagnostic from preview.")
+                    continue
+                if fault is not None:
+                    self.scripts.add_error(fault)
+                    self.log.appendPlainText(f"Python {fault.path}:{fault.line} — {fault.message}")
+                    self.edit_python()
+            elif message.startswith("SCRIPT_LOG "):
+                try:
+                    text = json.loads(message.removeprefix("SCRIPT_LOG "))
+                except ValueError, RecursionError:
+                    continue
+                if isinstance(text, str):
+                    self.log.appendPlainText("Python: " + text[:512])
+            else:
+                self.log.appendPlainText(message[:4000].strip())
+        if len(self._preview_buffer) > 16384:
+            self._preview_buffer.clear()
+            self.log.appendPlainText("Oversized preview output discarded.")
 
     def stop_preview(self) -> None:
         if self.preview.state() != QProcess.ProcessState.NotRunning:
@@ -1176,6 +1303,8 @@ class EditorWindow(QMainWindow):
             self.export_game_to(path)
 
     def export_game_to(self, path: Path) -> bool:
+        if not self.scripts.flush():
+            return False
         if self._export_job is not None:
             return False
         if not self.document.scene.entities:
@@ -1203,6 +1332,8 @@ class EditorWindow(QMainWindow):
             )
 
     def save(self, checked: bool = False, *, choose_path: bool = False) -> bool:
+        if not self.scripts.flush():
+            return False
         if self._save_job is not None:
             return False
         path = self.path
@@ -1285,6 +1416,8 @@ class EditorWindow(QMainWindow):
             self.create_workspace(Path(filename))
 
     def create_workspace(self, root: Path) -> bool:
+        if not self.scripts.flush():
+            return False
         try:
             project = create_project(root, self.document.scene)
         except (OSError, ValueError) as error:
@@ -1524,7 +1657,12 @@ class EditorWindow(QMainWindow):
         if self._recovery_job is not None:
             self.recovery_timer.start()
             return
-        job = RecoveryWriter(self.project, self.document.scene, self.saved_scene)
+        try:
+            snapshot = self.scripts.snapshot()
+        except ValueError as error:
+            self.log.appendPlainText(f"Apply or revert Python drafts before recovery: {error}")
+            return
+        job = RecoveryWriter(self.project, snapshot, self.saved_scene)
         self._recovery_job = job
         job.finished.connect(lambda: self._recovery_finished(job))
         job.start()
@@ -1595,6 +1733,10 @@ class EditorWindow(QMainWindow):
         dialog.exec()
 
     def closeEvent(self, event: QCloseEvent) -> None:
+        if self.scripts.loader is not None:
+            self.log.appendPlainText("Finishing Python import; close again shortly.")
+            event.ignore()
+            return
         if self._export_job is not None:
             self.log.appendPlainText("Finishing native export; close again shortly.")
             event.ignore()

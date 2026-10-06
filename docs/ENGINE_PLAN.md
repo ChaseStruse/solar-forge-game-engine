@@ -1194,7 +1194,13 @@ Next small features, in recommended order:
    failures stop the worker and surface source-line errors. Restart replaces the worker
    and its state; close drains or kills it. Native `.pyz` exports include the same
    runtime-only worker and source snapshots. All 299 tests pass in Docker with Ruff
-   and mypy; the native code panel and editor error navigation are next.
+   and mypy at the runtime checkpoint. The native Python panel now supports code
+   editing, templates, bounded UTF-8 imports, draft preservation, atomic Apply,
+   detach, behavior-aware duplication/deletion and source-line error navigation.
+   Save/Play/Export/project creation apply valid drafts; recovery captures valid
+   unapplied source without execution. All 308 tests pass natively and in Docker,
+   with Ruff and mypy. Generated behavior proposals remain next.
+   See the [Python scripting guide](PYTHON_SCRIPTING.md) for the current API and limits.
    Deliver this playable workflow
    before dependency bundling or enterprise model integration.
 2. Package native runtime dependencies and verify the independent game export

@@ -1,7 +1,7 @@
 # Python behavior sandbox spike
 
 Status: Landlock/libseccomp restrictions verified natively and in Docker;
-bounded behavior-worker runtime and export integration verified; authoring in progress.
+bounded worker, native authoring and export integration verified.
 
 Do not enable imported or generated Python behaviors without the verified worker
 restrictions, bounded protocol and lifecycle checks. A Python subprocess or
@@ -44,13 +44,16 @@ A real subprocess regression verifies synthetic credential read/write denials,
 socket/exec/fork/signal denials, closure of an intentionally inherited descriptor,
 unavailable editor imports and memory-limit enforcement. It passes natively and
 under the unchanged Docker capabilities/no-new-privileges policy. No arbitrary
-project source is executed by this regression. The integrated Qt worker now accepts only bounded JSON snapshots, with a 5-second
+project source is executed by this regression. The integrated Qt worker accepts
+only bounded JSON snapshots, with a 5-second
 startup deadline and 250 ms update/stop deadlines. Responses have a 64 KiB packet
 limit, 64 actions, 16 logs and a 256 KiB total request-output limit; malformed,
 stale or oversized responses fail closed. Infinite updates and direct stdout floods
 are killed in real-process tests. Restart and close retire the process; seccomp
 prevents it from creating descendants. Native exports run the same worker without
-editor or project imports. All 299 tests pass in the unchanged Docker test policy.
+editor or project imports. Startup and stop loops also terminate; unavailable restrictions fail before source
+execution. Oversized numeric actions are rejected without partial application.
+All 308 tests pass natively and in the unchanged Docker test policy.
 See [Landlock's kernel documentation](https://docs.kernel.org/userspace-api/landlock.html)
 and [libseccomp's policy API](https://man7.org/linux/man-pages/man3/seccomp_init.3.html).
 

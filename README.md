@@ -10,13 +10,15 @@ Solar Forge combines a clear visual editor, editable game code, and an assistant
 that works through inspectable, undoable actions. Manual development and exported
 games should work without an AI service.
 
-**Status: editor and built-in native playback.** Create rectangles, select them in the viewport
+**Status: native editor, playback and restricted Python behaviors.** Create rectangles, select them in the viewport
 or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
 documents. New/Open/Close protect unsaved changes. Play opens a separate native
 window with keyboard movement, wall collisions, and coin collection. PNG sprites
 and basic project folders are supported. An offline assistant demo supports reviewed
 scene edits, and opt-in Ollama supports local models. Single-scene runtime-only exports
-are available; sandboxed Python scripts and dependency bundles remain planned.
+include Python behaviors; fully bundled runtime dependencies remain planned.
+See the [Python scripting guide](docs/PYTHON_SCRIPTING.md) for authoring, the API,
+debugging, source storage and execution restrictions.
 
 ## Run on Linux
 
@@ -84,12 +86,12 @@ Animation settings support undo, duplication and portable project/standalone sav
 Removing or replacing a sprite clears its animation settings in the same undoable
 edit. Named clips, partial-sheet sequences and one-shot animations remain future work.
 
-Save to a `.forge.json` file. Version-nine files contain the entire scene,
+Save to a `.forge.json` file. Version-eleven files contain the entire scene,
 roles, movement/animation settings, sprite pixels and optional collection sound.
-Versions one, two, three, five and seven still load. Before upgrading an older file, its exact bytes are retained
+Versions one, two, three, five, seven and nine still load. Before upgrading an older file, its exact bytes are retained
 in `<filename>.v<old-version>.bak`. Existing backups are never overwritten;
 use Save As if that backup name is occupied. Scene files remain limited to 4 MiB;
-embedded sprites count toward that limit. Files never execute scripts.
+embedded sprites and Python source count toward that limit. Loading never executes scripts.
 
 Use **File → Create project from scene…** (Ctrl+Alt+N) and enter a **new folder name**
 to save the current applied scene as a project. Existing folders are never replaced.
@@ -121,12 +123,12 @@ invalid or failed updates leave the manifest intact. Startup selection is a proj
 setting outside scene undo/redo. Ordinary scene switching still leaves that setting
 unchanged and does not introduce runtime scene transitions.
 
-Project saves write version-ten scene files with relative sprite references to
+Project saves write version-twelve scene files with relative sprite references to
 `assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;
 files are validated by size, dimensions, and content hash when opened. Move the
 entire folder to keep the project portable. Standalone Save As still embeds pixels
-in version-nine scenes, and Play receives resolved data without reading asset paths.
-Older embedded scenes and version-four/six/eight project scenes load with default movement
+in version-eleven scenes, and Play receives resolved data without reading asset paths.
+Older embedded scenes and version-four/six/eight/ten project scenes load with default movement
 settings; saving upgrades them after keeping an exact version-specific `.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
@@ -256,8 +258,10 @@ first object is used. Use **Pause**, **Restart**, **Esc**,
 or the editor's **Stop** (Shift+F5). Playback uses the last applied scene snapshot;
 unsaved scene edits are included, but unapplied Inspector fields are not.
 Playback changes never modify the authored scene. Opening/New/closing the editor
-stops its preview process. This data-only preview runs built-in behavior and does
-not execute project scripts or claim to sandbox arbitrary Python.
+stops its preview process. Attached Python behaviors run in a separate restricted
+worker; source drafts are applied before Play. Open **Scene → Python behavior…**
+(Ctrl+Alt+P) to write/import code or choose a template. **API help** describes callbacks;
+see the [scripting guide](docs/PYTHON_SCRIPTING.md) for the complete workflow and limits.
 
 ## Assistant and local models
 
@@ -480,7 +484,7 @@ python3.14 -I Game.pyz --smoke-check
 The executable archive also supports `./Game.pyz` when `python3` resolves to the
 supported environment. Its launcher uses Python isolated mode, ignoring project
 imports and Python environment overrides. Export includes one scene and the built-in
-behaviors; imported/generated Python scripts and runtime scene transitions remain
+behaviors and restricted Python source; runtime scene transitions remain
 unimplemented.
 
 For the dependency-packaging spike, run the offline developer probe:
