@@ -46,6 +46,9 @@ def run_scene(
                         "x": window.simulation.x,
                         "collected": len(window.simulation.collected),
                         "ticks": window._ticks,
+                        "score": window.simulation.score,
+                        "scripts_ready": bool(window.script_host and window.script_host.ready),
+                        "script_failed": bool(window.script_host and window.script_host.failed),
                         "scene_unchanged": window.simulation.scene == scene,
                         "editor_loaded": any(
                             name.startswith(

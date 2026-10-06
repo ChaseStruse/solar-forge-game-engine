@@ -132,3 +132,35 @@ def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, 
         assert json.loads(archive.read("game_data/scene.json"))["scene"] == snapshot.to_data()
     editor._confirm_discard = lambda: True
     editor.close()
+
+
+def test_exported_python_behavior_runs_without_editor_or_project_files(tmp_path):
+    from solar_forge_engine.core.script import ScriptBinding
+
+    binding = ScriptBinding.from_source(
+        "player",
+        "motion",
+        """def start(ctx):
+    ctx.add_score(42)
+
+def update(ctx, dt):
+    ctx.move(240 * dt, 0)
+""",
+    )
+    scene = replace(game(), scripts=(binding,))
+    archive = tmp_path / "Scripted.pyz"
+    export_game(archive, scene)
+    result = subprocess.run(
+        [sys.executable, "-I", str(archive), "--smoke-check"],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr + result.stdout
+    report = json.loads(result.stdout)
+    assert report["scripts_ready"] and not report["script_failed"]
+    assert report["score"] == 42 and report["x"] > 0 and report["collected"] == 1
+    assert report["scene_unchanged"] and not report["editor_loaded"]
+    assert report["runtime_from_archive"]
+    assert not (tmp_path / "scripts").exists()

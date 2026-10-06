@@ -1,11 +1,14 @@
-"""Native Play window for data-only scenes and built-in keyboard movement."""
+"""Native Play window with built-in movement and isolated Python behaviors."""
 
 import base64
+import json
 import time
+from dataclasses import asdict
 
 from PySide6.QtCore import QEvent, Qt, QTimer
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import (
+    QAbstractGraphicsShapeItem,
     QGraphicsScene,
     QGraphicsView,
     QLabel,
@@ -17,6 +20,8 @@ from PySide6.QtWidgets import (
 from solar_forge_engine.core.scene import InputPreset, Scene
 from solar_forge_engine.runtime.audio import SoundPlayer
 from solar_forge_engine.runtime.rendering import SpriteAnimator, render_scene
+from solar_forge_engine.runtime.script_host import ScriptHost
+from solar_forge_engine.runtime.script_protocol import ScriptFault, ScriptResult
 from solar_forge_engine.runtime.simulation import FIXED_STEP, WORLD_HEIGHT, WORLD_WIDTH, Simulation
 
 LEFT = {Qt.Key.Key_A, Qt.Key.Key_Left}
@@ -25,6 +30,23 @@ UP = {Qt.Key.Key_W, Qt.Key.Key_Up}
 DOWN = {Qt.Key.Key_S, Qt.Key.Key_Down}
 MOVEMENT_KEYS = LEFT | RIGHT | UP | DOWN
 DENSE_ANIMATION_CHANGES = 1000
+KEY_NAMES = (
+    {
+        int(getattr(Qt.Key, "Key_" + letter)): letter.casefold()
+        for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    }
+    | {int(getattr(Qt.Key, "Key_" + digit)): digit for digit in "0123456789"}
+    | {
+        int(Qt.Key.Key_Left): "left",
+        int(Qt.Key.Key_Right): "right",
+        int(Qt.Key.Key_Up): "up",
+        int(Qt.Key.Key_Down): "down",
+        int(Qt.Key.Key_Space): "space",
+        int(Qt.Key.Key_Return): "enter",
+        int(Qt.Key.Key_Shift): "shift",
+        int(Qt.Key.Key_Control): "ctrl",
+    }
+)
 
 
 class GameView(QGraphicsView):
@@ -58,6 +80,10 @@ class PlayerWindow(QMainWindow):
         self._sound_pcm = base64.b64decode(scene.coin_sound.samples) if scene.coin_sound else b""
         self._audio_count = 0
         self._closing = False
+        self._restart_pending = False
+        self.script_host: ScriptHost | None = None
+        self._script_time = 0.0
+        self._script_started = False
         self.sound_player.finished.connect(self._audio_finished)
         self.simulation = Simulation(scene, controlled_id)
         preset = self.simulation.controlled.input_preset
@@ -130,11 +156,72 @@ class PlayerWindow(QMainWindow):
         self.timer.timeout.connect(self.tick)
         self.timer.start(16)
         self._sync_position()
+        self.script_label = QLabel()
+        self.script_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.script_label.setMaximumWidth(380)
+        if scene.scripts:
+            toolbar.addWidget(self.script_label)
+            self._start_scripts()
+
+    def _start_scripts(self) -> None:
+        if not self.simulation.scene.scripts:
+            return
+        self._script_time = 0.0
+        self._script_started = False
+        self.script_label.setText("Starting Python…")
+        host = ScriptHost(self.simulation.scene, self)
+        self.script_host = host
+        host.result.connect(lambda result: self._script_result(host, result))
+        host.fault.connect(self._script_fault)
+        host.finished.connect(self._scripts_finished)
+        host.start()
+
+    def _script_result(self, host: ScriptHost, result: ScriptResult) -> None:
+        if host is not self.script_host:
+            return
+        for message in result.logs:
+            print("SCRIPT_LOG " + json.dumps(message), flush=True)
+        if result.fault is not None or self._closing or self._restart_pending or host.stopping:
+            return
+        if not self.paused and (not self._script_started or self.isActiveWindow()):
+            self.simulation.apply(result)
+            self._sync_position()
+        self._script_started = True
+        self.script_label.setText("Python active")
+
+    def _script_fault(self, fault: ScriptFault) -> None:
+        self.paused = True
+        self.pause_button.setText("Restart to retry")
+        self.pause_button.setEnabled(False)
+        self.keys.clear()
+        self.sound_player.stop()
+        location = f"line {fault.line}: " if fault.line else ""
+        self.script_label.setText("Python stopped · " + location + fault.message[:80])
+        self.script_label.setToolTip(f"{fault.path}:{fault.line} — {fault.message}")
+        print("SCRIPT_ERROR " + json.dumps(asdict(fault)), flush=True)
+
+    def _scripts_finished(self) -> None:
+        if self._closing:
+            self._finish_close()
+        elif self._restart_pending:
+            self._restart_pending = False
+            self.restart()
 
     def _sync_position(self) -> None:
         self.items[self.simulation.controlled.id].setPos(self.simulation.x, self.simulation.y)
+        for identity in self.simulation.changed:
+            body, item = self.simulation.bodies[identity], self.items[identity]
+            item.setPos(body.x, body.y)
+            item.setTransformOriginPoint(item.boundingRect().center())
+            item.setRotation(body.rotation)
+            item.setVisible(body.visible)
+            if isinstance(item, QAbstractGraphicsShapeItem):
+                item.setBrush(QBrush(QColor(body.color)))
+        self.simulation.changed.clear()
         for coin in self.simulation.coins:
-            self.items[coin.id].setVisible(coin.id not in self.simulation.collected)
+            self.items[coin.id].setVisible(
+                coin.visible and coin.id not in self.simulation.collected
+            )
         count = len(self.simulation.collected)
         clip = self.simulation.scene.coin_sound
         if count > self._audio_count and clip is not None and not self.paused:
@@ -148,22 +235,45 @@ class PlayerWindow(QMainWindow):
                 f"{len(self.simulation.coins)}{suffix}"
             )
 
+        if self.simulation.scene.scripts:
+            existing = self.score_label.text() if self.simulation.coins else ""
+            self.score_label.setText(f"{existing} · Score: {self.simulation.score}")
+
     def tick(self) -> None:
         now = time.monotonic()
         elapsed = min(now - self._last_tick, 0.1)
         self._last_tick = now
-        if self.paused or not self.isActiveWindow():
+        host = self.script_host
+        if self.paused or not self.isActiveWindow() or (host is not None and not host.ready):
             self.keys.clear()
             self._accumulator = 0
             return
         self._accumulator += elapsed
         horizontal = int(bool(self.keys & self.right)) - int(bool(self.keys & self.left))
         vertical = int(bool(self.keys & self.down)) - int(bool(self.keys & self.up))
+        if host is not None and self.simulation.controlled.id in host.bindings:
+            horizontal = vertical = 0
         while self._accumulator >= FIXED_STEP:
             self.simulation.step(horizontal, vertical)
             self._ticks += 1
             self._accumulator -= FIXED_STEP
         self._sync_position()
+        if host is not None:
+            self._script_time = min(self._script_time + elapsed, 0.1)
+            identities = set(host.bindings) | {self.simulation.controlled.id}
+            positions = {
+                identity: (self.simulation.bodies[identity].x, self.simulation.bodies[identity].y)
+                for identity in identities
+            }
+            if host.step(
+                self._script_time,
+                self._ticks * FIXED_STEP,
+                sorted(KEY_NAMES[key] for key in self.keys if key in KEY_NAMES),
+                positions,
+                self.simulation.events,
+            ):
+                self._script_time = 0.0
+                self.simulation.events.clear()
 
     def toggle_pause(self) -> None:
         self.paused = not self.paused
@@ -175,27 +285,47 @@ class PlayerWindow(QMainWindow):
         self._last_tick = time.monotonic()
 
     def restart(self) -> None:
+        if self.script_host is not None and self.script_host.active:
+            self._restart_pending = True
+            self.paused = True
+            self.keys.clear()
+            self.script_host.stop()
+            return
+        if self.script_host is not None:
+            self.script_host.deleteLater()
+            self.script_host = None
         self.sound_player.stop()
         self._audio_count = 0
         self.paused = False
         self.pause_button.setText("Pause")
+        self.pause_button.setEnabled(True)
         self.simulation = Simulation(self.simulation.scene, self.simulation.controlled.id)
         self._ticks = 0
         self.keys.clear()
         self._accumulator = 0
         self._last_tick = time.monotonic()
+        for entity in self.simulation.scene.entities:
+            body = self.simulation.bodies[entity.id]
+            self.items[entity.id].setVisible(True)
+            self.simulation.changed.add(body.id)
         self._sync_position()
+        self._start_scripts()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Escape:
             self.close()
-        elif event.key() in self.movement_keys:
+        elif event.key() in self.movement_keys or (
+            self.script_host is not None and event.key() in KEY_NAMES
+        ):
             self.keys.add(event.key())
         else:
             super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
-        if event.key() in self.movement_keys and not event.isAutoRepeat():
+        if (
+            event.key() in self.movement_keys
+            or (self.script_host is not None and event.key() in KEY_NAMES)
+        ) and not event.isAutoRepeat():
             self.keys.discard(event.key())
         else:
             super().keyReleaseEvent(event)
@@ -212,15 +342,22 @@ class PlayerWindow(QMainWindow):
 
     def _audio_finished(self) -> None:
         if self._closing:
+            self._finish_close()
+
+    def _finish_close(self) -> None:
+        if not self.sound_player.active and not (self.script_host and self.script_host.active):
             self.close()
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.timer.stop()
         self.keys.clear()
-        if self.sound_player.active:
+        if self.sound_player.active or (self.script_host and self.script_host.active):
             event.ignore()
             if not self._closing:
                 self._closing = True
+                self._restart_pending = False
                 self.sound_player.stop()
+                if self.script_host is not None:
+                    self.script_host.stop()
         else:
             super().closeEvent(event)

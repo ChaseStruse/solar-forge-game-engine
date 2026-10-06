@@ -27,6 +27,10 @@ RUNTIME_FILES = (
     "runtime/rendering.py",
     "runtime/simulation.py",
     "runtime/audio.py",
+    "runtime/script_protocol.py",
+    "runtime/script_security.py",
+    "runtime/script_worker.py",
+    "runtime/script_host.py",
 )
 ENTRY_POINT = """import sys
 if sys.version_info[:2] != (3, 14):

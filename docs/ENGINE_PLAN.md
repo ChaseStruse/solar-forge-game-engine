@@ -1187,8 +1187,14 @@ Next small features, in recommended order:
    binding and Undo restores it. Sixteen behaviors/scene, 64 KiB/source and 512 KiB
    aggregate source keep payloads bounded. Existing v9/v10 scenes and recovery hashes
    migrate safely with exact backups. Loading validates source and never executes it.
-   All 291 tests pass in Docker with Ruff and mypy; the native code panel and Play
-   lifecycle are not yet enabled at this checkpoint.
+   The asynchronous behavior worker now runs start/update/key/collision/collection/stop
+   callbacks under those OS restrictions. Validated bounded actions affect runtime
+   movement, visuals and score without changing authored data. Startup has a 5-second
+   deadline; update/stop requests have 250 ms deadlines. Output flooding and callback
+   failures stop the worker and surface source-line errors. Restart replaces the worker
+   and its state; close drains or kills it. Native `.pyz` exports include the same
+   runtime-only worker and source snapshots. All 299 tests pass in Docker with Ruff
+   and mypy; the native code panel and editor error navigation are next.
    Deliver this playable workflow
    before dependency bundling or enterprise model integration.
 2. Package native runtime dependencies and verify the independent game export
