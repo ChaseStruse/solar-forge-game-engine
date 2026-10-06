@@ -8,6 +8,7 @@ from typing import Protocol
 from uuid import NAMESPACE_URL, uuid5
 
 from solar_forge_engine.core.scene import Scene
+from solar_forge_engine.core.script_templates import TEMPLATES
 
 
 @dataclass(frozen=True)
@@ -64,6 +65,25 @@ class DemoProvider:
             if context.selected_id is None:
                 raise ValueError("Select an object for this demo request.")
             context.scene.entity(context.selected_id)
+            behaviors = {
+                "script selected keyboard": ("keyboard", "Keyboard movement"),
+                "script selected patrol": ("patrol", "Patrol"),
+                "script selected spin": ("spin", "Spin and pulse"),
+            }
+            if request in behaviors:
+                name, template = behaviors[request]
+                commands.append(
+                    {
+                        "tool": "set_script",
+                        "id": context.selected_id,
+                        "name": name,
+                        "source": TEMPLATES[template],
+                    }
+                )
+                continue
+            if request == "detach script selected":
+                commands.append({"tool": "detach_script", "id": context.selected_id})
+                continue
             if request == "delete selected":
                 commands.append({"tool": "delete_entity", "id": context.selected_id})
                 continue

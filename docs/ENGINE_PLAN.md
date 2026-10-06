@@ -1096,7 +1096,7 @@ experience; these milestones are gates, not promised delivery dates.
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
 | 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
-| 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Expanded asset libraries/animation clips, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
+| 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Expanded asset libraries/animation clips, configurable action maps, additional behavior APIs and dependency-bundled Linux exports tested on clean Arch |
 | 3 — Useful assistant | Partial: offline demo proposals, readable diffs, validated atomic edits, undo/revision protection and cancellation | Verified local/hosted models, compact model context, request timeouts, privacy and credential handling |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
@@ -1158,7 +1158,7 @@ Completed task checklist:
 - [x] Add runtime-only native active-scene export and verified editor-free playback.
 - [ ] Bundle runtime dependencies and verify exported games on clean Arch.
 - [x] Measure a copied Widgets-only Qt subset and verify editor-free exports on host and Docker Wayland.
-- [ ] Add sandboxed Python game scripting.
+- [x] Add restricted Python authoring, callbacks, debugging, lifecycle and native exports.
 - [x] Probe native namespace boundaries and record the current Docker namespace restriction.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
@@ -1168,7 +1168,7 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Add a complete Python scripting workflow: write, attach, play and debug a simple
+1. **Completed — Python scripting workflow:** write, attach, play and debug a simple
    object behavior. Provide a native code panel with project-owned `.py` files,
    a small API for movement/input/collision/collection events, script attachment,
    file/line error navigation, reliable restart and script inclusion in native exports.
@@ -1199,7 +1199,13 @@ Next small features, in recommended order:
    detach, behavior-aware duplication/deletion and source-line error navigation.
    Save/Play/Export/project creation apply valid drafts; recovery captures valid
    unapplied source without execution. All 308 tests pass natively and in Docker,
-   with Ruff and mypy. Generated behavior proposals remain next.
+   with Ruff and mypy at the authoring checkpoint. Reviewed assistant proposals now
+   support validated source attachments/replacements/detach, with complete source
+   review and atomic Undo. Existing source/paths are excluded from model context;
+   manual drafts block assistant Apply. Offline behavior fixtures and loopback schema
+   checks pass; no live LLM output is claimed. All 316 tests pass in Docker. Native
+   Wayland authoring, error navigation, pause/restart cleanup and a Qt-only, editor-free
+   scripted export also pass ([record](performance/2026-10-05-python-scripting-wayland.json)).
    See the [Python scripting guide](PYTHON_SCRIPTING.md) for the current API and limits.
    Deliver this playable workflow
    before dependency bundling or enterprise model integration.

@@ -69,11 +69,15 @@ class ConnectionWorker(QThread):
 
 class AssistantPanel(QWidget):
     def __init__(
-        self, context: Callable[[], tuple[Document, str | None]], refresh: Callable[[], None]
+        self,
+        context: Callable[[], tuple[Document, str | None]],
+        refresh: Callable[[], None],
+        can_apply: Callable[[], bool] = lambda: True,
     ) -> None:
         super().__init__()
         self.context = context
         self.refresh_editor = refresh
+        self.can_apply = can_apply
         self.provider: Provider = DemoProvider()
         self._job: ProposalWorker | ConnectionWorker | None = None
         self._profile_job: ConnectionWorker | None = None
@@ -124,7 +128,8 @@ class AssistantPanel(QWidget):
         examples = QLabel(
             "Try: add rectangle; add coin\n"
             "Selected object: move selected to 200 150; rename selected Hero\n"
-            "color selected #33aa88; speed selected 120; delete selected"
+            "color selected #33aa88; speed selected 120; delete selected\n"
+            "script selected keyboard / patrol / spin; detach script selected"
         )
         examples.setWordWrap(True)
         layout.addWidget(examples)
@@ -303,6 +308,9 @@ class AssistantPanel(QWidget):
         document, _ = self.context()
         proposal = self._proposal
         if proposal is None:
+            return
+        if not self.can_apply():
+            self.status.setText("Apply or revert Python drafts before applying assistant edits.")
             return
         if document is not self._document:
             self.scene_changed()

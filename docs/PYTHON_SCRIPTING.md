@@ -132,6 +132,21 @@ worker in the native `.pyz`. The editor, model server, project folder and Docker
 not required. Current exports still require Python 3.14, PySide6-Essentials 6.11.2 and
 native Linux libraries; fully bundled dependencies remain the next packaging task.
 
+## Assistant proposals
+
+The offline demo supports `script selected keyboard`, `script selected patrol`,
+`script selected spin` and `detach script selected`. These are deterministic templates,
+not an LLM. Opt-in Ollama can propose `set_script` and `detach_script` commands with
+Python source. Review shows the entire proposed source before Apply, and the combined
+scene/code edit is undoable. Proposing or applying code never executes it.
+
+Existing Python source and paths are excluded from automatic model context; only
+an attachment-present flag is sent with ordinary scene metadata. Source replacement
+therefore needs an explicit request describing the desired behavior. Manual source
+drafts block assistant Apply until you apply or revert them. Unsupported tools,
+invalid bindings, stale revisions and serialized scene-size overflows are rejected.
+Provider limits still bound an entire proposal to 16 KiB and sixteen commands.
+
 ## Execution restrictions
 
 Script execution currently requires x86_64 Linux, Landlock ABI 6+ (Linux 6.12+) and

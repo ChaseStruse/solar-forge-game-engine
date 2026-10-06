@@ -1,6 +1,6 @@
 # Solar Forge Game Engine
 
-A proposed native Arch Linux desktop engine for making fun, lightweight 2D games.
+A native Arch Linux desktop engine for making fun, lightweight 2D games.
 Python and PySide6 Qt Widgets, aligned with Solar Forge Life Helper and part of the
 Solar Forge Studios suite. Local-first and LLM-first, with native Linux exports.
 
@@ -264,6 +264,13 @@ worker; source drafts are applied before Play. Open **Scene â†’ Python behaviorâ
 see the [scripting guide](docs/PYTHON_SCRIPTING.md) for the complete workflow and limits.
 
 ## Assistant and local models
+
+Python proposals support source review, Apply and Undo. The offline demo also accepts
+`script selected keyboard`, `script selected patrol`, `script selected spin` and
+`detach script selected`. Opt-in Ollama can generate bounded Python attachments;
+existing source and paths stay out of automatic model context. Apply/revert manual
+Python drafts before applying assistant edits. Code executes only in restricted Play.
+
 
 Open the **Assistant** tab beside the Inspector; scroll, resize or undock the panel
 to see its review controls. By default it uses a deterministic offline fixture, **not an LLM**.

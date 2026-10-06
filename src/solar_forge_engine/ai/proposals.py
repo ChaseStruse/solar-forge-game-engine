@@ -9,8 +9,11 @@ from solar_forge_engine.core.commands import (
     DeleteEntity,
     Document,
     SetEntity,
+    SetScript,
 )
+from solar_forge_engine.core.limits import MAX_FILE_BYTES
 from solar_forge_engine.core.scene import Entity, Scene, text
+from solar_forge_engine.core.script import ScriptBinding
 
 MAX_RESPONSE_BYTES = 16 * 1024
 MAX_COMMANDS = 16
@@ -71,12 +74,19 @@ def decode_proposal(raw: str, scene: Scene, revision: int) -> Proposal:
             if not isinstance(changes, dict) or not changes or not set(changes) <= EDITABLE:
                 raise ValueError("Assistant edits support only bounded scene properties.")
             commands.append(SetEntity(text(entry["id"], "Entity ID", 64), changes))
+        elif tool == "set_script" and set(entry) == {"tool", "id", "name", "source"}:
+            binding = ScriptBinding.from_source(entry["id"], entry["name"], entry["source"])
+            commands.append(SetScript(binding.entity_id, asdict(binding)))
+        elif tool == "detach_script" and set(entry) == {"tool", "id"}:
+            commands.append(SetScript(text(entry["id"], "Entity ID", 64), None))
         elif tool == "delete_entity" and set(entry) == {"tool", "id"}:
             commands.append(DeleteEntity(text(entry["id"], "Entity ID", 64)))
         else:
             raise ValueError("Unsupported assistant tool or command fields.")
     preview = Document(scene)
     preview.execute(*commands, expected_revision=0)
+    if len(json.dumps(preview.scene.to_data(), indent=2).encode()) + 1 > MAX_FILE_BYTES:
+        raise ValueError("Assistant edits would exceed the 4 MiB scene limit.")
     if preview.scene == scene:
         raise ValueError("The proposal makes no scene changes.")
     before = {entity.id: entity for entity in scene.entities}
@@ -95,4 +105,21 @@ def decode_proposal(raw: str, scene: Scene, revision: int) -> Proposal:
                 old, new = getattr(before[entity_id], key), getattr(after[entity_id], key)
                 if old != new:
                     lines.append(f"  {key}: {old} → {new}")
+    before_scripts = {binding.entity_id: binding for binding in scene.scripts}
+    after_scripts = {binding.entity_id: binding for binding in preview.scene.scripts}
+    for entity_id in sorted(before_scripts.keys() | after_scripts.keys()):
+        old_script, new_script = before_scripts.get(entity_id), after_scripts.get(entity_id)
+        if old_script == new_script:
+            continue
+        if new_script is None:
+            lines.append(f"Detach Python behavior [{entity_id}]")
+        else:
+            action = "Replace" if old_script else "Attach"
+            lines.extend(
+                (
+                    f"{action} Python {new_script.name} [{entity_id}]",
+                    "Source for review — runs only in restricted Play:",
+                    new_script.source,
+                )
+            )
     return Proposal(revision, tuple(commands), "\n".join(lines))

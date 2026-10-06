@@ -352,7 +352,11 @@ class EditorWindow(QMainWindow):
         self.lock_preferences.restored.connect(self._set_viewport_locks)
         self.lock_preferences.warning.connect(self.log.appendPlainText)
 
-        self.assistant = AssistantPanel(lambda: (self.document, self.selected_id), self.refresh)
+        self.assistant = AssistantPanel(
+            lambda: (self.document, self.selected_id),
+            self.refresh,
+            can_apply=lambda: not self.scripts.pending,
+        )
         assistant_scroll = QScrollArea()
         assistant_scroll.setWidgetResizable(True)
         assistant_scroll.setWidget(self.assistant)

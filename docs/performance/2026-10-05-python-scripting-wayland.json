@@ -1,0 +1,28 @@
+{
+  "qpa": "wayland",
+  "native_authoring": true,
+  "source_persisted": true,
+  "source_error_navigation": true,
+  "pause_restart_cleanup": true,
+  "independent_export": true,
+  "game_engine_installed": false,
+  "archive_bytes": 29159,
+  "game": {
+    "scene": "Python expedition",
+    "objects": 2,
+    "x": 61.59786695963703,
+    "collected": 1,
+    "ticks": 19,
+    "score": 10,
+    "scripts_ready": true,
+    "script_failed": false,
+    "scene_unchanged": true,
+    "editor_loaded": false,
+    "runtime_from_archive": true
+  },
+  "verification": "Temporary native Qt workflow driver; independent export used a Qt-only venv without an engine installation.",
+  "limitations": [
+    "This is a Wayland functional check, not a compositor presentation or clean-machine packaging benchmark.",
+    "Qt libraries were supplied from the installed supported package; dependencies are not bundled."
+  ]
+}
