@@ -1,0 +1,32 @@
+{
+  "cpython": {
+    "source": "https://www.python.org/ftp/python/3.14.7/Python-3.14.7.tar.xz",
+    "archive_sha256": "3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81",
+    "notice_files": 5
+  },
+  "qtbase": {
+    "source": "https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtbase-everywhere-src-6.11.2.tar.xz",
+    "archive_sha256": "5b2e00eccaf5a4d8c14134ffa0ea8dfd0a35ae1ffc7f8d87fa4305a1ed23cf22",
+    "notice_files": 156
+  },
+  "qtwayland": {
+    "source": "https://download.qt.io/official_releases/qt/6.11/6.11.2/submodules/qtwayland-everywhere-src-6.11.2.tar.xz",
+    "archive_sha256": "8eb7615e39332a10f506e8dd70f02d5954bb5949ff54f6dcbf8bd6168222f9df",
+    "notice_files": 9
+  },
+  "pyside": {
+    "source": "https://download.qt.io/official_releases/QtForPython/pyside6/PySide6-6.11.2-src/pyside-setup-everywhere-src-6.11.2.tar.xz",
+    "archive_sha256": "cba47efbaad1bedd529725cbc14e21f156c7a19366f07b3edfbb076ffd7afdf8",
+    "notice_files": 22
+  },
+  "python-standalone": {
+    "source": "https://github.com/astral-sh/python-build-standalone/tree/5974083",
+    "archive_sha256": "8c23cc203ac05ecd7fc794d1eb507da55567675dd107c0713f87c6650f481c18",
+    "notice_files": 20
+  },
+  "icu": {
+    "source": "https://github.com/unicode-org/icu/blob/release-73-2/icu4c/LICENSE",
+    "notice_sha256": "f3005e195ff74d8812cc1f182a1c446fab678d70a10e3dada497585befee5416",
+    "notice_files": 1
+  }
+}

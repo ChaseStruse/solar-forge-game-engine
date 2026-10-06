@@ -1,0 +1,2 @@
+# Preserve upstream formatting in vendored license and attribution text.
+src/solar_forge_engine/project/notices/*.txt -whitespace

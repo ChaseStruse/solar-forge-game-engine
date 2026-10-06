@@ -1309,12 +1309,18 @@ class EditorWindow(QMainWindow):
             self.preview.waitForFinished(1000)
 
     def choose_export(self) -> None:
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Export active scene as a native game", "Game.pyz", "Python native game (*.pyz)"
+        filename, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export active scene as a native game",
+            "Game.pyz",
+            "Lightweight game (*.pyz);;Bundled Linux game (*.tar.gz)",
         )
         if filename:
             path = Path(filename)
-            if not path.suffix:
+            bundled = "*.tar.gz" in selected_filter
+            if bundled and not path.name.endswith(".tar.gz"):
+                path = path.with_name(path.stem + ".tar.gz")
+            elif not path.suffix:
                 path = path.with_suffix(".pyz")
             self.export_game_to(path)
 
@@ -1343,8 +1349,12 @@ class EditorWindow(QMainWindow):
         else:
             self.log.appendPlainText(
                 f"Exported {job.scene.name} to {job.path.name} ({job.size} bytes). "
-                "Requires Python 3.14 and PySide6-Essentials 6.11.2. "
-                "Editor and Docker are not needed. "
+                + (
+                    "Includes Python and Qt; extract the archive and run Game/Play. "
+                    if job.path.name.endswith(".tar.gz")
+                    else "Requires Python 3.14 and PySide6-Essentials 6.11.2. "
+                )
+                + "Editor and Docker are not needed. "
                 "Run with --check-runtime to check dependencies without executing game code."
             )
 

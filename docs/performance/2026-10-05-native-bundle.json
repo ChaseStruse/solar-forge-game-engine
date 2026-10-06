@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-05",
+  "target": "x86_64 glibc Linux / Wayland",
+  "fixture": "Ember Run solar sanctuary, 231 objects / three Python behaviors",
+  "native_bundle": {
+    "archive_bytes": 48081009,
+    "uncompressed_bytes": 130355512,
+    "files": 601,
+    "build_seconds": 12.386,
+    "python": "3.14.7",
+    "qt": "6.11.2"
+  },
+  "native_wayland_startup": {
+    "measurement": "Launch through normal game entry point to first Qt viewport paint; filesystem/bytecode caches may warm across samples; not compositor presentation or a cold-start gate.",
+    "qpa": "wayland",
+    "samples": [
+      {
+        "first_paint_ms": 1231.038597,
+        "script_ready_ms": 1316.054109
+      },
+      {
+        "first_paint_ms": 590.657272,
+        "script_ready_ms": 641.683362
+      },
+      {
+        "first_paint_ms": 594.436824,
+        "script_ready_ms": 640.750082
+      }
+    ],
+    "median_first_paint_ms": 594.437
+  },
+  "clean_arch": {
+    "offscreen": "passed",
+    "wayland": "passed",
+    "installed_python": false,
+    "installed_qt_bindings": false,
+    "network_during_game_check": false,
+    "editor_loaded": false,
+    "script_restrictions": "Landlock ABI 10 and seccomp enforced",
+    "scripts_ready": true,
+    "script_failed": false,
+    "authored_scene_unchanged": true,
+    "optional_audio": "pw-play absent; gameplay remained available"
+  },
+  "scope": "Arch userspace runs in a container sharing the host kernel and Wayland compositor. Startup observer measures first viewport paint event, not presentation. Fresh processes may benefit from warming filesystem/bytecode caches; the first native Wayland sample was 1.231 seconds. Not a cold-start or cross-hardware gate."
+}

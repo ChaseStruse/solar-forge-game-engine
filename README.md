@@ -480,8 +480,9 @@ overwritten; choose a new filename for a new build.
 The archive contains only engine core/runtime code and bounded scene data. It runs
 without the editor, assistant, project folder or Docker. It needs **Python 3.14**,
 **PySide6-Essentials 6.11.2** and the native Linux Qt libraries; PipeWire is optional
-for sound. Python/Qt dependency bundling and clean-machine packaging remain future
-work. Qt's native extension modules stay outside the zip archive, as described in
+for sound. To include Python and Qt, select **Bundled Linux game (*.tar.gz)**
+in the export dialog instead. Qt's native extension modules stay outside the zip
+archive, as described in
 [Python's zipapp documentation](https://docs.python.org/3.14/library/zipapp.html).
 
 ```sh
@@ -512,6 +513,43 @@ supported environment. Its launcher uses Python isolated mode, ignoring project
 imports and Python environment overrides. Export includes one scene and the built-in
 behaviors and restricted Python source; runtime scene transitions remain
 unimplemented.
+
+Bundled exports include the running frozen Python 3.14.7 interpreter and standard
+library, a Widgets-only Qt 6.11.2 subset, notices/source references, an inventory
+with hashes, and an executable launcher. Extract the archive and run **Game/Play**;
+keep the entire folder together when moving it. `./Play --check-runtime` and
+`./Play --check-runtime --json` work without installed Python or Qt bindings.
+The small `.pyz` option remains available.
+
+Bundling runs in the existing export worker from an immutable scene snapshot.
+It copies only the trusted installation, excludes site packages and Python GUI/test
+modules, refuses unsafe standard-library links, checks interpreter relocation with
+an empty environment, and validates runtime readiness without executing game source.
+Publication is exclusive and atomic: existing exports are preserved and failures
+leave no partial destination archive. Bundling uses no network downloads.
+
+Bundles target **x86_64 glibc Linux / Wayland**. System graphics libraries, fonts,
+optional PipeWire audio and OS scripting restrictions remain prerequisites; see
+`Game/README.txt` and `bundle.json`. They are not macOS, Windows, X11 or musl exports.
+The original showcase bundle is about 46 MiB compressed. Building it takes roughly
+13 seconds on the measured development host; first-paint measurements and their
+limits are in the [packaging record](docs/performance/2026-10-05-native-bundle.json).
+
+To repeat clean Arch userspace verification (initial image build downloads system
+packages; the game check then runs offline without installed Python or Qt):
+
+```sh
+python scripts/check_bundle_arch.py /path/to/Game.tar.gz
+python scripts/check_bundle_arch.py /path/to/Game.tar.gz --wayland
+```
+
+These optional checks share the host kernel and, for Wayland, its compositor. They
+verify dependency independence in clean Arch userspace, not every machine or GPU.
+To measure a moved bundle through its normal exported entry point:
+
+```sh
+QT_QPA_PLATFORM=wayland python scripts/benchmark_export.py /path/to/Game --samples 3
+```
 
 For the dependency-packaging spike, run the offline developer probe:
 

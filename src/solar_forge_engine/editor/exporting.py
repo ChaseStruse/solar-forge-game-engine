@@ -5,6 +5,7 @@ from pathlib import Path
 from PySide6.QtCore import QThread
 
 from solar_forge_engine.core.scene import Scene
+from solar_forge_engine.project.bundling import export_bundle
 from solar_forge_engine.project.exporting import export_game
 
 
@@ -17,6 +18,7 @@ class ExportWorker(QThread):
 
     def run(self) -> None:
         try:
-            self.size = export_game(self.path, self.scene)
+            export = export_bundle if self.path.name.endswith(".tar.gz") else export_game
+            self.size = export(self.path, self.scene)
         except (OSError, ValueError) as error:
             self.error = str(error)

@@ -1236,11 +1236,21 @@ Next small features, in recommended order:
    playback afterward. Missing Qt in an isolated Python environment and malformed
    requirements produce failures without executing game source. The full Docker
    suite passes 324 tests; Ruff, formatting and strict mypy pass.
-   Packaging native runtime dependencies and verifying the independent game export
-   on clean Arch remain open. Measure bundle size and startup, preserving the lightweight option.
-   The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB
-   Qt subset with actual copies; interpreter bundling, notices and clean-machine
-   dependency verification remain open.
+   **Bundled Linux export implemented.** The native export dialog now offers a
+   `.tar.gz` containing copied Python 3.14.7, a Widgets-only Qt 6.11.2 subset,
+   launcher, game data, notices/source locations and a hashed dependency inventory.
+   The lightweight `.pyz` remains available. Worker builds validate interpreter
+   relocation with an empty environment and check readiness without executing game
+   source; standard-library links are refused and unrelated installation files are
+   excluded. Only completed archives are published, preserving existing targets.
+   Native and Docker exports run after moving folders, with no installed engine.
+   Clean Arch userspace without Python or Qt bindings passes offscreen and native
+   Wayland scripted playback. System graphics/fonts, optional audio and OS scripting
+   restrictions remain prerequisites. Bundles target x86_64 glibc Linux/Wayland.
+   The [packaging design](architecture/0001-runtime-packaging.md) and
+   [verification record](performance/2026-10-05-native-bundle.json) document sizes,
+   startup samples and limits. Hardware/kernel diversity, cold-start and compositor
+   presentation gates remain open; containers share the host kernel/compositor.
 3. Add multi-session recovery ownership and strengthen whole-project crash/power-loss
    guarantees. Current publication coordination does not make a project-folder
    transaction or reserve a recovery slot for one editing session.
