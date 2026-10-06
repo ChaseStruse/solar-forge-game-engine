@@ -6,13 +6,13 @@
   "pause_restart_cleanup": true,
   "independent_export": true,
   "game_engine_installed": false,
-  "archive_bytes": 29159,
+  "archive_bytes": 29525,
   "game": {
     "scene": "Python expedition",
     "objects": 2,
-    "x": 61.59786695963703,
+    "x": 80.69449223927222,
     "collected": 1,
-    "ticks": 19,
+    "ticks": 20,
     "score": 10,
     "scripts_ready": true,
     "script_failed": false,
@@ -21,8 +21,28 @@
     "runtime_from_archive": true
   },
   "verification": "Temporary native Qt workflow driver; independent export used a Qt-only venv without an engine installation.",
+  "docker_application": {
+    "scene": "Docker Python expedition",
+    "objects": 2,
+    "x": 50.004736079717986,
+    "collected": 1,
+    "ticks": 14,
+    "score": 42,
+    "scripts_ready": true,
+    "script_failed": false,
+    "scene_unchanged": true,
+    "editor_loaded": false,
+    "runtime_from_archive": false
+  },
+  "docker_application_checks": [
+    "Supported Python dataclasses with postponed annotations",
+    "Worker initialized with OS restrictions",
+    "Keyboard movement and coin collection",
+    "Authored scene unchanged",
+    "Temporary desktop container exited without replacing the existing session"
+  ],
   "limitations": [
-    "This is a Wayland functional check, not a compositor presentation or clean-machine packaging benchmark.",
-    "Qt libraries were supplied from the installed supported package; dependencies are not bundled."
+    "Wayland functional verification, not compositor-presentation or clean-machine packaging acceptance.",
+    "Qt libraries were reused from the supported installation; dependencies are not bundled."
   ]
 }

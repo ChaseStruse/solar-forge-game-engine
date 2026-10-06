@@ -167,3 +167,22 @@ def test_preview_errors_navigate_to_actual_source_and_reject_stale_locations(qtb
     finally:
         editor._close_preview()
         editor.close()
+
+
+def test_python_apply_stays_accessible_with_scrolled_source_in_small_window(qtbot):
+    from PySide6.QtCore import Qt
+
+    editor = editor_with_object(qtbot)
+    editor.resize(900, 600)
+    editor.show()
+    editor.edit_python()
+    editor.scripts.use_template()
+    qtbot.waitUntil(lambda: not editor.scripts.apply_button.visibleRegion().isEmpty())
+    editor.script_scroll.verticalScrollBar().setValue(
+        editor.script_scroll.verticalScrollBar().maximum()
+    )
+    assert not editor.scripts.apply_button.visibleRegion().isEmpty()
+    qtbot.mouseClick(editor.scripts.apply_button, Qt.MouseButton.LeftButton)
+    assert editor.document.scene.scripts[0].source == editor.scripts.code.toPlainText()
+    assert not editor.scripts.pending
+    editor.close()

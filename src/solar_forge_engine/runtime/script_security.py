@@ -90,7 +90,7 @@ ALLOWED_SYSCALLS = (
 )
 
 
-def enforce() -> int:
+def enforce(parent_pid: int | None = None) -> int:
     """Return the Landlock ABI after enforcing filesystem/syscall/resource limits."""
     if platform.system() != "Linux" or platform.machine() != "x86_64":
         raise RuntimeError("Python behaviors currently require x86_64 Linux isolation.")
@@ -112,6 +112,11 @@ def enforce() -> int:
         ctypes.c_ulong,
     ]
     libc.prctl.restype = ctypes.c_int
+    expected_parent = os.getppid() if parent_pid is None else parent_pid
+    if libc.prctl(1, 9, 0, 0, 0):  # PR_SET_PDEATHSIG, SIGKILL; cannot be reset after seccomp.
+        raise OSError(ctypes.get_errno(), "Could not enforce worker parent-death cleanup.")
+    if os.getppid() != expected_parent:
+        raise RuntimeError("The Python worker's runtime parent already exited.")
     seccomp = ctypes.CDLL("libseccomp.so.2", use_errno=True)
     seccomp.seccomp_init.argtypes = [ctypes.c_uint32]
     seccomp.seccomp_init.restype = ctypes.c_void_p

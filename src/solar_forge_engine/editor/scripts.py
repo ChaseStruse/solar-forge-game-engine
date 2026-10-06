@@ -196,9 +196,10 @@ class ScriptPanel(QWidget):
         self.code.setPlaceholderText(
             "Write a callback or choose a template. Code runs only in Play."
         )
-        self.code.setMinimumHeight(180)
-        layout.addWidget(self.code)
-        controls = QHBoxLayout()
+        self.code.setMinimumHeight(120)
+        self.controls = QWidget()
+        controls = QHBoxLayout(self.controls)
+        controls.setContentsMargins(8, 4, 8, 4)
         self.apply_button = QPushButton("Apply behavior")
         self.apply_button.clicked.connect(self.apply_selected)
         controls.addWidget(self.apply_button)
@@ -211,13 +212,8 @@ class ScriptPanel(QWidget):
         help_button = QPushButton("API help")
         help_button.clicked.connect(self.show_help)
         controls.addWidget(help_button)
-        layout.addLayout(controls)
-        self.hint = QLabel(
-            "start(ctx) · update(ctx, dt) · on_collision(ctx, id) · on_collect(ctx, id)\n"
-            "on_key(ctx, key, pressed) · stop(ctx)\n"
-            "ctx.move(dx, dy) · ctx.input.down('space') · ctx.state · ctx.add_score(10)\n"
-            "Save, Play and Export apply drafts. Restart Play to use changed code."
-        )
+        layout.addWidget(self.code)
+        self.hint = QLabel("Save/Play/Export apply drafts. Stop/start Play to load changed code.")
         self.hint.setWordWrap(True)
         layout.addWidget(self.hint)
         self.errors = QListWidget()
@@ -440,7 +436,7 @@ class ScriptPanel(QWidget):
         while self.errors.count() >= 32:
             self.errors.takeItem(0)
         row = QListWidgetItem(
-            f"{Path(fault.path).name.split('--')[0]}:{fault.line} — {fault.message}"
+            f"{Path(fault.path).name.rsplit('--', 1)[0]}:{fault.line} — {fault.message}"
         )
         row.setData(Qt.ItemDataRole.UserRole, fault)
         row.setToolTip(f"{fault.path}:{fault.line}\n{fault.message}")

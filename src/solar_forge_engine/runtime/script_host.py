@@ -1,6 +1,7 @@
 """Asynchronous, deadline-bound OS-restricted Python behavior process."""
 
 import json
+import os
 import sys
 from dataclasses import asdict
 from importlib.resources import files
@@ -38,6 +39,7 @@ def bootstrap() -> str:
                 f"exec(compile({source!r}, module.__file__, 'exec'), module.__dict__)",
             )
         )
+    lines.append(f"module.PARENT_PID = {os.getpid()}")
     lines.append("raise SystemExit(module.worker_main())")
     code = "\n".join(lines)
     if len(code.encode()) > 96 * 1024:

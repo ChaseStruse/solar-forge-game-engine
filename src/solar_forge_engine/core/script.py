@@ -49,4 +49,4 @@ class ScriptBinding:
 
     @property
     def name(self) -> str:
-        return self.path.removeprefix("scripts/").split("--", 1)[0]
+        return self.path.removeprefix("scripts/").rsplit("--", 1)[0]

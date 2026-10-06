@@ -5,7 +5,9 @@ include native scene editing and playback, Docker workflows, duplication, PNG
 sprites, project-relative assets and sprite reuse, autosave/recovery, multiple scenes,
 startup-scene selection, asset quarantine/restoration, movement/input settings,
 viewport drag/snap/zoom/pan, sprite-sheet animation, an offline assistant demo and
-an opt-in loopback Ollama adapter with reviewed scene edits.
+an opt-in loopback Ollama adapter with reviewed scene/code edits. Python behavior
+editing, attachment, restricted playback, source-line debugging and scripted native
+exports are now implemented; see the [scripting guide](PYTHON_SCRIPTING.md).
 The Scene panel also supports case-insensitive name/ID search and combined role
 filtering, with matching counts and Ctrl+L focus. Filters affect only the object
 list: authoring, viewport visibility and selection remain intact. Selected objects
@@ -332,6 +334,29 @@ Ruff, formatting and strict mypy passing. Native Wayland opening, animation,
 pause/restart and second-scene switching were verified. Opening instructions are
 in `examples/ember-run/README.md`; a preview is in `docs/screenshots/ember-run.png`.
 
+### Python scripting completion
+
+The complete write/attach/play/debug/export workflow is available through
+**Scene → Python behavior…** (`Ctrl+Alt+P`). Landlock ABI 6+ and libseccomp enforce
+filesystem/process/network restrictions in both native and unchanged Docker policies.
+Worker resource limits, bounded JSON, deadlines, malformed-output rejection and
+kernel parent-death termination are exercised with real processes. No sandbox
+claim extends to unknown kernel/interpreter vulnerabilities or modified executable
+archives. Ordinary source-free games do not require the behavior restriction backend.
+
+The native code workspace shares the Activity dock, with pinned actions and scrolling
+content for small windows. Hidden welcome content no longer forces the code workspace
+outside a compositor-managed window. Runtime dependency bundling is next; scene
+transitions, general spawning/deletion APIs and additional input action maps remain
+future work, rather than part of this initial behavior contract.
+
+A follow-up dense Wayland Play measurement recorded 12.562 ms p95 from sync to Qt
+paint completion and 18.241 ms p95 paint cadence
+([raw report](performance/2026-10-05-python-runtime-play.json)). It uses a 995×550
+viewport and overlapped other verification work, so it is not a direct regression
+comparison or a compositor-presentation result. The full 60 fps presentation gate
+remains open.
+
 ### Implemented foundation checkpoints
 
 - Python 3.14, PySide6 Essentials 6.11.2, uv lockfile, Ruff, mypy and focused pytest.
@@ -340,7 +365,7 @@ in `examples/ember-run/README.md`; a preview is in `docs/screenshots/ember-run.p
 - Duplicate Object (Ctrl+D) copies applied properties and gameplay roles with a
   fresh ID and a 24-unit offset, selects the copy, and uses the shared create command.
   Names and positions remain within schema limits. Undo/redo and save/reopen are verified.
-- Version-seven `.forge.json` scene documents with version-one/two/three/five loading support,
+- Version-eleven `.forge.json` documents with embedded behavior source and legacy loading support,
   bounded/validated reads, atomic writes, and unsaved-change protection on New/Open/Close.
 - Core integrity tests and one native edit/save/reopen workflow; offscreen visual QA.
 - Separate non-root Docker desktop/test images and independent headless test Compose;
@@ -348,10 +373,11 @@ in `examples/ember-run/README.md`; a preview is in `docs/screenshots/ember-run.p
 - Native Play process receiving a bounded, validated JSON snapshot over stdin;
   shared rectangle renderer, fixed-step keyboard movement, pause, restart and Stop.
   Authored scenes remain unchanged. Isolated Python startup ignores working-directory
-  packages and Python path environment overrides; no project Python code executes.
+  packages and Python path environment overrides. Attached behaviors execute only
+  inside the OS-restricted asynchronous worker, never inside the editor.
 - Editable coin-collector starter: Player/Wall/Coin/Decoration roles, static
   axis-aligned wall collisions, coin triggers, score/completion HUD, and restart.
-  Version-seven scenes persist roles, sprites, movement and animation settings; legacy scenes load without changing
+  Current scenes persist roles, sprites, movement, animation, sound and Python bindings; legacy scenes load without changing
   disk data. Save creates a non-overwriting `.v1.bak` or `.v2.bak` before upgrading.
 - PNG sprite import (Ctrl+Shift+I), embedded bounded RGBA data, transparency,
   inspector sizing/removal, and cached native pixmaps shared by editor and player.
@@ -479,8 +505,8 @@ compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project asset
 libraries and sound import/collection playback now exist, alongside a runtime-only
-native export and opt-in local Ollama adapter. Sandboxed scripts, dependency-bundled
-exports and enterprise adapters remain unimplemented. The assistant starts with
+native export, restricted Python behaviors and an opt-in local Ollama adapter.
+Dependency-bundled exports and enterprise adapters remain unimplemented. The assistant starts with
 an offline demo fixture. Project folders support multiple authored scenes with
 relative sprite references, per-scene recovery and a project-wide sprite palette.
 Reviewed unused-asset scanning, reversible quarantine and native browsing/restoration
@@ -831,10 +857,12 @@ Python protocols and type hints alone are not a security boundary.
 
 **Status: reviewed proposals and initial Ollama adapter implemented.** The native Assistant tab
 defaults to a deterministic fake provider with exact demo requests, not a language model.
-It proposes create/set/delete scene commands, validates the entire batch in a
+It proposes create/set/delete scene commands and Python attachment/detach, validating the entire batch in a
 throwaway Document, and displays an explicit diff before Apply. Responses are
-limited to 16 KiB / 16 commands; requests to 2,000 characters. No scripts, file
-patches, sprite changes or arbitrary execution tools are exposed. Apply revalidates
+limited to 16 KiB / 16 commands; requests to 2,000 characters. Python source is
+reviewed in full, and applied through `SetScript`; no file-patch, sprite-edit or
+arbitrary editor-execution tools are exposed. Existing source and paths remain
+excluded from automatic model context. Apply revalidates
 and checks document identity/revision, then creates one atomic undoable edit.
 Generation runs in a Qt worker. Discard cancels results, stale responses cannot
 apply, and provider errors leave authoring untouched. Closing waits for an active
@@ -1168,47 +1196,31 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. **Completed — Python scripting workflow:** write, attach, play and debug a simple
-   object behavior. Provide a native code panel with project-owned `.py` files,
-   a small API for movement/input/collision/collection events, script attachment,
-   file/line error navigation, reliable restart and script inclusion in native exports.
-   Isolation is part of this feature: verify a native and container-compatible
-   restriction backend, resource limits, bounded IPC and termination before executing
-   imported/generated Python behaviors. Keep authoring independent of model services.
-   The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
-   boundary checks; the unchanged Docker policy denies user namespaces. Those probes
-   do not yet prove safe arbitrary script execution. Landlock/libseccomp restrictions
-   now pass real filesystem/process/network/memory checks natively and under the
-   unchanged Docker policy; bounded worker IPC and lifecycle integration remain next.
-   The independent test image passes all 284 tests plus Ruff and mypy at this checkpoint.
-   Script persistence is now implemented: standalone scene v11 embeds source, project
-   scene v12 references immutable content-addressed `.py` files inside `scripts/`.
-   Attach/update/detach use revision-checked `SetScript`; object deletion removes its
-   binding and Undo restores it. Sixteen behaviors/scene, 64 KiB/source and 512 KiB
-   aggregate source keep payloads bounded. Existing v9/v10 scenes and recovery hashes
-   migrate safely with exact backups. Loading validates source and never executes it.
-   The asynchronous behavior worker now runs start/update/key/collision/collection/stop
-   callbacks under those OS restrictions. Validated bounded actions affect runtime
-   movement, visuals and score without changing authored data. Startup has a 5-second
-   deadline; update/stop requests have 250 ms deadlines. Output flooding and callback
-   failures stop the worker and surface source-line errors. Restart replaces the worker
-   and its state; close drains or kills it. Native `.pyz` exports include the same
-   runtime-only worker and source snapshots. All 299 tests pass in Docker with Ruff
-   and mypy at the runtime checkpoint. The native Python panel now supports code
-   editing, templates, bounded UTF-8 imports, draft preservation, atomic Apply,
-   detach, behavior-aware duplication/deletion and source-line error navigation.
-   Save/Play/Export/project creation apply valid drafts; recovery captures valid
-   unapplied source without execution. All 308 tests pass natively and in Docker,
-   with Ruff and mypy at the authoring checkpoint. Reviewed assistant proposals now
-   support validated source attachments/replacements/detach, with complete source
-   review and atomic Undo. Existing source/paths are excluded from model context;
-   manual drafts block assistant Apply. Offline behavior fixtures and loopback schema
-   checks pass; no live LLM output is claimed. All 316 tests pass in Docker. Native
-   Wayland authoring, error navigation, pause/restart cleanup and a Qt-only, editor-free
-   scripted export also pass ([record](performance/2026-10-05-python-scripting-wayland.json)).
-   See the [Python scripting guide](PYTHON_SCRIPTING.md) for the current API and limits.
-   Deliver this playable workflow
-   before dependency bundling or enterprise model integration.
+1. **Completed — Python scripting workflow.** Native code editing/highlighting,
+   line numbers, templates, bounded imports, attachment/detach, Apply and Undo,
+   behavior-aware duplication/deletion, draft preservation and draft recovery are
+   implemented. Save/Play/Export/project creation apply valid drafts atomically.
+   Scene v11 embeds source; project v12 references immutable content-addressed `.py`
+   files. Legacy saves retain exact backups. Loading never executes source.
+   Callbacks cover start/update/key/collision/collection/stop; bounded actions affect
+   runtime movement, visuals and score without changing authored data. Restart resets
+   state, startup-held keys survive worker initialization, normal Python helper classes
+   work, unsupported async/generator callbacks report clear errors, and source errors
+   navigate to real lines. Native `.pyz` exports include
+   source and the runtime-only worker. Script limits: sixteen attachments, 64 KiB each,
+   512 KiB aggregate. Startup/update/stop deadlines, output limits and OS restrictions
+   fail closed. Parent-death SIGKILL prevents a busy orphan if its runtime crashes;
+   seccomp prevents source from resetting that policy or spawning descendants.
+   Reviewed assistant source proposals use the same commands, show complete source,
+   protect pending manual drafts and exclude existing source from model context.
+   Offline templates and loopback fixtures are verified; live generated LLM behavior
+   output is not claimed. Final checks pass: 320 tests natively and in Docker, Ruff,
+   formatting and strict mypy. Native Wayland authoring, accessible controls, debugging,
+   pause/restart cleanup and an editor-free scripted export pass
+   ([record](performance/2026-10-05-python-scripting-wayland.json)).
+   The rebuilt application image also passes a real Wayland worker/helper-class,
+   keyboard movement, coin collection and cleanup check, without replacing the existing
+   desktop container. See the [Python scripting guide](PYTHON_SCRIPTING.md) for APIs and limits.
 2. Package native runtime dependencies and verify the independent game export
    on clean Arch. Measure bundle size and startup, preserving the lightweight option.
    The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB

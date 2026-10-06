@@ -573,12 +573,14 @@ docker compose -f compose.test.yaml run --build --rm test
 
 The test service has no display mount, user project volume, or network access.
 Its configuration works without a Wayland session. Native compositor/GPU testing
-and gameplay preview isolation remain later validation work.
+remains separate from the verified behavior-worker restrictions.
 
 - [Product and implementation plan](docs/ENGINE_PLAN.md)
 - [Instructions for coding agents](AGENTS.md)
 
 The native Python desktop direction is fixed. Runtime rendering performance,
-packaging, and sandboxing still need their planned validation milestones.
-The [sandbox spike](docs/architecture/0002-script-sandbox.md) records native boundary
-checks and the current Docker limitation; Python game behaviors remain disabled.
+and dependency packaging still need their planned validation milestones.
+The [sandbox record](docs/architecture/0002-script-sandbox.md) describes verified
+Landlock/libseccomp restrictions, bounded worker messages, deadlines and cleanup in
+native and Docker environments. Python behaviors are enabled; unsupported isolation
+capabilities fail closed.

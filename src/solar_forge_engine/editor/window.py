@@ -336,7 +336,6 @@ class EditorWindow(QMainWindow):
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
         self.log.document().setMaximumBlockCount(100)
-        self.log.setMaximumHeight(130)
         self._dock("Activity", self.log, Qt.DockWidgetArea.BottomDockWidgetArea)
         self.log.appendPlainText(
             "Create a rectangle, edit its properties, and save your first scene."
@@ -344,9 +343,21 @@ class EditorWindow(QMainWindow):
         self.scripts = ScriptPanel(self._apply_scripts, self._error)
         self.scripts.draft_changed.connect(self._script_draft_changed)
         self.scripts.navigate.connect(self._navigate_script)
-        self._dock("Python", self.scripts, Qt.DockWidgetArea.BottomDockWidgetArea)
+        python_scroll = self.script_scroll = QScrollArea()
+        python_scroll.setWidgetResizable(True)
+        python_scroll.setWidget(self.scripts)
+        python_panel = QWidget()
+        python_layout = QVBoxLayout(python_panel)
+        python_layout.setContentsMargins(0, 0, 0, 0)
+        python_layout.addWidget(python_scroll)
+        python_layout.addWidget(self.scripts.controls)
+        self._dock("Python", python_panel, Qt.DockWidgetArea.BottomDockWidgetArea)
         python_dock = self.findChild(QDockWidget, "Python")
         if python_dock is not None:
+            activity = self.findChild(QDockWidget, "Activity")
+            if activity is not None:
+                self.tabifyDockWidget(activity, python_dock)
+                activity.raise_()
             python_dock.hide()
         self.lock_preferences = LockPersistence(self)
         self.lock_preferences.restored.connect(self._set_viewport_locks)
@@ -540,6 +551,7 @@ class EditorWindow(QMainWindow):
             dock.raise_()
             self.resizeDocks([dock], [390], Qt.Orientation.Vertical)
         self.scripts.code.setFocus()
+        QTimer.singleShot(0, lambda: self.script_scroll.ensureWidgetVisible(self.scripts.code))
 
     def _navigate_script(self, identity: str) -> None:
         self.selected_id = identity

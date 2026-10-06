@@ -53,7 +53,11 @@ are killed in real-process tests. Restart and close retire the process; seccomp
 prevents it from creating descendants. Native exports run the same worker without
 editor or project imports. Startup and stop loops also terminate; unavailable restrictions fail before source
 execution. Oversized numeric actions are rejected without partial application.
-All 308 tests pass natively and in the unchanged Docker test policy.
+The worker also installs SIGKILL-on-parent-death before source execution, checks
+its expected runtime PID to close the setup race, and denies subsequent `prctl`
+changes through seccomp. A real busy behavior dies after an abrupt runtime exit.
+See the [Linux parent-death contract](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html).
+All 320 tests pass natively and in the unchanged Docker test policy.
 See [Landlock's kernel documentation](https://docs.kernel.org/userspace-api/landlock.html)
 and [libseccomp's policy API](https://man7.org/linux/man-pages/man3/seccomp_init.3.html).
 

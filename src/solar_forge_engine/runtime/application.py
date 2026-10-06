@@ -32,6 +32,13 @@ def run_scene(
         )
 
         def press() -> None:
+            if (
+                window.script_host
+                and not window.script_host.ready
+                and not window.script_host.failed
+            ):
+                QTimer.singleShot(25, press)
+                return
             window.activateWindow()
             QApplication.postEvent(
                 window, QKeyEvent(QKeyEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier)

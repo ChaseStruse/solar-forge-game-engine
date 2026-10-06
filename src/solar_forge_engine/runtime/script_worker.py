@@ -1,5 +1,6 @@
 """Private Python behavior interpreter. Project code runs only after OS isolation."""
 
+import inspect
 import io
 import json
 import math
@@ -8,7 +9,7 @@ import re
 import sys
 import traceback
 from collections.abc import Callable
-from types import MappingProxyType
+from types import MappingProxyType, ModuleType
 from typing import TextIO
 
 from solar_forge_engine.runtime.script_protocol import (
@@ -18,6 +19,8 @@ from solar_forge_engine.runtime.script_protocol import (
     scalar,
 )
 from solar_forge_engine.runtime.script_security import enforce
+
+PARENT_PID: int | None = None
 
 CALLBACKS = ("start", "update", "on_collision", "on_collect", "on_key", "stop")
 
@@ -138,7 +141,10 @@ class Behavior:
             raise ValueError("Invalid behavior source snapshot.")
         self.id, self.path = identity, path
         self.state: dict[str, object] = {}
-        namespace: dict[str, object] = {"__name__": "solar_behavior", "__file__": self.path}
+        module = ModuleType(f"solar_behavior_{self.id}")
+        module.__file__ = self.path
+        sys.modules[module.__name__] = module
+        namespace = module.__dict__
         exec(compile(source, self.path, "exec"), namespace)
         self.callbacks: dict[str, Callable[..., object]] = {}
         for name in CALLBACKS:
@@ -146,6 +152,8 @@ class Behavior:
             if callback is not None:
                 if not callable(callback):
                     raise ValueError(f"Behavior {name} must be callable.")
+                if inspect.iscoroutinefunction(callback) or inspect.isgeneratorfunction(callback):
+                    raise ValueError("Behavior callbacks must be synchronous, without yield.")
                 self.callbacks[name] = callback
         if not self.callbacks:
             raise ValueError("Define start(ctx), update(ctx, dt) or an event callback.")
@@ -166,7 +174,7 @@ def worker_main() -> int:
     # modules are installed in this interpreter's synthetic runtime package.
     channel = sys.stdout
     try:
-        enforce()
+        enforce(PARENT_PID)
     except (OSError, RuntimeError, ValueError) as error:
         print(f"Python isolation unavailable: {error}", file=sys.stderr, flush=True)
         return 1
@@ -177,6 +185,7 @@ def worker_main() -> int:
     behaviors: list[Behavior] = []
     bodies: dict[str, dict[str, object]] = {}
     previous_keys: set[str] = set()
+    elapsed = 0.0
     while raw := sys.stdin.readline(MAX_INPUT_BYTES + 1):
         if len(raw.encode("utf-8")) > MAX_INPUT_BYTES:
             return 1
@@ -200,7 +209,7 @@ def worker_main() -> int:
                 for entity_id, position in request.get("positions", {}).items():
                     bodies[entity_id]["x"], bodies[entity_id]["y"] = position
                 keys = request.get("input", [])
-                elapsed = request.get("elapsed", 0.0)
+                elapsed = request.get("elapsed", elapsed)
                 key_events = [(key, False) for key in sorted(previous_keys - set(keys))]
                 key_events += [(key, True) for key in sorted(set(keys) - previous_keys)]
                 for behavior in behaviors:

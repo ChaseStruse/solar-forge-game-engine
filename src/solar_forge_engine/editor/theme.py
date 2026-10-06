@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QStackedWidget,
     QVBoxLayout,
     QWidget,
@@ -163,4 +164,10 @@ class ForgeWorkspace(QWidget):
 
     def update_scene(self, name: str, count: int, dirty: bool) -> None:
         self.scene_label.setText(f"{name} · {count} objects{' · Unsaved' if dirty else ''}")
+        # Hidden welcome content must not impose its card height on the viewport
+        # or force the code dock outside a small compositor-managed window.
+        self.pages.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Ignored if count else QSizePolicy.Policy.Preferred,
+        )
         self.pages.setCurrentIndex(1 if count else 0)

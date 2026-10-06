@@ -64,3 +64,60 @@ if not all(report.values()):
     assert result.returncode == 0, result.stdout + result.stderr
     assert canary.read_text() == "synthetic credential"
     assert not marker.exists()
+
+
+def test_busy_behavior_dies_when_its_runtime_parent_exits():
+    import signal
+    import time
+    from pathlib import Path
+
+    code = """import os
+from PySide6.QtCore import QCoreApplication, QTimer
+from solar_forge_engine.core.scene import Entity, Scene
+from solar_forge_engine.core.script import ScriptBinding
+from solar_forge_engine.runtime.script_host import ScriptHost
+app = QCoreApplication([])
+source = "def update(ctx, dt):\\n    while True: pass\\n"
+binding = ScriptBinding.from_source('actor', 'busy', source)
+host = ScriptHost(Scene(entities=(Entity('actor'),), scripts=(binding,)))
+host.result.connect(lambda result: host.step(0.01, 0.01, [], {'actor': (0, 0)}, []))
+def check():
+    if host._id == 1 and host._progress:
+        print(host.process.processId(), flush=True)
+        os._exit(0)
+    if host.failed:
+        os._exit(2)
+timer = QTimer()
+timer.timeout.connect(check)
+timer.start(1)
+QTimer.singleShot(5000, lambda: os._exit(3))
+host.start()
+app.exec()
+"""
+    parent = subprocess.run(
+        [sys.executable, "-I", "-c", code],
+        env={},
+        cwd="/",
+        capture_output=True,
+        text=True,
+        timeout=7,
+    )
+    assert parent.returncode == 0, parent.stderr
+    identity = int(parent.stdout.strip())
+    state = Path(f"/proc/{identity}/stat")
+    try:
+        deadline = time.monotonic() + 2
+        while state.exists():
+            try:
+                status = state.read_text().split(")", 1)[1].split()[0]
+            except FileNotFoundError:
+                break
+            if status == "Z":  # Already killed; the system reaper may not have collected it yet.
+                break
+            assert time.monotonic() < deadline, "Busy behavior survived its runtime parent."
+            time.sleep(0.01)
+    finally:
+        try:
+            os.kill(identity, signal.SIGKILL)
+        except ProcessLookupError:
+            pass

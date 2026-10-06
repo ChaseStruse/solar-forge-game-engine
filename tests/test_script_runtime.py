@@ -13,8 +13,16 @@ def scripted(source):
 
 
 def test_restricted_worker_callbacks_input_state_logs_and_clean_stop(qtbot):
-    scene = scripted("""def start(ctx):
+    scene = scripted("""from __future__ import annotations
+from dataclasses import dataclass
+
+@dataclass
+class Counter:
+    frames: int = 0
+
+def start(ctx):
     ctx.state["started"] = True
+    ctx.state["counter"] = Counter()
     print("started", ctx.id)
 
 def on_key(ctx, key, pressed):
@@ -26,9 +34,11 @@ def on_collect(ctx, other):
 
 def update(ctx, dt):
     assert ctx.state["started"]
+    ctx.state["counter"].frames += 1
     ctx.move(ctx.input.horizontal * 120 * dt, 0)
 
 def stop(ctx):
+    assert ctx.elapsed == 1.0
     print("stopped")
 """)
     host = ScriptHost(scene)
@@ -68,6 +78,8 @@ def stop(ctx):
     [
         ("def start(ctx):\n    1 / 0\n", "ZeroDivisionError", 2),
         ("def start(:\n", "SyntaxError", 1),
+        ("async def update(ctx, dt):\n    pass\n", "synchronous", 1),
+        ("def update(ctx, dt):\n    yield 1\n", "synchronous", 1),
         ("def update(ctx, dt):\n    while True: pass\n", "deadline", 0),
         ("import os\ndef start(ctx):\n    os.write(1, b'x' * 70000)\n", "response", 0),
     ],
@@ -133,7 +145,10 @@ def test_player_scripts_move_collect_collide_pause_restart_and_preserve_scene(qt
     from solar_forge_engine.core.scene import Role
     from solar_forge_engine.runtime.player import PlayerWindow
 
-    source = """def start(ctx):
+    source = """import time
+
+def start(ctx):
+    time.sleep(0.15)
     ctx.state["hits"] = 0
     ctx.set_color("#abcdef")
     ctx.set_rotation(15)
@@ -160,7 +175,6 @@ def update(ctx, dt):
     player = PlayerWindow(scene, "player")
     qtbot.addWidget(player)
     player.show()
-    qtbot.waitUntil(lambda: player.script_host.ready)
     qtbot.waitUntil(player.isActiveWindow)
     qtbot.keyPress(player, Qt.Key.Key_D)
     qtbot.waitUntil(lambda: player.simulation.score > 10, timeout=3000)
@@ -214,7 +228,7 @@ def test_unavailable_restrictions_fail_before_any_project_source(qtbot, tmp_path
     from solar_forge_engine.runtime import script_host
 
     original = script_host.bootstrap()
-    replacement = """def denied():
+    replacement = """def denied(*args):
     raise RuntimeError('restriction unavailable fixture')
 module.enforce = denied
 raise SystemExit(module.worker_main())"""

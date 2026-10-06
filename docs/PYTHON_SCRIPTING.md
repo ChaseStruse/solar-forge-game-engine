@@ -2,7 +2,8 @@
 
 Select an object, then open **Scene → Python behavior…** (`Ctrl+Alt+P`). Choose a
 keyboard, patrol, or spin template, import a UTF-8 `.py` file, or write code in the
-native editor. The panel provides highlighting, line numbers, automatic indentation
+native editor. Resize or undock the Python panel for more space; Apply/Detach stay
+visible while the source area scrolls. The panel provides highlighting, line numbers, automatic indentation
 and ordinary text undo. **Apply behavior** attaches your code in one scene undo
 step; **Detach** removes the attachment. Each object has at most one behavior.
 Duplicating an object copies its behavior; deleting it removes its attachment.
@@ -23,7 +24,9 @@ be saved; loading and importing code never execute it.
 
 ## Callbacks
 
-Define any of the following functions at module level. Omitted callbacks are skipped.
+Define synchronous functions at module level. Async functions and generator
+callbacks are rejected with a clear error; omitted callbacks are skipped. Ordinary
+helper functions/classes, including dataclasses with postponed annotations, work.
 Modules load once for each fresh Play session; globals and `ctx.state` persist for
 that session. At least one callback is required. `dt` is seconds, capped at 0.1;
 `ctx.elapsed` is elapsed simulation time. Callbacks run in attachment order in a
@@ -115,6 +118,9 @@ stops the worker and displays an error. Runtime output has a 64 KiB packet limit
 per request, with at most 32 shown per second. Stop is best effort: an idle worker
 gets its `stop` callbacks; a busy or hung worker is killed within its deadline.
 Closing or restarting retires the old process before creating a fresh one.
+Kernel parent-death termination also kills a busy worker if its runtime exits
+abruptly; source cannot reset that policy after syscall restrictions are installed.
+Stop callbacks retain the last observed simulation time.
 
 ## Files and exports
 

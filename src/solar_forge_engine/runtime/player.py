@@ -159,6 +159,7 @@ class PlayerWindow(QMainWindow):
         self.timer.start(16)
         self._sync_position()
         self.script_label = QLabel()
+        self.script_label.setAccessibleName("Python behavior status")
         self.script_label.setTextFormat(Qt.TextFormat.PlainText)
         self.script_label.setMaximumWidth(380)
         if scene.scripts:
@@ -253,8 +254,11 @@ class PlayerWindow(QMainWindow):
         elapsed = min(now - self._last_tick, 0.1)
         self._last_tick = now
         host = self.script_host
-        if self.paused or not self.isActiveWindow() or (host is not None and not host.ready):
+        if self.paused or not self.isActiveWindow():
             self.keys.clear()
+            self._accumulator = 0
+            return
+        if host is not None and not host.ready:
             self._accumulator = 0
             return
         self._accumulator += elapsed

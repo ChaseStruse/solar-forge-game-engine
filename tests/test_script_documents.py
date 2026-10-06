@@ -41,7 +41,8 @@ def test_script_commands_are_revision_checked_undoable_and_preserve_callback_ord
 def test_project_and_standalone_python_snapshots_move_without_executing_source(tmp_path):
     marker = tmp_path / "must-not-run"
     source = f"from pathlib import Path\nPath({str(marker)!r}).write_text('executed')\n"
-    binding = ScriptBinding.from_source("actor", "behavior", source)
+    binding = ScriptBinding.from_source("actor", "behavior--motion", source)
+    assert binding.name == "behavior--motion"
     scene = Scene(entities=(Entity("actor"),), scripts=(binding,))
     project = create_project(tmp_path / "Game", scene)
     assert (project.root / binding.path).read_text() == source
