@@ -1,6 +1,16 @@
 # Native runtime packaging
 
-Status: measured direction; release bundling remains incomplete.
+Status: measured direction with export readiness diagnostics; release bundling
+and clean-Arch verification remain incomplete.
+
+New exports contain a bounded runtime requirements manifest. Run
+`python3.14 -I Game.pyz --check-runtime` (or add `--json`) to check Linux/Python,
+matching Qt bindings/libraries and the selected display plugin. Scripted games
+also test real Landlock/seccomp enforcement in a disposable trusted subprocess.
+The checker neither loads the scene nor executes project source, and runs even
+when Qt is missing. Optional audio is reported separately. Probes have deadlines;
+readiness failure returns exit code 1. This is a dependency check, not a gameplay
+or clean-machine release certification. Older exports need rebuilding to gain it.
 
 The exported `.pyz` contains core/runtime Python and one scene. Native extension
 modules cannot load from inside that archive; keep Python and Qt outside it.

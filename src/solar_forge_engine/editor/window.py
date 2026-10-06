@@ -1344,7 +1344,8 @@ class EditorWindow(QMainWindow):
             self.log.appendPlainText(
                 f"Exported {job.scene.name} to {job.path.name} ({job.size} bytes). "
                 "Requires Python 3.14 and PySide6-Essentials 6.11.2. "
-                "Editor and Docker are not needed."
+                "Editor and Docker are not needed. "
+                "Run with --check-runtime to check dependencies without executing game code."
             )
 
     def save(self, checked: bool = False, *, choose_path: bool = False) -> bool:

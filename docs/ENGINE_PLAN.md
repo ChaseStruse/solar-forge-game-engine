@@ -1227,8 +1227,17 @@ Next small features, in recommended order:
    The rebuilt application image also passes a real Wayland worker/helper-class,
    keyboard movement, coin collection and cleanup check, without replacing the existing
    desktop container. See the [Python scripting guide](PYTHON_SCRIPTING.md) for APIs and limits.
-2. Package native runtime dependencies and verify the independent game export
-   on clean Arch. Measure bundle size and startup, preserving the lightweight option.
+2. **In progress — native export portability.** New game archives embed runtime
+   requirements and support `--check-runtime` / `--check-runtime --json`. Checks
+   report Linux/Python compatibility, exact Qt versions, real display initialization,
+   optional audio, and real scripting restriction enforcement when needed. Project
+   source is never executed by diagnostics; missing Qt does not prevent a report.
+   Real offscreen and native Wayland checks pass, including scripted showcase
+   playback afterward. Missing Qt in an isolated Python environment and malformed
+   requirements produce failures without executing game source. The full Docker
+   suite passes 324 tests; Ruff, formatting and strict mypy pass.
+   Packaging native runtime dependencies and verifying the independent game export
+   on clean Arch remain open. Measure bundle size and startup, preserving the lightweight option.
    The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB
    Qt subset with actual copies; interpreter bundling, notices and clean-machine
    dependency verification remain open.

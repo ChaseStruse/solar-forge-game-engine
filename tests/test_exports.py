@@ -164,3 +164,80 @@ def update(ctx, dt):
     assert report["scene_unchanged"] and not report["editor_loaded"]
     assert report["runtime_from_archive"]
     assert not (tmp_path / "scripts").exists()
+
+
+def test_export_checks_real_dependencies_and_restrictions_without_running_source(tmp_path):
+    from solar_forge_engine.core.script import ScriptBinding
+
+    scene = replace(
+        game(),
+        scripts=(
+            ScriptBinding.from_source(
+                "player",
+                "not_executed",
+                "raise RuntimeError('game source must not run during diagnostics')\n"
+                "def update(ctx, dt):\n    pass\n",
+            ),
+        ),
+    )
+    archive = tmp_path / "Check.pyz"
+    export_game(archive, scene)
+    result = subprocess.run(
+        [sys.executable, "-I", str(archive), "--check-runtime", "--json"],
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["ready"]
+    checks = {check["name"]: check for check in report["checks"]}
+    assert checks["qt"]["status"] == "ok"
+    assert checks["scripting"]["status"] == "ok"
+    assert "Landlock" in checks["scripting"]["detail"]
+    with zipfile.ZipFile(archive) as bundle:
+        assert json.loads(bundle.read("game_data/requirements.json"))["scripts"] is True
+
+
+def test_export_reports_missing_qt_without_loading_it_or_the_game(tmp_path):
+    import venv
+
+    environment = tmp_path / "without-qt"
+    venv.EnvBuilder(with_pip=False).create(environment)
+    archive = tmp_path / "Check.pyz"
+    export_game(archive, game())
+    result = subprocess.run(
+        [str(environment / "bin/python"), "-I", str(archive), "--check-runtime", "--json"],
+        capture_output=True,
+        text=True,
+        timeout=15,
+    )
+    assert result.returncode == 1
+    report = json.loads(result.stdout)
+    assert not report["ready"]
+    checks = {check["name"]: check for check in report["checks"]}
+    assert checks["qt"]["status"] == "fail"
+    assert "PySide6" in checks["qt"]["detail"]
+    assert checks["scripting"]["status"] == "skip"
+
+
+def test_export_runtime_check_rejects_malformed_requirements(tmp_path):
+    archive = tmp_path / "InvalidCheck.pyz"
+    export_game(archive, game())
+    with zipfile.ZipFile(archive) as bundle:
+        entries = {name: bundle.read(name) for name in bundle.namelist()}
+    required = json.loads(entries["game_data/requirements.json"])
+    required["scripts"] = "false"
+    entries["game_data/requirements.json"] = json.dumps(required).encode()
+    with zipfile.ZipFile(archive, "w") as bundle:
+        for name, raw in entries.items():
+            bundle.writestr(name, raw)
+    result = subprocess.run(
+        [sys.executable, "-I", str(archive), "--check-runtime", "--json"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 1
+    assert "Invalid game runtime requirements" in result.stderr
+    assert not result.stdout

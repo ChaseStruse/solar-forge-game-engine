@@ -488,9 +488,24 @@ work. Qt's native extension modules stay outside the zip archive, as described i
 # Use an interpreter with the supported Qt package installed
 python3.14 -I Game.pyz
 
-# Brief native compatibility check: exercise movement, print a report, then close
+# Check dependencies and real OS restrictions without executing game source
+python3.14 -I Game.pyz --check-runtime
+
+# Machine-readable report (exit 0 when ready, 1 when a required check fails)
+python3.14 -I Game.pyz --check-runtime --json
+
+# Exercise actual gameplay and close; this DOES execute attached Python behaviors
 python3.14 -I Game.pyz --smoke-check
 ```
+
+Runtime checks work even if Qt is missing: they read only the bounded requirements
+manifest, initialize Qt in a disposable process, and enforce scripting restrictions
+in a separate trusted process when the game has behaviors. They do not load scene
+source. Audio availability is optional and does not fail readiness; an available
+`pw-play` executable still needs a working PipeWire session. Qt/display failures
+are reported without taking down the checker. An offscreen CI environment can use
+`QT_QPA_PLATFORM=offscreen`; desktop players should check inside their Wayland session.
+Readiness verifies dependencies and restrictions, not whether a game's code is correct.
 
 The executable archive also supports `./Game.pyz` when `python3` resolves to the
 supported environment. Its launcher uses Python isolated mode, ignoring project

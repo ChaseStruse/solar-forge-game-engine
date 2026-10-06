@@ -9,6 +9,7 @@ from pathlib import Path
 from solar_forge_engine.core.limits import MAX_FILE_BYTES
 from solar_forge_engine.core.scene import Scene
 from solar_forge_engine.project.storage import atomic_write
+from solar_forge_engine.runtime.diagnostics import requirements
 from solar_forge_engine.runtime.simulation import controlled_entity
 
 RUNTIME_FILES = (
@@ -23,6 +24,7 @@ RUNTIME_FILES = (
     "runtime/__init__.py",
     "runtime/application.py",
     "runtime/exported.py",
+    "runtime/diagnostics.py",
     "runtime/player.py",
     "runtime/rendering.py",
     "runtime/simulation.py",
@@ -33,6 +35,9 @@ RUNTIME_FILES = (
     "runtime/script_host.py",
 )
 ENTRY_POINT = """import sys
+if "--check-runtime" in sys.argv[1:]:
+    from solar_forge_engine.runtime.diagnostics import main
+    raise SystemExit(main())
 if sys.version_info[:2] != (3, 14):
     print("This game requires Python 3.14.", file=sys.stderr)
     raise SystemExit(1)
@@ -42,6 +47,8 @@ except ImportError as error:
     print("Install PySide6-Essentials 6.11.2 and its Linux libraries to run this game.",
           file=sys.stderr)
     print(str(error), file=sys.stderr)
+    print("Run with --check-runtime for a dependency report without running game code.",
+          file=sys.stderr)
     raise SystemExit(1)
 raise SystemExit(main())
 """
@@ -70,6 +77,14 @@ def export_game(path: Path, scene: Scene) -> int:
         _entry(archive, "__main__.py", ENTRY_POINT.encode())
         _entry(archive, "game_data/__init__.py", b'"""Bundled game data."""\n')
         _entry(archive, "game_data/scene.json", snapshot)
+        _entry(
+            archive,
+            "game_data/requirements.json",
+            json.dumps(
+                requirements(scripts=bool(scene.scripts), audio=scene.coin_sound is not None),
+                allow_nan=False,
+            ).encode("utf-8"),
+        )
     raw = buffer.getvalue()
     atomic_write(path, raw, exclusive=True, mode=0o755)
     return len(raw)

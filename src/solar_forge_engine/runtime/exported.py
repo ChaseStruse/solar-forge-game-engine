@@ -11,7 +11,10 @@ from solar_forge_engine.runtime.application import run_scene
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Solar Forge native game")
+    parser = argparse.ArgumentParser(
+        description="Solar Forge native game",
+        epilog="Check dependencies without game code: --check-runtime [--json].",
+    )
     parser.add_argument(
         "--smoke-check", action="store_true", help="Briefly exercise playback and close"
     )
