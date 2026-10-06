@@ -32,9 +32,15 @@ the existing preferences volume; runtime scene files and exports remain unchange
 Lock verification: 192 tests pass locally (14.81 seconds) and in Docker (17.23 seconds).
 Ruff, formatting and strict mypy pass. Native Wayland persistence, reopening,
 unlocking and unchanged scene bytes were verified, alongside previous drag checks.
-The Ember Run showcase adds original pixel art, 187 editable objects, 19 animated
-sprites and a twelve-core collection route. Its portable example includes a second
-scene sharing assets; the built-in template is accessible in native and Docker builds.
+The refreshed Ember Run solar sanctuary adds original mint-and-gold pixel art,
+231 editable objects, 25 animated sprites, garden beds, solar arrays, vines, pollen
+and illuminated walkways. Three restricted Python behaviors animate the reactor
+and hovering service drones; an original PCM chime accompanies core collection.
+The twelve-core route remains playable without crossing walls. Its approximately
+260 KiB editable example includes a second scene sharing assets; the built-in
+showcase remains available through the native editor. The updated
+[example guide](../examples/ember-run/README.md) covers editing, behavior requirements,
+audio and native exports; [scene preview](screenshots/ember-run.png) shows the refreshed art.
 Quarantine now supports reviewed permanent deletion of one selected file. A bounded
 worker rescan precedes default-No confirmation with path, size and fingerprint;
 a second content check precedes unlink. Cancellation, changed files and failures

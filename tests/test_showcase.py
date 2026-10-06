@@ -55,7 +55,7 @@ def test_distributed_project_matches_templates_and_shared_assets():
     assert open_scene(project, "scenes/Courier Bay.forge.json")[1] == courier_bay()
     assert sum(entity.animation is not None for entity in scene.entities) >= 19
     assert scene.entity("courier").role == Role.PLAYER
-    assert sum(path.stat().st_size for path in root.rglob("*") if path.is_file()) < 256_000
+    assert sum(path.stat().st_size for path in root.rglob("*") if path.is_file()) < 288_000
 
 
 def test_showcase_opens_editably_and_plays_without_mutating_authoring(qtbot):
@@ -73,3 +73,35 @@ def test_showcase_opens_editably_and_plays_without_mutating_authoring(qtbot):
     editor.stop_preview()
     assert editor.preview.waitForFinished(5000)
     assert editor.document.scene == original
+
+
+def test_showcase_behaviors_run_under_real_restrictions_without_changing_scene(qtbot):
+    from solar_forge_engine.runtime.script_host import ScriptHost
+
+    scene = ember_run()
+    host = ScriptHost(scene)
+    results, faults = [], []
+    host.result.connect(results.append)
+    host.fault.connect(faults.append)
+    host.start()
+    qtbot.waitUntil(lambda: host.ready or host.failed, timeout=6000)
+    try:
+        assert not faults
+        positions = {entity.id: (entity.x, entity.y) for entity in scene.entities}
+        assert host.step(0.05, 1.0, [], positions, [])
+        qtbot.waitUntil(lambda: len(results) == 2 or host.failed)
+        assert not faults
+        actions = results[-1].actions
+        assert len(actions) == 5
+        assert {action.entity_id for action in actions} == {
+            binding.entity_id for binding in scene.scripts
+        }
+        for action in actions:
+            if action.kind == "position":
+                original = scene.entity(action.entity_id)
+                assert action.values != (original.x, original.y)
+        assert scene == ember_run()
+        assert scene.coin_sound is not None and scene.coin_sound.duration == 0.2
+    finally:
+        host.stop()
+        qtbot.waitUntil(lambda: not host.active)
