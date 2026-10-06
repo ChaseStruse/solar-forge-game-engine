@@ -1177,7 +1177,11 @@ Next small features, in recommended order:
    imported/generated Python behaviors. Keep authoring independent of model services.
    The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
    boundary checks; the unchanged Docker policy denies user namespaces. Those probes
-   do not yet prove safe arbitrary script execution. Deliver this playable workflow
+   do not yet prove safe arbitrary script execution. Landlock/libseccomp restrictions
+   now pass real filesystem/process/network/memory checks natively and under the
+   unchanged Docker policy; bounded worker IPC and lifecycle integration remain next.
+   The independent test image passes all 284 tests plus Ruff and mypy at this checkpoint.
+   Deliver this playable workflow
    before dependency bundling or enterprise model integration.
 2. Package native runtime dependencies and verify the independent game export
    on clean Arch. Measure bundle size and startup, preserving the lightweight option.

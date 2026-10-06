@@ -1,8 +1,10 @@
 # Python behavior sandbox spike
 
-Status: native candidate measured; container compatibility unresolved.
+Status: Landlock/libseccomp restrictions verified natively and in Docker;
+behavior-worker integration remains in progress.
 
-Do not enable imported or generated Python behaviors yet. A Python subprocess or
+Do not enable imported or generated Python behaviors without the verified worker
+restrictions, bounded protocol and lifecycle checks. A Python subprocess or
 isolated interpreter mode alone cannot restrict OS filesystem and network access.
 The [Bubblewrap project](https://github.com/containers/bubblewrap) explains that
 the caller must define its own security policy; the tool is not a complete sandbox.
@@ -28,6 +30,24 @@ Keep the existing dropped-capability/no-new-privileges policy; do not add privil
 containers or fall back to ordinary subprocess execution. Evaluate restrictions
 that work under that policy, or a separately isolated worker with a narrow contract,
 then prove filesystem/network denials, limits and termination before scripting.
+
+The implementation now uses Landlock ABI 6+ with libseccomp on x86_64 Linux.
+The worker grants read access only to Python standard-library modules, excluding
+site packages, and denies filesystem writes and TCP connections. Its syscall
+allowlist also denies sockets, process creation, execution, signalling other
+processes and namespace changes. Inherited descriptors above stdin/stdout/stderr
+are closed. Hard resource limits include 256 MiB address space, 16 descriptors,
+no child processes/core dumps and a cumulative 3,600 CPU-second ceiling. Landlock
+does not hide all filesystem metadata; no claim of a private mount namespace is made.
+
+A real subprocess regression verifies synthetic credential read/write denials,
+socket/exec/fork/signal denials, closure of an intentionally inherited descriptor,
+unavailable editor imports and memory-limit enforcement. It passes natively and
+under the unchanged Docker capabilities/no-new-privileges policy. No arbitrary
+project source is executed by this regression. Request deadlines, output caps and
+runtime lifecycle remain mandatory before the editor can enable behaviors.
+See [Landlock's kernel documentation](https://docs.kernel.org/userspace-api/landlock.html)
+and [libseccomp's policy API](https://man7.org/linux/man-pages/man3/seccomp_init.3.html).
 
 The [raw results](../performance/2026-10-05-script-sandbox.json) distinguish native
 boundary checks from the container capability check. Run the developer probes:
