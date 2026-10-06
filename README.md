@@ -227,15 +227,19 @@ and detected external changes are preserved, with a warning in Activity; locks
 remain usable in memory. Repair the settings and reopen the scene to resume saving.
 
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
-an animated courier, flickering reactor, industrial pixel art, and twelve energy
-cores to recover. WASD/arrows move; Pause and Restart control playback. All 187
-objects are editable, including collision walls and 19 animated sprites.
+a solarpunk sanctuary with garden beds, solar arrays, hovering service drones,
+a turning reactor aureole, animated pollen and twelve energy cores to recover.
+WASD/arrows move; Pause and Restart control playback. All 231 objects are editable,
+including collision walls, 25 animated sprites and three Python behaviors.
+The original collection chime plays when audio output is available.
 Create a project from this scene to save your changes.
 
 The [editable example project](examples/ember-run/README.md) also includes **Courier
 Bay**, a second scene sharing the same assets. Copy its folder before editing and
-use **File → Open project**. The original artwork and scenes total less than 256 KB;
-no downloads or model connection are needed. [View the showcase](docs/screenshots/ember-run.png).
+use **File → Open project**. The complete project is about 260 KiB; no downloads
+or model connection are needed. Behaviors require the engine's supported Linux
+scripting restrictions, and their code can be edited in the native Python panel.
+[View the showcase](docs/screenshots/ember-run.png).
 
 Choose **File → Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score

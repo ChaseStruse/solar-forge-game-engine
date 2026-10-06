@@ -12,7 +12,9 @@ RUN uv sync --frozen --extra test --no-dev --no-cache
 COPY tests ./tests
 COPY examples ./examples
 COPY scripts ./scripts
-RUN useradd --create-home forge \
+# Atomic project saves can create owner-only files; shipped fixtures must be readable.
+RUN chmod -R a+rX examples \
+    && useradd --create-home forge \
     && mkdir /tmp/forge-tests && chown forge:forge /tmp/forge-tests
 USER forge
 ENV QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME="" QT_STYLE_OVERRIDE=Fusion
