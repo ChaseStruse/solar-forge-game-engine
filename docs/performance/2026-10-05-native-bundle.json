@@ -42,5 +42,24 @@
     "authored_scene_unchanged": true,
     "optional_audio": "pw-play absent; gameplay remained available"
   },
-  "scope": "Arch userspace runs in a container sharing the host kernel and Wayland compositor. Startup observer measures first viewport paint event, not presentation. Fresh processes may benefit from warming filesystem/bytecode caches; the first native Wayland sample was 1.231 seconds. Not a cold-start or cross-hardware gate."
+  "scope": "Arch userspace runs in a container sharing the host kernel and Wayland compositor. Startup observer measures first viewport paint event, not presentation. Fresh processes may benefit from warming filesystem/bytecode caches; the first native Wayland sample was 1.231 seconds. Not a cold-start or cross-hardware gate.",
+  "docker_bundle": {
+    "archive_bytes": 39008525,
+    "uncompressed_bytes": 107539959,
+    "files": 677,
+    "python": "3.14.7",
+    "qt": "6.11.2",
+    "clean_arch_wayland": "passed without installed Python/Qt bindings",
+    "scripts_ready": true,
+    "script_failed": false,
+    "editor_loaded": false
+  },
+  "checks": {
+    "full_docker_tests": 327,
+    "final_docker_export_and_bundle_tests": 13,
+    "native_export_and_bundle_tests": 13,
+    "ruff": "passed",
+    "formatting": "passed",
+    "strict_mypy": "61 source files passed"
+  }
 }

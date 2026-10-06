@@ -1239,7 +1239,9 @@ Next small features, in recommended order:
    **Bundled Linux export implemented.** The native export dialog now offers a
    `.tar.gz` containing copied Python 3.14.7, a Widgets-only Qt 6.11.2 subset,
    launcher, game data, notices/source locations and a hashed dependency inventory.
-   The lightweight `.pyz` remains available. Worker builds validate interpreter
+   The lightweight `.pyz` remains available. Full Docker regression checks pass
+   327 tests; final native and Docker export/bundle checks pass, along with Ruff,
+   formatting and strict mypy. Worker builds validate interpreter
    relocation with an empty environment and check readiness without executing game
    source; standard-library links are refused and unrelated installation files are
    excluded. Only completed archives are published, preserving existing targets.

@@ -30,12 +30,14 @@ def bundle_scene():
 def test_editor_exports_relocatable_scripted_bundle_without_editor_dependencies(qtbot, tmp_path):
     editor = EditorWindow()
     qtbot.addWidget(editor)
+    errors = []
+    editor._error = errors.append
     scene = bundle_scene()
     editor._open_starter(scene, "Bundle fixture")
     archive = tmp_path / "Portable.tar.gz"
     assert editor.export_game_to(archive)
     qtbot.waitUntil(lambda: editor._export_job is None, timeout=120000)
-    assert archive.is_file(), editor.log.toPlainText()
+    assert archive.is_file(), "\n".join(errors) or editor.log.toPlainText()
     assert "Includes Python and Qt" in editor.log.toPlainText()
     assert editor.document.scene == scene and editor.dirty
     destination = tmp_path / "Moved game"
