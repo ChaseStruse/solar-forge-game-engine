@@ -60,6 +60,7 @@ def test_previous_scenes_upgrade_with_exact_backup(tmp_path, version):
     project = create_project(tmp_path / "Game", Scene())
     old = Scene().to_data()
     del old["coin_sound"]
+    del old["scripts"]
     old["format_version"] = version
     original = json.dumps(old).encode()
     project.scene_path().write_bytes(original)
@@ -75,6 +76,7 @@ def test_previous_recovery_is_preserved_through_sound_upgrade(tmp_path):
     project = create_project(tmp_path / "Game", baseline)
     old = baseline.to_data()
     del old["coin_sound"]
+    del old["scripts"]
     old["format_version"] = 7
     snapshot = dict(old, name="Recovered")
     recovery_path(project).write_text(

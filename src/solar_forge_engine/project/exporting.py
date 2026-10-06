@@ -19,6 +19,7 @@ RUNTIME_FILES = (
     "core/sprite.py",
     "core/animation.py",
     "core/audio.py",
+    "core/script.py",
     "runtime/__init__.py",
     "runtime/application.py",
     "runtime/exported.py",

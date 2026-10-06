@@ -96,6 +96,7 @@ def test_legacy_scene_upgrade_preserves_bytes_and_existing_backup(tmp_path, vers
     path = tmp_path / "legacy.forge.json"
     data = Scene(entities=(Entity("wall"),)).to_data()
     data.pop("coin_sound", None)
+    data.pop("scripts", None)
     data["format_version"] = version
     for entry in data["entities"]:
         del entry["animation"]
@@ -117,4 +118,4 @@ def test_legacy_scene_upgrade_preserves_bytes_and_existing_backup(tmp_path, vers
     save_scene(path, loaded)
     assert backup.read_bytes() == original
     assert load_scene(path) == loaded
-    assert json.loads(path.read_bytes())["format_version"] == 9
+    assert json.loads(path.read_bytes())["format_version"] == 11

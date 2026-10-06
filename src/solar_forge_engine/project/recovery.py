@@ -85,17 +85,20 @@ def _decode_snapshot(raw: bytes, baseline: Scene) -> Scene | None:
     if (
         isinstance(snapshot, dict)
         and type(snapshot.get("format_version")) is int
-        and snapshot["format_version"] in (5, 7)
-        and baseline.coin_sound is None
+        and snapshot["format_version"] in (5, 7, 9)
+        and not baseline.scripts
+        and (snapshot["format_version"] == 9 or baseline.coin_sound is None)
         and (
-            snapshot["format_version"] == 7
+            snapshot["format_version"] in (7, 9)
             or all(entity.animation is None for entity in baseline.entities)
         )
     ):
-        # Previous releases hashed canonical scene data before coin sounds existed.
+        # Retain canonical hashes from releases before script bindings were introduced.
         legacy = Scene.from_data(baseline.to_data()).to_data()
         legacy["format_version"] = snapshot["format_version"]
-        del legacy["coin_sound"]
+        del legacy["scripts"]
+        if snapshot["format_version"] != 9:
+            del legacy["coin_sound"]
         entries = legacy["entities"]
         assert isinstance(entries, list)
         if snapshot["format_version"] == 5:

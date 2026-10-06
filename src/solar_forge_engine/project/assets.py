@@ -7,7 +7,9 @@ import re
 from pathlib import Path
 
 from solar_forge_engine.core.scene import FORMAT_VERSION, MAX_ENTITIES, Scene
+from solar_forge_engine.core.script import MAX_SCRIPTS, ScriptBinding
 from solar_forge_engine.core.sprite import MAX_PIXEL_BYTES, Sprite
+from solar_forge_engine.project.scripts import read_source, script_path, store_scripts
 from solar_forge_engine.project.storage import (
     MAX_FILE_BYTES,
     atomic_write,
@@ -18,7 +20,7 @@ from solar_forge_engine.project.storage import (
     save_scene_data,
 )
 
-PROJECT_SCENE_VERSION = 10
+PROJECT_SCENE_VERSION = 12
 
 
 def asset_path(root: Path, reference: str) -> Path:
@@ -71,6 +73,10 @@ def save_project_scene(
     if len(json.dumps(data, indent=2).encode()) + 1 > MAX_FILE_BYTES:
         raise ValueError("Resolved scenes must be smaller than 4 MiB.")
     data["format_version"] = PROJECT_SCENE_VERSION
+    store_scripts(root, scene.scripts)
+    data["scripts"] = [
+        {"entity_id": binding.entity_id, "path": binding.path} for binding in scene.scripts
+    ]
     entries = data["entities"]
     assert isinstance(entries, list)
     assets: dict[Path, bytes] = {}
@@ -106,17 +112,34 @@ def load_project_scene(root: Path, path: Path) -> Scene:
         4,
         6,
         8,
+        10,
         PROJECT_SCENE_VERSION,
     ):
         return load_scene(path)
     fields = {"format_version", "name", "entities"}
-    if data["format_version"] == PROJECT_SCENE_VERSION:
+    if data["format_version"] in (10, PROJECT_SCENE_VERSION):
         fields.add("coin_sound")
+    if data["format_version"] == PROJECT_SCENE_VERSION:
+        fields.add("scripts")
     if type(data["format_version"]) is not int or set(data) != fields:
         raise ValueError("Invalid project scene document fields.")
     entries = data["entities"]
     if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
         raise ValueError("Invalid project entity list.")
+    if data["format_version"] == PROJECT_SCENE_VERSION:
+        scripts = data["scripts"]
+        if not isinstance(scripts, list) or len(scripts) > MAX_SCRIPTS:
+            raise ValueError("Invalid project Python behavior list.")
+        resolved_scripts = []
+        for entry in scripts:
+            if not isinstance(entry, dict) or set(entry) != {"entity_id", "path"}:
+                raise ValueError("Invalid project Python behavior fields.")
+            source = read_source(script_path(root, entry["path"]))
+            binding = ScriptBinding(entry["entity_id"], entry["path"], source)
+            resolved_scripts.append(
+                {"entity_id": binding.entity_id, "path": binding.path, "source": source}
+            )
+        data["scripts"] = resolved_scripts
     cache: dict[str, bytes] = {}
     decoded_size = 0
     for entry in entries:
@@ -152,7 +175,7 @@ def load_project_scene(root: Path, path: Path) -> Scene:
             "height": normalized.height,
             "pixels": normalized.pixels,
         }
-    data["format_version"] = {4: 3, 6: 5, 8: 7}.get(data["format_version"], FORMAT_VERSION)
+    data["format_version"] = {4: 3, 6: 5, 8: 7, 10: 9}.get(data["format_version"], FORMAT_VERSION)
     scene = Scene.from_data(data)
     if len(json.dumps(scene.to_data(), indent=2).encode()) + 1 > MAX_FILE_BYTES:
         raise ValueError("Resolved scenes must be smaller than 4 MiB.")

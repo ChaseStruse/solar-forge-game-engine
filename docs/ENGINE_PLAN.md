@@ -1181,6 +1181,14 @@ Next small features, in recommended order:
    now pass real filesystem/process/network/memory checks natively and under the
    unchanged Docker policy; bounded worker IPC and lifecycle integration remain next.
    The independent test image passes all 284 tests plus Ruff and mypy at this checkpoint.
+   Script persistence is now implemented: standalone scene v11 embeds source, project
+   scene v12 references immutable content-addressed `.py` files inside `scripts/`.
+   Attach/update/detach use revision-checked `SetScript`; object deletion removes its
+   binding and Undo restores it. Sixteen behaviors/scene, 64 KiB/source and 512 KiB
+   aggregate source keep payloads bounded. Existing v9/v10 scenes and recovery hashes
+   migrate safely with exact backups. Loading validates source and never executes it.
+   All 291 tests pass in Docker with Ruff and mypy; the native code panel and Play
+   lifecycle are not yet enabled at this checkpoint.
    Deliver this playable workflow
    before dependency bundling or enterprise model integration.
 2. Package native runtime dependencies and verify the independent game export

@@ -7,9 +7,10 @@ from enum import StrEnum
 
 from solar_forge_engine.core.animation import Animation
 from solar_forge_engine.core.audio import SoundClip
+from solar_forge_engine.core.script import MAX_SCRIPT_TOTAL_BYTES, MAX_SCRIPTS, ScriptBinding
 from solar_forge_engine.core.sprite import Sprite
 
-FORMAT_VERSION = 9
+FORMAT_VERSION = 11
 MAX_ENTITIES = 10_000
 
 
@@ -128,6 +129,7 @@ class Scene:
     name: str = "Untitled scene"
     entities: tuple[Entity, ...] = ()
     coin_sound: SoundClip | None = None
+    scripts: tuple[ScriptBinding, ...] = ()
 
     def __post_init__(self) -> None:
         text(self.name, "Scene name")
@@ -139,6 +141,20 @@ class Scene:
             raise ValueError("Scene entries must be entities.")
         if len({entity.id for entity in self.entities}) != len(self.entities):
             raise ValueError("Entity IDs must be unique.")
+        if not isinstance(self.scripts, tuple) or len(self.scripts) > MAX_SCRIPTS:
+            raise ValueError("A scene supports at most 16 Python behaviors.")
+        if any(not isinstance(script, ScriptBinding) for script in self.scripts):
+            raise ValueError("Invalid Python behavior binding.")
+        identities = {entity.id for entity in self.entities}
+        if len({script.entity_id for script in self.scripts}) != len(self.scripts):
+            raise ValueError("Attach at most one Python behavior to each object.")
+        if any(script.entity_id not in identities for script in self.scripts):
+            raise ValueError("Python behaviors must attach to existing objects.")
+        if (
+            sum(len(script.source.encode("utf-8")) for script in self.scripts)
+            > MAX_SCRIPT_TOTAL_BYTES
+        ):
+            raise ValueError("Scene Python source must be no larger than 512 KiB.")
 
     def entity(self, entity_id: str) -> Entity:
         for entity in self.entities:
@@ -152,6 +168,7 @@ class Scene:
             "name": self.name,
             "coin_sound": asdict(self.coin_sound) if self.coin_sound else None,
             "entities": [asdict(entity) for entity in self.entities],
+            "scripts": [asdict(script) for script in self.scripts],
         }
 
     @classmethod
@@ -159,14 +176,16 @@ class Scene:
         if not isinstance(value, dict):
             raise ValueError("Invalid scene document fields.")
         fields = {"format_version", "name", "entities"}
-        if value.get("format_version") == FORMAT_VERSION:
+        if value.get("format_version") in (9, FORMAT_VERSION):
             fields.add("coin_sound")
+        if value.get("format_version") == FORMAT_VERSION:
+            fields.add("scripts")
         if set(value) != fields:
             raise ValueError("Invalid scene document fields.")
         version = value["format_version"]
-        if type(version) is not int or version not in (1, 2, 3, 5, 7, FORMAT_VERSION):
+        if type(version) is not int or version not in (1, 2, 3, 5, 7, 9, FORMAT_VERSION):
             raise ValueError(
-                "Unsupported scene format version; supported versions: 1, 2, 3, 5, 7 and 9."
+                "Unsupported scene format version; supported versions: 1, 2, 3, 5, 7, 9 and 11."
             )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
@@ -193,10 +212,14 @@ class Scene:
                 raise ValueError("Invalid legacy animation fields.")
             entries = [{**entry, "animation": None} for entry in entries]
         entities = [Entity.from_data(entry) for entry in entries]
+        scripts = value.get("scripts", [])
+        if not isinstance(scripts, list) or len(scripts) > MAX_SCRIPTS:
+            raise ValueError("Invalid Python behavior list.")
         return cls(
             name=text(value["name"], "Scene name"),
             entities=tuple(entities),
             coin_sound=SoundClip.from_data(value["coin_sound"])
-            if version == FORMAT_VERSION and value["coin_sound"] is not None
+            if version in (9, FORMAT_VERSION) and value["coin_sound"] is not None
             else None,
+            scripts=tuple(ScriptBinding.from_data(script) for script in scripts),
         )

@@ -5,6 +5,7 @@ from typing import Protocol
 
 from solar_forge_engine.core.audio import SoundClip
 from solar_forge_engine.core.scene import Entity, Scene, text
+from solar_forge_engine.core.script import ScriptBinding
 from solar_forge_engine.core.sprite import Sprite
 
 
@@ -57,7 +58,34 @@ class DeleteEntity:
 
     def apply(self, scene: Scene) -> Scene:
         scene.entity(self.entity_id)
-        return replace(scene, entities=tuple(e for e in scene.entities if e.id != self.entity_id))
+        return replace(
+            scene,
+            entities=tuple(e for e in scene.entities if e.id != self.entity_id),
+            scripts=tuple(script for script in scene.scripts if script.entity_id != self.entity_id),
+        )
+
+
+@dataclass(frozen=True)
+class SetScript:
+    entity_id: str
+    data: object
+
+    def apply(self, scene: Scene) -> Scene:
+        scene.entity(self.entity_id)
+        binding = ScriptBinding.from_data(self.data) if self.data is not None else None
+        if binding is not None and binding.entity_id != self.entity_id:
+            raise ValueError("The behavior identifies a different object.")
+        scripts = tuple(script for script in scene.scripts if script.entity_id != self.entity_id)
+        if binding is None:
+            return replace(scene, scripts=scripts)
+        if any(script.entity_id == self.entity_id for script in scene.scripts):
+            scripts = tuple(
+                binding if script.entity_id == self.entity_id else script
+                for script in scene.scripts
+            )
+        else:
+            scripts = (*scripts, binding)
+        return replace(scene, scripts=scripts)
 
 
 @dataclass(frozen=True)
