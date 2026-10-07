@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-06",
+  "scope": "Scripted game acceptance, not a startup benchmark or independent security audit. Fixture built from the tested Docker source snapshot; checks run with no installed Python/Qt, a relocated read-only game, no network and no editor mount.",
+  "build": {
+    "archive_bytes": 42347985,
+    "uncompressed_file_bytes": 105653428,
+    "build_and_extract_ms": 1712.472,
+    "python": "3.14.7",
+    "qt": "6.11.2",
+    "machine": "x86_64"
+  },
+  "checks": [
+    {
+      "image": "solar-forge-arch-export-check:dev",
+      "image_id": "sha256:bff2dd8487f180e317585769a843edac0e8e56c2bb28a148be81145008380a51",
+      "qpa": "offscreen",
+      "machine": "x86_64",
+      "container_and_smoke_ms": 1041.332,
+      "game": {
+        "scene": "Portable export acceptance",
+        "objects": 2,
+        "x": 114.0,
+        "collected": 1,
+        "ticks": 19,
+        "script_ready": true,
+        "script_failed": false,
+        "script_message": "Scripted export ready",
+        "player_speed": 360.0,
+        "scene_unchanged": true,
+        "editor_loaded": false,
+        "runtime_from_archive": true
+      },
+      "scope": "Read-only relocated game; no installed Python/Qt or mounted editor. Includes container/script startup and movement exercise, not launch latency."
+    },
+    {
+      "image": "solar-forge-arch-export-check:dev",
+      "image_id": "sha256:bff2dd8487f180e317585769a843edac0e8e56c2bb28a148be81145008380a51",
+      "qpa": "wayland",
+      "machine": "x86_64",
+      "container_and_smoke_ms": 1090.498,
+      "game": {
+        "scene": "Portable export acceptance",
+        "objects": 2,
+        "x": 114.0,
+        "collected": 1,
+        "ticks": 19,
+        "script_ready": true,
+        "script_failed": false,
+        "script_message": "Scripted export ready",
+        "player_speed": 360.0,
+        "scene_unchanged": true,
+        "editor_loaded": false,
+        "runtime_from_archive": true
+      },
+      "scope": "Read-only relocated game; no installed Python/Qt or mounted editor. Includes container/script startup and movement exercise, not launch latency."
+    }
+  ]
+}

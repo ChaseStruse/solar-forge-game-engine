@@ -2,6 +2,21 @@
 
 Status: playable native prototype, updated October 6, 2026.
 
+October 6 scripting checkpoint: Scene → Edit scene script (Ctrl+Shift+E) now provides
+native Python editing, API help, an example and undoable Apply. Standalone format 11
+and project format 12 preserve source without evaluating it. Play and both exports
+run `on_start` / `on_update` in a default-deny seccomp worker with bounded asynchronous
+IPC, validated atomic commands, deadlines and parent-death termination. The initial
+API reads scene metadata and movement input and changes positions, speed and a HUD
+message. Restart resets script state; errors stop scripted Play. One embedded script
+per scene is supported on Linux x86_64 with libseccomp; external modules, per-object
+scripts and a debugger remain future work. See the [isolation decision](architecture/0002-script-sandbox.md).
+All 311 tests pass in Docker with Ruff, formatting and strict mypy. A native Wayland
+edit/Apply/Save/Play check passes with unchanged authored objects. The local non-network
+subset passes 272 tests; Docker covers the omitted loopback/preference modules.
+Scripted relocated bundles also pass clean Arch offscreen and Wayland without installed
+Python/Qt; the [acceptance report](performance/2026-10-06-script-runtime.json) records results.
+
 October 6 packaging checkpoint: the editor now offers an experimental `.tar.gz`
 folder bundle alongside lightweight `.pyz` export. It includes a relocatable Python
 runtime and the Widgets-only Qt subset, an isolated launcher, file hashes and
@@ -495,8 +510,8 @@ compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project asset
 libraries and sound import/collection playback now exist, alongside a runtime-only
-native export and opt-in local Ollama adapter. Sandboxed scripts, dependency-bundled
-exports and enterprise adapters remain unimplemented. The assistant starts with
+native export, experimental dependency bundles, restricted scene scripts and an opt-in
+local Ollama adapter. Enterprise adapters remain unimplemented. The assistant starts with
 an offline demo fixture. Project folders support multiple authored scenes with
 relative sprite references, per-scene recovery and a project-wide sprite palette.
 Reviewed unused-asset scanning, reversible quarantine and native browsing/restoration
@@ -1112,7 +1127,7 @@ experience; these milestones are gates, not promised delivery dates.
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Complete presentation budgets, isolation policy, distribution acceptance and backend ADR |
 | 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, multi-session recovery ownership and whole-project integrity; CI workflow added, hosted execution pending |
-| 2 — Playable 2D slice | Partial: collector gameplay, sprite animation, collection audio, active-scene exports and experimental Python/Qt bundles verified on clean Arch offscreen | Named animation clips, general inputs/behaviors, sandboxed Python lifecycle, scene transitions and redistribution audit |
+| 2 — Playable 2D slice | Partial: collector gameplay, sprite animation, collection audio, restricted scene scripts, active-scene exports and experimental Python/Qt bundles verified on clean Arch offscreen | Named animation clips, general inputs, per-object behaviors, scene transitions and redistribution audit |
 | 3 — Useful assistant | Partial: reviewed offline/Ollama proposals, live local-model verification, bounded context, deadlines, cancellation and revision-safe atomic undo | Hosted/enterprise adapters, credential handling and broader model acceptance |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
@@ -1177,7 +1192,7 @@ Completed task checklist:
 - [x] Measure a copied Widgets-only Qt subset and verify editor-free exports on host and Docker Wayland.
 - [x] Add CI configuration and reproducible clean Arch bundle acceptance; verify its container steps locally.
 - [ ] Observe the first GitHub-hosted CI run after an authorized push.
-- [ ] Add sandboxed Python game scripting.
+- [x] Add minimal native scene-source editing and kernel-restricted Python lifecycle in Play/exports.
 - [x] Probe native namespace boundaries and record the current Docker namespace restriction.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
@@ -1187,15 +1202,13 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Complete the third-party redistribution audit and clean-desktop release acceptance
+1. Extend the implemented scene scripting API from concrete game needs: reusable
+   per-object behavior and general input, with boundary tests for each capability.
+   Keep the current computation-only worker; broader APIs must preserve restrictions.
+2. Complete the third-party redistribution audit and clean-desktop release acceptance
    for the implemented Python/Qt bundle. Measure startup and document compatibility
    while preserving the lightweight export option. See the
    [packaging decision](architecture/0001-runtime-packaging.md).
-2. Prove a native and container-compatible sandbox before enabling imported/generated
-   Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
-   The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
-   boundary checks; the unchanged Docker policy denies user namespaces. A compatible
-   restriction backend, resource limits and hostile-code/lifecycle checks remain open.
 3. Add multi-session recovery ownership and strengthen whole-project crash/power-loss
    guarantees. Current publication coordination does not make a project-folder
    transaction or reserve a recovery slot for one editing session.
@@ -1240,5 +1253,5 @@ add one optional scene-level Python source string, bounded to 32 KiB of UTF-8.
 manual scene edits. Saving, loading, importing and recovery do not evaluate source.
 Prior formats retain exact upgrade backups; recovery hashes for prior v5/v7/v9
 snapshots remain compatible when their baseline has no script. Runtime/editor
-integration is the next checkpoint. The 123 focused schema, migration, project,
+integration is now complete in the scripting checkpoint above. The 123 focused schema, migration, project,
 recovery and command tests pass locally; Ruff, formatting and mypy also pass.
