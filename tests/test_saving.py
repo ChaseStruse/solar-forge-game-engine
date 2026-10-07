@@ -92,6 +92,7 @@ def test_upgrade_backup_directory_flushes_before_original_replacement(
     data = json.loads(path.read_bytes())
     data["format_version"] = version
     del data["coin_sound"]
+    del data["script"]
     path.write_text(json.dumps(data))
     previous = path.read_bytes()
     backup = path.with_name(f"{path.name}.v{version}.bak")

@@ -1233,3 +1233,12 @@ ADRs. Commit small, coherent working checkpoints. Root [`AGENTS.md`](../AGENTS.m
 defines model coding, testing, and commit rules. Keep progress honest: a proposed
 command is not an implemented feature, and a mocked test does not prove real-model
 quality.
+
+October 6 scripting data checkpoint: standalone format 11 and project format 12
+add one optional scene-level Python source string, bounded to 32 KiB of UTF-8.
+`SetSceneScript` uses the same validated, revision-checked undo/redo transaction as
+manual scene edits. Saving, loading, importing and recovery do not evaluate source.
+Prior formats retain exact upgrade backups; recovery hashes for prior v5/v7/v9
+snapshots remain compatible when their baseline has no script. Runtime/editor
+integration is the next checkpoint. The 123 focused schema, migration, project,
+recovery and command tests pass locally; Ruff, formatting and mypy also pass.
