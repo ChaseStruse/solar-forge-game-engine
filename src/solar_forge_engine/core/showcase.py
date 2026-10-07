@@ -1,10 +1,11 @@
-"""Ember Run: original pixel-art showcase built entirely from editable scene data."""
+"""Ember Run: original pixel-art showcase with editable scene data and readable Python behaviors."""
 
 import base64
 from functools import lru_cache
 
 from solar_forge_engine.core.animation import Animation
 from solar_forge_engine.core.scene import Entity, Role, Scene
+from solar_forge_engine.core.showcase_scripts import BAY_SCRIPT, EMBER_SCRIPT
 from solar_forge_engine.core.sprite import Sprite
 
 
@@ -248,6 +249,10 @@ def ember_run() -> Scene:
         entities.append(
             Entity(f"ember-{len(entities)}", title, x, y, sprite.width * 2, 10, sprite=sprite)
         )
+    for index, (x, y) in enumerate(
+        ((584, 282), (545, 380), (467, 380), (428, 282), (467, 184), (545, 184))
+    ):
+        add(f"Reactor spark {index + 1}", x, y, 12, 12, texture="core", animated=True)
     entities.append(
         Entity(
             "courier",
@@ -262,7 +267,9 @@ def ember_run() -> Scene:
             animation=Animation(4, 1, 8),
         )
     )
-    return Scene("Ember Run — recover the twelve energy cores", tuple(entities))
+    return Scene(
+        "Ember Run — recover the twelve energy cores", tuple(entities), script=EMBER_SCRIPT
+    )
 
 
 def courier_bay() -> Scene:
@@ -270,7 +277,7 @@ def courier_bay() -> Scene:
     decorations = tuple(entity for entity in main.entities[:144])
     art = artwork()
     return Scene(
-        "Courier Bay — sprite playground",
+        "Courier Bay — orbital script playground",
         (
             *decorations,
             Entity(
@@ -309,4 +316,5 @@ def courier_bay() -> Scene:
                 for index, x in enumerate((240, 360, 680, 800))
             ),
         ),
+        script=BAY_SCRIPT,
     )
