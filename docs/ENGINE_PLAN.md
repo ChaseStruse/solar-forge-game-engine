@@ -1,24 +1,24 @@
 # Solar Forge Game Engine — product and implementation plan
 
-Status: playable native prototype, updated October 6, 2026.
+Status: playable native prototype, updated October 7, 2026.
 
 ## Current assessment and immediate direction
 
 The manual authoring loop now works end to end: edit a scene and its Python source,
 apply/undo, save/reopen, Play/restart, and export a game that runs without the editor
 or AI. Ember Run and Courier Bay exercise that loop with readable, editable scripts.
-The latest verified baseline is 314 tests in the frozen offline Docker image, plus
-Ruff, formatting, strict mypy, native Wayland visual review and both demo `.pyz`
-playback checks. The checkpoint records below retain earlier results as history.
+The latest verified baseline is 317 tests in the frozen offline Docker image, plus
+Ruff, formatting, strict mypy and native Wayland script error/fix-loop visual review.
+The checkpoint records below retain earlier export/playback results as history.
 
 The biggest product gap is the breadth and ease of scripting, rather than another
 foundational rewrite. Current scripts have one scene-level lifecycle and a narrow
-position/speed/message API. Errors report lines, but users still navigate back to
-the modal source editor themselves; there are no breakpoints, named input actions,
+position/speed/message API. Play errors now navigate directly to source while
+retaining drafts and checking revisions; there are no breakpoints, named input actions,
 per-object behaviors or runtime scene transitions. The demos establish useful small
 games, not general-purpose gameplay coverage or a frame-time guarantee.
 
-Prioritize a tighter edit/run/fix loop, then one useful gameplay capability at a time.
+Prioritize one useful gameplay capability at a time, starting with a named input action.
 Keep the existing native Qt editor, shared commands and computation-only worker.
 Before external distribution, close dependency notices/source obligations and desktop
 acceptance. Multi-session recovery, renderer presentation budgets and independent
@@ -26,6 +26,22 @@ security review remain open; syscall regression tests are not a security audit.
 Hosted CI has not been observed because no push has been authorized.
 
 ## Implementation checkpoint history
+
+October 7 script error/fix checkpoint: editor Play emits bounded structured error
+events separately from worker logs. Activity identifies the preview's original scene
+and line and opens the native script editor there; navigation checks document identity
+and applied source. Closing/reopening the current
+scene's script editor retains unapplied text, cursor and text undo history. Apply
+still checks the captured revision; explicit Reload applied source replaces stale
+drafts. Drafts are temporary and are released on Apply, opening another document's
+script editor or closing the editor; only applied source is saved. Evaluation remains
+inside the existing restricted worker, and exported games have no editor dependency.
+The real-process failure/navigation/fix/Apply/rerun/Undo route, log-spoof rejection,
+fragmented UTF-8 events, malformed/oversized records, stale source/document navigation
+and draft preservation pass focused checks: 28 tests locally. All 317 tests pass in
+the frozen offline Docker image with Ruff, formatting and strict mypy. A native
+Wayland error/navigation/fix/rerun/Undo check passes and both layouts were visually
+reviewed. No debugger or live reload is introduced.
 
 October 6 showcase checkpoint: Ember Run now embeds an editable, commented script
 with bobbing cores, six orbiting sparks, pickup speed bursts, progress messages,
@@ -1233,6 +1249,7 @@ Completed task checklist:
 - [x] Add CI configuration and reproducible clean Arch bundle acceptance; verify its container steps locally.
 - [ ] Observe the first GitHub-hosted CI run after an authorized push.
 - [x] Add minimal native scene-source editing and kernel-restricted Python lifecycle in Play/exports.
+- [x] Navigate Play script errors to source, retain temporary drafts and reject stale Apply/navigation.
 - [x] Ship commented Ember Run / Orbit Lab scripts, customization guide and complete scripted route checks.
 - [x] Probe native namespace boundaries and record the current Docker namespace restriction.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
@@ -1243,24 +1260,19 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. **Shorten the script edit/run/fix loop.** Surface the scene and source line for a
-   Play error and offer navigation directly to that source. Preserve unsaved drafts
-   and revision checks. Exit check: cause an error, navigate, fix, apply, rerun and
-   undo without losing source or executing it during editing. Keep actual evaluation
-   inside the existing restricted worker; defer a full debugger/live reload.
-2. **Add one deliberate input action.** Extend movement-only input with a bounded
+1. **Add one deliberate input action.** Extend movement-only input with a bounded
    named-action contract and demonstrate a user-triggered dash in the showcase.
    Verify press/release behavior, focus loss, pause, restart and export parity.
    Avoid raw device access or adding OS permissions to the script worker.
-3. **Introduce reusable per-object behavior after the input slice.** Define attachment,
+2. **Introduce reusable per-object behavior after the input slice.** Define attachment,
    instance state and lifecycle ownership before changing the schema. Demonstrate
    two independently tunable instances with undo, migration, save/load and export
    checks. Runtime scene transitions follow as a separate scoped feature.
-4. **Close distribution gates.** Finish the Python/Qt notices and source-obligation
+3. **Close distribution gates.** Finish the Python/Qt notices and source-obligation
    audit, Arch desktop acceptance and compatibility documentation. Preserve both
    lightweight and bundled exports. Observe hosted CI after an authorized push;
    local container success does not prove a hosted run.
-5. **Strengthen recovery and measured performance.** Add multi-session recovery
+4. **Strengthen recovery and measured performance.** Add multi-session recovery
    ownership and whole-project crash/power-loss guarantees. Measure callback/IPC
    overhead and native presentation with scripted workloads before optimizing;
    the successful demo is not the complete 60 fps gate.

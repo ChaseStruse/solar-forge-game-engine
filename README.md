@@ -291,9 +291,22 @@ positions stay inside the arena; teleporting does not resolve wall overlaps.
 Changing state dictionaries alone has no gameplay effect. `game.data` and globals
 persist until Restart; `math` and `random` are available. `print()` appears in Activity.
 
-Errors stop scripted Play and report a source line when available. Use **Go to line**
-in the script editor, apply the fix and start Play again. Pause/focus loss suspend
-simulation; effects from an already-running update are discarded while paused.
+Errors stop scripted Play. Activity shows the failing scene and source line when
+available; **Edit failed script…** opens that line directly. Apply the fix, Stop the
+old preview and press Play again. Navigation disables if the scene or applied source
+changed; run Play again for a current error. Exported games report errors without
+editor navigation.
+
+**Close · keep draft** retains unapplied text, cursor and text undo history when you
+reopen the same scene's script editor, including through error navigation. A draft's
+lines may have shifted from the applied source that failed. Drafts are temporary:
+applying, opening another document's script editor or closing the editor releases
+them. Save persists only applied source. If the scene revision changed, Apply keeps
+the draft and refuses to overwrite it. Copy any text you want to keep before choosing
+**Reload applied source**, which explicitly replaces the draft with current source.
+
+Pause/focus loss suspend simulation; effects from an already-running update are
+discarded while paused.
 Restart resets script and game state. Stop/closing terminate the worker. Runtime
 changes never alter authored objects. Both export formats include the script and
 run without the editor or an AI service.
