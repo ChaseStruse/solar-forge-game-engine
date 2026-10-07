@@ -4,11 +4,14 @@ These are source strings, never imported/executed by the editor. Their only runt
 contract is the documented scene Python API; Play uses the restricted worker.
 """
 
-EMBER_SCRIPT = """# EMBER RUN — reactive pickups, orbiting sparks and a timed finish.
+EMBER_SCRIPT = """# EMBER RUN — Space dash, reactive pickups, sparks and a timed finish.
 # Try changing these values, Apply script, then start Play again.
 BASE_SPEED = 220
 BOOST_SPEED = 330
 BOOST_SECONDS = 1.4
+DASH_SPEED = 480
+DASH_SECONDS = 0.25
+DASH_COOLDOWN = 1.2
 CORE_BOB_HEIGHT = 4
 SPARK_RADIUS = 78
 
@@ -25,11 +28,12 @@ def on_start(game):
     ]
     game.data["last_count"] = 0
     game.data["boost_until"] = 0
-    game.data["boosting"] = False
+    game.data["dash_until"] = 0
+    game.data["dash_ready_at"] = 0
     game.data["finished"] = False
     game.data["last_message"] = ""
     game.set_speed(BASE_SPEED)
-    game.say("EMBER RUN | Recover 12 cores. Pickups boost your engines! WASD / arrows")
+    game.say("EMBER RUN | Recover 12 cores. Move + Space to dash! WASD / arrows")
     print("Ember Run: edit the constants above to tune your own forge run.")
 
 
@@ -37,6 +41,14 @@ def on_update(game, dt):
     t = game.time
     count = game.collected
     data = game.data
+
+    # A press edge fires once, even if Space stays held. Dash only while moving.
+    # Speed bursts use ordinary movement, so walls still stop the courier.
+    if (game.actions["dash"]["pressed"]
+            and (game.input["x"] or game.input["y"])
+            and t >= data["dash_ready_at"] and not data["finished"]):
+        data["dash_until"] = t + DASH_SECONDS
+        data["dash_ready_at"] = t + DASH_COOLDOWN
 
     # Each core has its own phase, creating a travelling wave across the forge.
     for index, (core_id, x, y) in enumerate(data["cores"]):
@@ -68,20 +80,25 @@ def on_update(game, dt):
         print(data["finish_message"])
 
     boosting = t < data["boost_until"] and not data["finished"]
-    if boosting != data["boosting"]:
-        game.set_speed(BOOST_SPEED if boosting else BASE_SPEED)
-        data["boosting"] = boosting
+    dashing = t < data["dash_until"] and not data["finished"]
+    speed = DASH_SPEED if dashing else BOOST_SPEED if boosting else BASE_SPEED
+    if speed != game.player["speed"]:
+        game.set_speed(speed)
 
     # Send HUD commands only when the displayed text changes.
+    dash_hint = ("Space: dash ready" if t >= data["dash_ready_at"] else
+                 f"Dash ready in {math.ceil(data['dash_ready_at'] - t)}s")
     if data["finished"]:
         message = data["finish_message"]
+    elif dashing:
+        message = f"DASH! | {count}/{game.total_coins} cores | Engines bursting"
     elif boosting:
-        message = f"OVERDRIVE! | {count}/{game.total_coins} cores | Engines boosted"
+        message = f"OVERDRIVE! | {count}/{game.total_coins} cores | {dash_hint}"
     elif t < 4 and count == 0:
-        message = "EMBER RUN | Recover 12 cores. Pickups boost your engines! WASD / arrows"
+        message = f"EMBER RUN | Recover 12 cores | {dash_hint} | WASD / arrows"
     else:
         sector = "REACTOR ONLINE" if count >= 8 else "FORGE WARMING" if count >= 4 else "POWER LOW"
-        message = f"{sector} | {count}/{game.total_coins} cores | {int(t)}s | Keep moving!"
+        message = f"{sector} | {count}/{game.total_coins} cores | {int(t)}s | {dash_hint}"
     if message != data["last_message"]:
         game.say(message)
         data["last_message"] = message

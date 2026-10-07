@@ -19,6 +19,25 @@ from solar_forge_engine.editor.window import EditorWindow
 from solar_forge_engine.project import exporting
 from solar_forge_engine.project.exporting import export_game
 
+INPUT_SCRIPT = """
+def on_start(game):
+    assert game.actions["dash"] == {"held": False, "pressed": False, "released": False}
+    game.data["presses"] = 0
+    game.data["releases"] = 0
+    game.data["held"] = False
+    game.set_speed(360)
+    game.say("Waiting for dash input")
+
+def on_update(game, dt):
+    dash = game.actions["dash"]
+    game.data["presses"] += int(dash["pressed"])
+    game.data["releases"] += int(dash["released"])
+    game.data["held"] |= dash["held"]
+    if game.data["presses"] and game.data["releases"] and game.data["held"]:
+        assert game.data["presses"] == game.data["releases"] == 1
+        game.say("Dash input verified")
+"""
+
 
 def game():
     return Scene(
@@ -146,9 +165,8 @@ def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, 
 
 
 def test_exported_script_runs_in_restricted_worker_without_editor(tmp_path):
-    source = 'def on_start(game):\n    game.set_speed(360)\n    game.say("Scripted export ready")\n'
     archive = tmp_path / "Scripted.pyz"
-    export_game(archive, replace(game(), script=source))
+    export_game(archive, replace(game(), script=INPUT_SCRIPT))
     result = subprocess.run(
         [sys.executable, "-I", str(archive), "--smoke-check"],
         capture_output=True,
@@ -158,6 +176,6 @@ def test_exported_script_runs_in_restricted_worker_without_editor(tmp_path):
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert report["script_ready"] and not report["script_failed"]
-    assert report["script_message"] == "Scripted export ready"
+    assert report["script_message"] == "Dash input verified"
     assert report["player_speed"] == 360 and report["collected"] == 1, report
     assert report["scene_unchanged"] and not report["editor_loaded"]

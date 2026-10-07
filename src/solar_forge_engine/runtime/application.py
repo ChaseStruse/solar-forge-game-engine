@@ -61,6 +61,24 @@ def run_scene(
             QApplication.postEvent(
                 window, QKeyEvent(QKeyEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier)
             )
+            if scene.script:
+                QApplication.postEvent(
+                    window,
+                    QKeyEvent(
+                        QKeyEvent.Type.KeyPress, Qt.Key.Key_Space, Qt.KeyboardModifier.NoModifier
+                    ),
+                )
+                QTimer.singleShot(
+                    120,
+                    lambda: QApplication.postEvent(
+                        window,
+                        QKeyEvent(
+                            QKeyEvent.Type.KeyRelease,
+                            Qt.Key.Key_Space,
+                            Qt.KeyboardModifier.NoModifier,
+                        ),
+                    ),
+                )
             QTimer.singleShot(320, finish)
 
         def finish() -> None:
