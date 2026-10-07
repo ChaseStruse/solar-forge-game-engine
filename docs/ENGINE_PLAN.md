@@ -1204,9 +1204,10 @@ replace the working native approach while closing the remaining milestone gates.
 Fixed direction: native Arch Linux desktop, Python/PySide6, Python game scripting,
 native Linux exports, and no JavaScript/TypeScript or web UI. Default assumptions:
 local single-user authoring, no account, keyboard/mouse first, and Wayland first.
-Other native OS support, minimum hardware, first enterprise provider, and licensing
-remain open decisions. Choose the engine license before external release; document
-third-party notices and template/asset licenses. Never infer a license for imported
+Other native OS support, minimum hardware and the first enterprise provider
+remain open decisions. Engine and runtime code use the MIT license, selected
+October 6, 2026. Complete third-party notices and template/asset licensing before
+external release. Never infer a license for imported
 or generated content.
 
 Maintain a changelog, semantic project-format versions, migration fixtures, and short

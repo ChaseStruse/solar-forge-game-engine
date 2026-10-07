@@ -571,3 +571,9 @@ The native Python desktop direction is fixed. Runtime rendering performance,
 packaging, and sandboxing still need their planned validation milestones.
 The [sandbox spike](docs/architecture/0002-script-sandbox.md) records native boundary
 checks and the current Docker limitation; Python game behaviors remain disabled.
+
+## License
+
+Engine and runtime code are available under the [MIT license](LICENSE).
+Python, Qt/PySide6 and other dependencies retain their own licenses. Exporting
+a game does not assign a license to imported content or game assets.

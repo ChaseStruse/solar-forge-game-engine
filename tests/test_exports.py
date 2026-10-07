@@ -36,6 +36,7 @@ def test_native_archive_runs_own_runtime_and_ignores_project_imports(tmp_path):
     assert size == archive.stat().st_size and os.access(archive, os.X_OK)
     with zipfile.ZipFile(archive) as bundle:
         names = bundle.namelist()
+        assert b"MIT License" in bundle.read("solar_forge_engine/LICENSE.txt")
         assert not any(part in name for name in names for part in ("/editor/", "/ai/", "/project/"))
         snapshot = json.loads(bundle.read("game_data/scene.json"))
         assert snapshot["scene"] == scene.to_data()

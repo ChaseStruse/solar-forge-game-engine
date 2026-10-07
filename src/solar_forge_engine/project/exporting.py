@@ -12,6 +12,7 @@ from solar_forge_engine.project.storage import atomic_write
 from solar_forge_engine.runtime.simulation import controlled_entity
 
 RUNTIME_FILES = (
+    "LICENSE.txt",
     "__init__.py",
     "core/__init__.py",
     "core/limits.py",
