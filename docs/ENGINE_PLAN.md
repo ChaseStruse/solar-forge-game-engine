@@ -2,6 +2,17 @@
 
 Status: playable native prototype, updated October 6, 2026.
 
+October 6 showcase checkpoint: Ember Run now embeds an editable, commented script
+with bobbing cores, six orbiting sparks, pickup speed bursts, progress messages,
+finish-time titles and a victory orbit around the courier. Courier Bay is a smaller
+orbital-collection example. Both built-in templates and the distributed project use
+the same source. The main scene now has 193 objects / 25 animated sprites. Restricted
+worker tests complete both collection routes, check boost expiry/reset, victory
+state and authored-data preservation. A native Wayland run advanced 149 ticks with
+18 moving objects and no script failure; its rendering was visually reviewed.
+Both demos pass standalone `.pyz` playback with no editor loaded. All 314 tests
+pass in the frozen offline Docker image, with Ruff, formatting and strict mypy.
+
 October 6 scripting checkpoint: Scene → Edit scene script (Ctrl+Shift+E) now provides
 native Python editing, API help, an example and undoable Apply. Standalone format 11
 and project format 12 preserve source without evaluating it. Play and both exports

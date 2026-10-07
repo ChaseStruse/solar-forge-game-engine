@@ -225,15 +225,17 @@ and detected external changes are preserved, with a warning in Activity; locks
 remain usable in memory. Repair the settings and reopen the scene to resume saving.
 
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
-an animated courier, flickering reactor, industrial pixel art, and twelve energy
-cores to recover. WASD/arrows move; Pause and Restart control playback. All 187
-objects are editable, including collision walls and 19 animated sprites.
+an animated courier, bobbing energy cores, orbiting reactor sparks and pickup speed
+bursts. A timed finish awards a title and a spark celebration. WASD/arrows move;
+Pause and Restart control playback. All 193 objects are editable, including walls
+and 25 animated sprites. Open **Scene → Edit scene script** to explore the commented
+effects and tweak their constants.
 Create a project from this scene to save your changes.
 
 The [editable example project](examples/ember-run/README.md) also includes **Courier
-Bay**, a second scene sharing the same assets. Copy its folder before editing and
+Bay**, an orbital-collection script playground sharing the same assets. Copy its folder before editing and
 use **File → Open project**. The original artwork and scenes total less than 256 KB;
-no downloads or model connection are needed. [View the showcase](docs/screenshots/ember-run.png).
+no downloads or model connection are needed. [View the scripted showcase](docs/screenshots/ember-run-scripted.png).
 
 Choose **File → Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score
