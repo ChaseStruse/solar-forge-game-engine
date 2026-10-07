@@ -118,11 +118,32 @@ class ScriptOutput(io.TextIOBase):
         return len(text)
 
 
+def dash_actions(
+    held: bool = False, pressed: bool = False, released: bool = False
+) -> dict[str, dict[str, bool]]:
+    """The fixed, device-independent named-action contract; no worker device access."""
+    return validate_actions({"dash": {"held": held, "pressed": pressed, "released": released}})
+
+
+def validate_actions(value: object) -> dict[str, dict[str, bool]]:
+    if not isinstance(value, dict) or set(value) != {"dash"}:
+        raise ValueError("Script actions must contain only dash.")
+    action = value["dash"]
+    if (
+        not isinstance(action, dict)
+        or set(action) != {"held", "pressed", "released"}
+        or any(type(flag) is not bool for flag in action.values())
+    ):
+        raise ValueError("Dash requires boolean held, pressed and released flags.")
+    return {"dash": dict(action)}
+
+
 class Game:
     def __init__(self) -> None:
         self.objects: dict[str, dict[str, object]] = {}
         self.player: dict[str, object] = {}
         self.input: dict[str, object] = {}
+        self.actions = dash_actions()
         self.collected = 0
         self.total_coins = 0
         self.time = 0.0
@@ -138,6 +159,7 @@ class Game:
         ):
             raise ValueError("Invalid game context.")
         self.objects, self.player, self.input = objects, player, inputs
+        self.actions = validate_actions(state.get("actions", dash_actions()))
         collected, total, elapsed = state["collected"], state["total_coins"], state["time"]
         if (
             not isinstance(collected, int)

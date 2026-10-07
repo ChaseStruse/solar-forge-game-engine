@@ -52,6 +52,12 @@ Read current state:
     id, name, x, y, width, height, role
   game.input["x"], ["y"]
     -1, 0 or 1 from movement keys
+  game.actions["dash"] (Space)
+    ["held"], ["pressed"], ["released"]
+    Boolean flags. Edges occur once per
+    callback; quick taps can set both.
+    Repeats are ignored. Pause/focus loss
+    and Restart clear input, without edges.
   game.collected, game.total_coins
   game.time (simulation seconds)
 

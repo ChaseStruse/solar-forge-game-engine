@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
 from solar_forge_engine.core.scene import InputPreset, Scene
 from solar_forge_engine.runtime.audio import SoundPlayer
 from solar_forge_engine.runtime.rendering import SpriteAnimator, render_scene
+from solar_forge_engine.runtime.script_worker import dash_actions
 from solar_forge_engine.runtime.scripting import ScriptRunner
 from solar_forge_engine.runtime.simulation import FIXED_STEP, WORLD_HEIGHT, WORLD_WIDTH, Simulation
 
@@ -67,6 +68,9 @@ class PlayerWindow(QMainWindow):
         self._script_ready = not bool(scene.script)
         self._script_input = (0, 0)
         self._script_failed = False
+        self._dash_held = self._dash_pressed = self._dash_released = False
+        self._input_generation = 0
+        self._script_input_generation = 0
         self.sound_player.finished.connect(self._audio_finished)
         self.simulation = Simulation(scene, controlled_id)
         preset = self.simulation.controlled.input_preset
@@ -113,8 +117,9 @@ class PlayerWindow(QMainWindow):
             InputPreset.WASD: "WASD",
             InputPreset.ARROWS: "arrows",
         }[preset]
+        action_label = " · Space" if scene.script else ""
         self.controls_label = QLabel(
-            f"  {self.simulation.controlled.name} · {key_label} · Esc closes   "
+            f"  {self.simulation.controlled.name} · {key_label}{action_label} · Esc closes   "
         )
         self.controls_label.setTextFormat(Qt.TextFormat.PlainText)
         toolbar.addWidget(self.controls_label)
@@ -173,7 +178,11 @@ class PlayerWindow(QMainWindow):
     def _script_completed(self, runner: ScriptRunner, operation: str, commands: object) -> None:
         if runner is not self._script or self._closing:
             return
-        if operation == "update" and (self.paused or not self.isActiveWindow()):
+        if operation == "update" and (
+            self.paused
+            or not self.isActiveWindow()
+            or self._script_input_generation != self._input_generation
+        ):
             self._accumulator = 0
             return
         try:
@@ -197,7 +206,7 @@ class PlayerWindow(QMainWindow):
         self._script_failed = True
         self._script_ready = False
         self.paused = True
-        self.keys.clear()
+        self._clear_input()
         self.sound_player.stop()
         detail = f"Script error at line {line}: {message}" if line else f"Script error: {message}"
         self.script_label.setText(detail)
@@ -239,7 +248,7 @@ class PlayerWindow(QMainWindow):
         elapsed = min(now - self._last_tick, 0.1)
         self._last_tick = now
         if self.paused or not self.isActiveWindow() or not self._script_ready:
-            self.keys.clear()
+            self._clear_input()
             self._accumulator = 0
             return
         self._accumulator += elapsed
@@ -250,10 +259,19 @@ class PlayerWindow(QMainWindow):
             if self._script.idle and self._accumulator >= FIXED_STEP:
                 self._accumulator -= FIXED_STEP
                 self._script_input = (horizontal, vertical)
+                self._script_input_generation = self._input_generation
                 self._script.update(
-                    self.simulation.script_state(horizontal, vertical, self._ticks * FIXED_STEP),
+                    self.simulation.script_state(
+                        horizontal,
+                        vertical,
+                        self._ticks * FIXED_STEP,
+                        actions=dash_actions(
+                            self._dash_held, self._dash_pressed, self._dash_released
+                        ),
+                    ),
                     FIXED_STEP,
                 )
+                self._dash_pressed = self._dash_released = False
             return
         while self._accumulator >= FIXED_STEP:
             self.simulation.step(horizontal, vertical)
@@ -268,7 +286,7 @@ class PlayerWindow(QMainWindow):
         if self.paused:
             self.sound_player.stop()
         self.pause_button.setText("Resume" if self.paused else "Pause")
-        self.keys.clear()
+        self._clear_input()
         self._accumulator = 0
         self._last_tick = time.monotonic()
 
@@ -287,7 +305,7 @@ class PlayerWindow(QMainWindow):
         self.pause_button.setText("Pause")
         self.simulation = Simulation(self.simulation.scene, self.simulation.controlled.id)
         self._ticks = 0
-        self.keys.clear()
+        self._clear_input()
         self._accumulator = 0
         self._last_tick = time.monotonic()
         self._sync_position()
@@ -297,20 +315,30 @@ class PlayerWindow(QMainWindow):
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Escape:
             self.close()
+        elif self.paused or not self.isActiveWindow() or not self._script_ready:
+            event.ignore()
+        elif event.key() == Qt.Key.Key_Space and self.simulation.scene.script:
+            if not event.isAutoRepeat() and not self._dash_held:
+                self._dash_held = self._dash_pressed = True
         elif event.key() in self.movement_keys:
-            self.keys.add(event.key())
+            if not event.isAutoRepeat():
+                self.keys.add(event.key())
         else:
             super().keyPressEvent(event)
 
     def keyReleaseEvent(self, event: QKeyEvent) -> None:
-        if event.key() in self.movement_keys and not event.isAutoRepeat():
+        if event.key() == Qt.Key.Key_Space and self.simulation.scene.script:
+            if not event.isAutoRepeat() and self._dash_held:
+                self._dash_held = False
+                self._dash_released = True
+        elif event.key() in self.movement_keys and not event.isAutoRepeat():
             self.keys.discard(event.key())
         else:
             super().keyReleaseEvent(event)
 
     def changeEvent(self, event: QEvent) -> None:
         if event.type() == QEvent.Type.ActivationChange and not self.isActiveWindow():
-            self.keys.clear()
+            self._clear_input()
             self.sound_player.stop()
         super().changeEvent(event)
 
@@ -322,9 +350,15 @@ class PlayerWindow(QMainWindow):
         if self._closing:
             self.close()
 
+    def _clear_input(self) -> None:
+        """Cancel pending edges and invalidate commands from a suspended callback."""
+        self.keys.clear()
+        self._dash_held = self._dash_pressed = self._dash_released = False
+        self._input_generation += 1
+
     def closeEvent(self, event: QCloseEvent) -> None:
         self.timer.stop()
-        self.keys.clear()
+        self._clear_input()
         self._closing = True
         for runner in self._script_runners:
             runner.stop()
