@@ -3,6 +3,7 @@ import json
 import os
 import subprocess
 import tarfile
+from dataclasses import replace
 
 import pytest
 from test_exports import game
@@ -14,7 +15,8 @@ from solar_forge_engine.project import bundling
 def bundle(tmp_path_factory):
     folder = tmp_path_factory.mktemp("native-bundle")
     archive = folder / "Game.tar.gz"
-    bundling.export_bundle(archive, game())
+    source = 'def on_start(game):\n    game.set_speed(360)\n    game.say("Bundle script ready")'
+    bundling.export_bundle(archive, replace(game(), script=source))
     with tarfile.open(archive) as handle:
         handle.extractall(folder, filter="data")
     relocated = folder / "Moved game with spaces"
@@ -47,6 +49,8 @@ def test_relocated_bundle_runs_without_system_python_or_project_imports(bundle, 
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert report["runtime_from_archive"] and not report["editor_loaded"]
+    assert report["script_ready"] and not report["script_failed"]
+    assert report["script_message"] == "Bundle script ready"
     assert report["scene_unchanged"] and report["collected"] == 1 and report["ticks"] > 0
     assert not marker.exists()
     manifest = json.loads((root / "bundle.json").read_text())

@@ -45,6 +45,7 @@ from solar_forge_engine.core.commands import (
     SetCoinSound,
     SetEntity,
     SetSceneName,
+    SetSceneScript,
 )
 from solar_forge_engine.core.scene import Entity, InputPreset, Role, Scene
 from solar_forge_engine.core.showcase import ember_run
@@ -60,6 +61,7 @@ from solar_forge_engine.editor.objects import ROLE_DATA, SceneObjects
 from solar_forge_engine.editor.quarantine import QuarantineDialog
 from solar_forge_engine.editor.recovery import RecoveryCleaner, RecoveryWriter
 from solar_forge_engine.editor.saving import SceneSaver
+from solar_forge_engine.editor.scripts import ScriptDialog
 from solar_forge_engine.editor.startup import StartupWriter
 from solar_forge_engine.editor.theme import STYLE, ForgeWorkspace
 from solar_forge_engine.editor.viewport import SceneView
@@ -359,6 +361,9 @@ class EditorWindow(QMainWindow):
         scene_menu = self.menuBar().addMenu("&Scene")
         rename = scene_menu.addAction("Rename scene title…")
         rename.triggered.connect(self.rename_scene)
+        self.script_action = scene_menu.addAction("Edit scene script…")
+        self.script_action.setShortcut("Ctrl+Shift+E")
+        self.script_action.triggered.connect(self.edit_script)
         find_object = scene_menu.addAction("Find object")
         find_object.setShortcut("Ctrl+L")
         find_object.triggered.connect(self.find_object)
@@ -894,6 +899,23 @@ class EditorWindow(QMainWindow):
             self._error("The scene changed. Reopen Rename before changing its title.")
             return
         self.execute(SetSceneName(name), expected_revision=revision)
+
+    def edit_script(self) -> None:
+        document, revision = self.document, self.document.revision
+        dialog = ScriptDialog(document.scene, self.selected_id, self)
+
+        def apply(source: str) -> None:
+            if self.document is not document or document.revision != revision:
+                dialog.status.setText(
+                    "The scene changed. Copy your draft and reopen the script editor."
+                )
+                return
+            if self._execute_bounded(SetSceneScript(source), expected_revision=revision):
+                dialog.accept()
+
+        dialog.apply_requested.connect(apply)
+        dialog.exec()
+        dialog.deleteLater()
 
     def browse_sounds(self) -> None:
         if self.project is None:

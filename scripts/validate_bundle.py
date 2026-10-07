@@ -32,6 +32,9 @@ def build_fixture(destination: Path) -> dict[str, object]:
             ),
             Entity("coin", x=64, role=Role.COIN),
         ),
+        script=(
+            'def on_start(game):\n    game.set_speed(360)\n    game.say("Scripted export ready")\n'
+        ),
     )
     destination.mkdir(parents=True, exist_ok=True)
     archive = destination / "Game.tar.gz"
@@ -114,6 +117,9 @@ def check_fixture(destination: Path, image: str, qpa: str) -> dict[str, object]:
         and report["collected"] == 1
         and report["x"] > 0
         and report["ticks"] > 0
+        and report["script_ready"]
+        and not report["script_failed"]
+        and report["script_message"] == "Scripted export ready"
     ):
         raise ValueError("The clean Arch game did not complete its acceptance route.")
     image_id = subprocess.run(
@@ -131,7 +137,7 @@ def check_fixture(destination: Path, image: str, qpa: str) -> dict[str, object]:
         "container_and_smoke_ms": round((time.perf_counter() - start) * 1000, 3),
         "game": report,
         "scope": "Read-only relocated game; no installed Python/Qt or mounted editor. "
-        "Includes container startup and 400 ms smoke exercise, not launch latency.",
+        "Includes container/script startup and movement exercise, not launch latency.",
     }
 
 

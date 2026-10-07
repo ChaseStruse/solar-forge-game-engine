@@ -143,3 +143,21 @@ def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, 
         assert json.loads(archive.read("game_data/scene.json"))["scene"] == snapshot.to_data()
     editor._confirm_discard = lambda: True
     editor.close()
+
+
+def test_exported_script_runs_in_restricted_worker_without_editor(tmp_path):
+    source = 'def on_start(game):\n    game.set_speed(360)\n    game.say("Scripted export ready")\n'
+    archive = tmp_path / "Scripted.pyz"
+    export_game(archive, replace(game(), script=source))
+    result = subprocess.run(
+        [sys.executable, "-I", str(archive), "--smoke-check"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["script_ready"] and not report["script_failed"]
+    assert report["script_message"] == "Scripted export ready"
+    assert report["player_speed"] == 360 and report["collected"] == 1, report
+    assert report["scene_unchanged"] and not report["editor_loaded"]

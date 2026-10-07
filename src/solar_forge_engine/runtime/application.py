@@ -3,6 +3,7 @@
 import json
 import signal
 import sys
+import time
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
@@ -31,11 +32,20 @@ def run_scene(
             else Qt.Key.Key_Right
         )
 
+        startup_deadline = time.monotonic() + 5
+
         def press() -> None:
+            if scene.script and not window._script_ready:
+                if not window._script_failed and time.monotonic() < startup_deadline:
+                    QTimer.singleShot(25, press)
+                    return
+                finish()
+                return
             window.activateWindow()
             QApplication.postEvent(
                 window, QKeyEvent(QKeyEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier)
             )
+            QTimer.singleShot(320, finish)
 
         def finish() -> None:
             print(
@@ -46,6 +56,10 @@ def run_scene(
                         "x": window.simulation.x,
                         "collected": len(window.simulation.collected),
                         "ticks": window._ticks,
+                        "script_ready": window._script_ready,
+                        "script_failed": window._script_failed,
+                        "script_message": window.simulation.message,
+                        "player_speed": window.simulation.speed,
                         "scene_unchanged": window.simulation.scene == scene,
                         "editor_loaded": any(
                             name.startswith(
@@ -67,7 +81,9 @@ def run_scene(
             window.close()
 
         QTimer.singleShot(80, press)
-        QTimer.singleShot(400, finish)
     else:
         print("Game ready" if exported else "Preview ready", flush=True)
-    return app.exec()
+    result = app.exec()
+    if smoke and scene.script and (window._script_failed or not window._script_ready):
+        return 1
+    return result

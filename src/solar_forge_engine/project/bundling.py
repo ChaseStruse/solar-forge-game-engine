@@ -74,7 +74,7 @@ Use ./play --smoke-check for a brief movement check that exits automatically.
 Target: Linux on the build machine's CPU architecture, Wayland desktop.
 System graphics libraries, fonts and an active Wayland session are required.
 On Arch the graphics prerequisites are mesa, libglvnd, libxkbcommon, wayland,
-fontconfig, ttf-dejavu, glib2 and dbus (plus their package dependencies).
+fontconfig, ttf-dejavu, glib2, dbus and libseccomp (plus their package dependencies).
 Optional sound uses the system pipewire-audio client and a running PipeWire session.
 QT_QPA_PLATFORM=offscreen ./play --smoke-check checks playback without a desktop.
 X11 and other Linux distributions are not validated release targets.
@@ -89,6 +89,8 @@ Redistribution status: experimental/private pending a complete notice/source aud
 Installed Python license text and Qt package metadata are included under notices/.
 These are not a complete set of third-party notices for every interpreter build or
 Qt embedded library. Review redistribution requirements before external release.
+Scene scripts run only in the kernel-restricted worker and require system libseccomp.
+No unrestricted script fallback is available.
 No license is assigned to your game assets or imported content by exporting them.
 """
 
