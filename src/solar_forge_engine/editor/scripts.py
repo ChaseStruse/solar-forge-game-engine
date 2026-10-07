@@ -154,12 +154,13 @@ class CodeEdit(QPlainTextEdit):
 
 class ScriptDialog(QDialog):
     apply_requested = Signal(str)
+    reload_requested = Signal()
 
     def __init__(
         self, scene: Scene, selected_id: str | None, parent: QWidget | None = None
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Scene script — Python")
+        self.setWindowTitle(f"Scene script — {scene.name} — Python")
         self.resize(1000, 650)
         layout = QVBoxLayout(self)
         hint = QLabel(
@@ -167,6 +168,11 @@ class ScriptDialog(QDialog):
         )
         hint.setWordWrap(True)
         layout.addWidget(hint)
+        self.error_hint = QLabel()
+        self.error_hint.setTextFormat(Qt.TextFormat.PlainText)
+        self.error_hint.setWordWrap(True)
+        self.error_hint.hide()
+        layout.addWidget(self.error_hint)
         splitter = QSplitter()
         self.code = CodeEdit(scene.script)
         self.code.setPlaceholderText("Write Python here, or insert the starter example below.")
@@ -204,8 +210,14 @@ class ScriptDialog(QDialog):
         self.status.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self.status)
         actions = QHBoxLayout()
+        self.reload_button = QPushButton("Reload applied source")
+        self.reload_button.setToolTip(
+            "Replace this draft with the scene's currently applied source."
+        )
+        self.reload_button.clicked.connect(self.reload_requested.emit)
+        actions.addWidget(self.reload_button)
         actions.addStretch()
-        cancel = QPushButton("Cancel")
+        cancel = QPushButton("Close · keep draft")
         cancel.clicked.connect(self.reject)
         actions.addWidget(cancel)
         self.apply_button = QPushButton("Apply script")
@@ -217,6 +229,12 @@ class ScriptDialog(QDialog):
         self.code.textChanged.connect(self._validate)
         self.code.cursorPositionChanged.connect(self._validate)
         self._validate()
+
+    def show_error(self, line: int, detail: str) -> None:
+        self.error_hint.setText(detail)
+        self.error_hint.show()
+        self.line.setValue(max(1, line))
+        self.go_to_line()
 
     def _validate(self) -> None:
         try:

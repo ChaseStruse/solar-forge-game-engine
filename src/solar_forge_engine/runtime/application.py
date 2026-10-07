@@ -29,7 +29,10 @@ def run_scene(
         # Only the trusted player writes events to stdout. Worker logs use stderr.
         window.script_failed.connect(
             lambda message, line: print(
-                json.dumps({"type": "script_error", "message": message[:1000], "line": line}),
+                json.dumps(
+                    {"type": "script_error", "message": message[:1000], "line": line},
+                    ensure_ascii=False,
+                ),
                 flush=True,
             )
         )
