@@ -1,7 +1,7 @@
 # No Python, Qt, editor or project files: only the Arch desktop library boundary.
 FROM archlinux:base-20261004.0.606936@sha256:4e77cf2ea5f410e6f8be5abf93ccf17ce2436e87a138c167208356711a405dbd
 RUN pacman -Syu --noconfirm --needed \
-    libglvnd libxkbcommon dbus glib2 fontconfig wayland ttf-dejavu \
+    libseccomp libglvnd libxkbcommon dbus glib2 fontconfig wayland ttf-dejavu \
     && pacman -Scc --noconfirm \
     && useradd --create-home forge
 USER forge
