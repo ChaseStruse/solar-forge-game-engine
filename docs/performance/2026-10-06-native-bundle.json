@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-06",
+  "runtime_source_revision": "24947a2",
+  "native_build": {
+    "archive_bytes": 64124304,
+    "uncompressed_file_bytes": 162275491,
+    "build_and_extract_ms": 2379.595,
+    "python": "3.14.7",
+    "qt": "6.11.2",
+    "machine": "x86_64"
+  },
+  "native_bundle_arch_offscreen": {
+    "image": "solar-forge-arch-export-check:dev",
+    "image_id": "sha256:0209042eea044b20cacdce669adfc8b2b4855771b81dfc7c89531e74cdc1f804",
+    "qpa": "offscreen",
+    "machine": "x86_64",
+    "container_and_smoke_ms": 1061.554,
+    "game": {
+      "scene": "Portable export acceptance",
+      "objects": 2,
+      "x": 72.0,
+      "collected": 1,
+      "ticks": 23,
+      "scene_unchanged": true,
+      "editor_loaded": false,
+      "runtime_from_archive": true
+    },
+    "scope": "Read-only relocated game; no installed Python/Qt or mounted editor. Includes container startup and 400 ms smoke exercise, not launch latency."
+  },
+  "native_bundle_arch_wayland": {
+    "image": "solar-forge-arch-export-check:dev",
+    "image_id": "sha256:0209042eea044b20cacdce669adfc8b2b4855771b81dfc7c89531e74cdc1f804",
+    "qpa": "wayland",
+    "machine": "x86_64",
+    "container_and_smoke_ms": 978.01,
+    "game": {
+      "scene": "Portable export acceptance",
+      "objects": 2,
+      "x": 76.0,
+      "collected": 1,
+      "ticks": 22,
+      "scene_unchanged": true,
+      "editor_loaded": false,
+      "runtime_from_archive": true
+    },
+    "scope": "Read-only relocated game; no installed Python/Qt or mounted editor. Includes container startup and 400 ms smoke exercise, not launch latency."
+  },
+  "docker_build": {
+    "archive_bytes": 42357125,
+    "uncompressed_file_bytes": 105644322,
+    "build_and_extract_ms": 1744.785,
+    "python": "3.14.7",
+    "qt": "6.11.2",
+    "machine": "x86_64"
+  },
+  "docker_bundle_arch_offscreen": {
+    "image": "solar-forge-arch-export-check:dev",
+    "image_id": "sha256:0209042eea044b20cacdce669adfc8b2b4855771b81dfc7c89531e74cdc1f804",
+    "qpa": "offscreen",
+    "machine": "x86_64",
+    "container_and_smoke_ms": 1070.618,
+    "game": {
+      "scene": "Portable export acceptance",
+      "objects": 2,
+      "x": 80.0,
+      "collected": 1,
+      "ticks": 25,
+      "scene_unchanged": true,
+      "editor_loaded": false,
+      "runtime_from_archive": true
+    },
+    "scope": "Read-only relocated game; no installed Python/Qt or mounted editor. Includes container startup and 400 ms smoke exercise, not launch latency."
+  },
+  "limits": [
+    "One sample per combination on x86_64; not a startup latency or performance guarantee.",
+    "Offscreen does not prove compositor presentation; Wayland used the host compositor.",
+    "Arch image contains system graphics libraries and fonts, but no Python, Qt or editor.",
+    "Third-party redistribution notice/source audit is incomplete; bundles remain experimental/private.",
+    "GitHub-hosted workflow has not run; its container build/test/export/check steps were exercised locally."
+  ]
+}

@@ -1,7 +1,9 @@
+import io
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import zipfile
 from dataclasses import replace
 from pathlib import Path
@@ -36,6 +38,7 @@ def test_native_archive_runs_own_runtime_and_ignores_project_imports(tmp_path):
     assert size == archive.stat().st_size and os.access(archive, os.X_OK)
     with zipfile.ZipFile(archive) as bundle:
         names = bundle.namelist()
+        assert b"MIT License" in bundle.read("solar_forge_engine/LICENSE.txt")
         assert not any(part in name for name in names for part in ("/editor/", "/ai/", "/project/"))
         snapshot = json.loads(bundle.read("game_data/scene.json"))
         assert snapshot["scene"] == scene.to_data()
@@ -116,19 +119,45 @@ def test_exported_runtime_rejects_invalid_snapshot_before_play(tmp_path, mutatio
     assert "Cannot launch game" in result.stderr and not result.stdout
 
 
-def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, qtbot):
+@pytest.mark.parametrize("extension", [".pyz", ".tar.gz"])
+def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, qtbot, extension):
     editor = EditorWindow()
     qtbot.addWidget(editor)
     editor._open_starter(game(), "Export fixture")
     snapshot = editor.document.scene
     saved = editor.saved_scene
-    target = tmp_path / "Game.pyz"
+    target = tmp_path / f"Game{extension}"
     assert editor.export_game_to(target)
     editor.execute(SetSceneName("Later edit"))
-    qtbot.waitUntil(lambda: editor._export_job is None)
+    qtbot.waitUntil(lambda: editor._export_job is None, timeout=20000)
     assert editor.saved_scene == saved and editor.dirty
     assert editor.document.scene == replace(snapshot, name="Later edit")
-    with zipfile.ZipFile(target) as archive:
+    if extension == ".tar.gz":
+        with tarfile.open(target) as bundle:
+            stream = bundle.extractfile("Game/Game.pyz")
+            assert stream is not None
+            raw = stream.read()
+    else:
+        raw = target.read_bytes()
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         assert json.loads(archive.read("game_data/scene.json"))["scene"] == snapshot.to_data()
     editor._confirm_discard = lambda: True
     editor.close()
+
+
+def test_exported_script_runs_in_restricted_worker_without_editor(tmp_path):
+    source = 'def on_start(game):\n    game.set_speed(360)\n    game.say("Scripted export ready")\n'
+    archive = tmp_path / "Scripted.pyz"
+    export_game(archive, replace(game(), script=source))
+    result = subprocess.run(
+        [sys.executable, "-I", str(archive), "--smoke-check"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == 0, result.stderr
+    report = json.loads(result.stdout)
+    assert report["script_ready"] and not report["script_failed"]
+    assert report["script_message"] == "Scripted export ready"
+    assert report["player_speed"] == 360 and report["collected"] == 1, report
+    assert report["scene_unchanged"] and not report["editor_loaded"]

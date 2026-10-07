@@ -1,6 +1,8 @@
 {
-  "format_version": 8,
+  "format_version": 12,
   "name": "Ember Run \u2014 recover the twelve energy cores",
+  "script": "# EMBER RUN \u2014 reactive pickups, orbiting sparks and a timed finish.\n# Try changing these values, Apply script, then start Play again.\nBASE_SPEED = 220\nBOOST_SPEED = 330\nBOOST_SECONDS = 1.4\nCORE_BOB_HEIGHT = 4\nSPARK_RADIUS = 78\n\n\ndef on_start(game):\n    # Save authored positions once: offsets never accumulate between frames.\n    game.data[\"cores\"] = [\n        (obj[\"id\"], obj[\"x\"], obj[\"y\"])\n        for obj in game.objects.values() if obj[\"role\"] == \"coin\"\n    ]\n    game.data[\"sparks\"] = [\n        obj[\"id\"] for obj in game.objects.values()\n        if obj[\"name\"].startswith(\"Reactor spark\")\n    ]\n    game.data[\"last_count\"] = 0\n    game.data[\"boost_until\"] = 0\n    game.data[\"boosting\"] = False\n    game.data[\"finished\"] = False\n    game.data[\"last_message\"] = \"\"\n    game.set_speed(BASE_SPEED)\n    game.say(\"EMBER RUN | Recover 12 cores. Pickups boost your engines! WASD / arrows\")\n    print(\"Ember Run: edit the constants above to tune your own forge run.\")\n\n\ndef on_update(game, dt):\n    t = game.time\n    count = game.collected\n    data = game.data\n\n    # Each core has its own phase, creating a travelling wave across the forge.\n    for index, (core_id, x, y) in enumerate(data[\"cores\"]):\n        game.set_position(core_id, x, y + math.sin(t * 3 + index * 0.7) * CORE_BOB_HEIGHT)\n\n    # Six sparks orbit the reactor. After victory they celebrate around the pilot.\n    center_x, center_y = 512, 288\n    radius_x, radius_y = SPARK_RADIUS, 114\n    if data[\"finished\"]:\n        center_x = game.player[\"x\"] + game.player[\"width\"] / 2\n        center_y = game.player[\"y\"] + game.player[\"height\"] / 2\n        radius_x = radius_y = 38\n    for index, spark_id in enumerate(data[\"sparks\"]):\n        angle = t * 1.8 + index * math.tau / max(1, len(data[\"sparks\"]))\n        game.set_position(spark_id,\n                          center_x + math.cos(angle) * radius_x - 6,\n                          center_y + math.sin(angle) * radius_y - 6)\n\n    # React to changes in the collection count, not to every frame of an overlap.\n    if count > data[\"last_count\"]:\n        data[\"last_count\"] = count\n        data[\"boost_until\"] = t + BOOST_SECONDS\n        print(\"Core recovered:\", count, \"/\", game.total_coins)\n\n    if game.total_coins and count == game.total_coins and not data[\"finished\"]:\n        data[\"finished\"] = True\n        medal = \"SOLAR ACE\" if t < 45 else \"FORGE RUNNER\" if t < 75 else \"CORE KEEPER\"\n        data[\"finish_message\"] = f\"{medal} | All cores secured in {t:.1f}s! Restart to race again.\"\n        print(data[\"finish_message\"])\n\n    boosting = t < data[\"boost_until\"] and not data[\"finished\"]\n    if boosting != data[\"boosting\"]:\n        game.set_speed(BOOST_SPEED if boosting else BASE_SPEED)\n        data[\"boosting\"] = boosting\n\n    # Send HUD commands only when the displayed text changes.\n    if data[\"finished\"]:\n        message = data[\"finish_message\"]\n    elif boosting:\n        message = f\"OVERDRIVE! | {count}/{game.total_coins} cores | Engines boosted\"\n    elif t < 4 and count == 0:\n        message = \"EMBER RUN | Recover 12 cores. Pickups boost your engines! WASD / arrows\"\n    else:\n        sector = \"REACTOR ONLINE\" if count >= 8 else \"FORGE WARMING\" if count >= 4 else \"POWER LOW\"\n        message = f\"{sector} | {count}/{game.total_coins} cores | {int(t)}s | Keep moving!\"\n    if message != data[\"last_message\"]:\n        game.say(message)\n        data[\"last_message\"] = message\n",
+  "coin_sound": null,
   "entities": [
     {
       "id": "ember-0",
@@ -3377,6 +3379,138 @@
       "move_speed": 240,
       "input_preset": "wasd_arrows",
       "animation": null
+    },
+    {
+      "id": "ember-186",
+      "name": "Reactor spark 1",
+      "x": 584,
+      "y": 282,
+      "width": 12,
+      "height": 12,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "ember-187",
+      "name": "Reactor spark 2",
+      "x": 545,
+      "y": 380,
+      "width": 12,
+      "height": 12,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "ember-188",
+      "name": "Reactor spark 3",
+      "x": 467,
+      "y": 380,
+      "width": 12,
+      "height": 12,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "ember-189",
+      "name": "Reactor spark 4",
+      "x": 428,
+      "y": 282,
+      "width": 12,
+      "height": 12,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "ember-190",
+      "name": "Reactor spark 5",
+      "x": 467,
+      "y": 184,
+      "width": 12,
+      "height": 12,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
+    },
+    {
+      "id": "ember-191",
+      "name": "Reactor spark 6",
+      "x": 545,
+      "y": 184,
+      "width": 12,
+      "height": 12,
+      "color": "#385361",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/22794ab5d831758f760aa6f5b890b558be8209c598da558786cbade2b1f67f36.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      }
     },
     {
       "id": "courier",

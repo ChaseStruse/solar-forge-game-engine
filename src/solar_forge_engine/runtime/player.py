@@ -1,6 +1,7 @@
 """Native Play window for data-only scenes and built-in keyboard movement."""
 
 import base64
+import sys
 import time
 
 from PySide6.QtCore import QEvent, Qt, QTimer
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
 from solar_forge_engine.core.scene import InputPreset, Scene
 from solar_forge_engine.runtime.audio import SoundPlayer
 from solar_forge_engine.runtime.rendering import SpriteAnimator, render_scene
+from solar_forge_engine.runtime.scripting import ScriptRunner
 from solar_forge_engine.runtime.simulation import FIXED_STEP, WORLD_HEIGHT, WORLD_WIDTH, Simulation
 
 LEFT = {Qt.Key.Key_A, Qt.Key.Key_Left}
@@ -58,6 +60,11 @@ class PlayerWindow(QMainWindow):
         self._sound_pcm = base64.b64decode(scene.coin_sound.samples) if scene.coin_sound else b""
         self._audio_count = 0
         self._closing = False
+        self._script: ScriptRunner | None = None
+        self._script_runners: list[ScriptRunner] = []
+        self._script_ready = not bool(scene.script)
+        self._script_input = (0, 0)
+        self._script_failed = False
         self.sound_player.finished.connect(self._audio_finished)
         self.simulation = Simulation(scene, controlled_id)
         preset = self.simulation.controlled.input_preset
@@ -125,13 +132,89 @@ class PlayerWindow(QMainWindow):
             toolbar.addWidget(self.audio_label)
             self.audio_label.setAccessibleName("Game sound status")
             self.sound_player.message.connect(self._audio_message)
+        self.script_label = QLabel()
+        self.script_label.setTextFormat(Qt.TextFormat.PlainText)
+        self.script_label.setAccessibleName("Script status")
+        if scene.script:
+            self.statusBar().addWidget(self.script_label, 1)
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.TimerType.PreciseTimer)
         self.timer.timeout.connect(self.tick)
         self.timer.start(16)
         self._sync_position()
+        if scene.script:
+            QTimer.singleShot(0, self._start_script)
+
+    def _start_script(self) -> None:
+        if self._closing:
+            return
+        self._script_ready = False
+        self._script_failed = False
+        self.script_label.setText("Starting restricted Python script…")
+        try:
+            state = self.simulation.script_state(0, 0, 0)
+            runner = ScriptRunner(self.simulation.scene.script, state, self)
+            self._script = runner
+            self._script_runners.append(runner)
+            runner.completed.connect(
+                lambda operation, commands: self._script_completed(runner, operation, commands)
+            )
+            runner.failed.connect(lambda message, line: self._script_error(runner, message, line))
+            runner.output.connect(
+                lambda output: print("Script: " + output.rstrip(), file=sys.stderr, flush=True)
+            )
+            runner.stopped.connect(lambda: self._script_stopped(runner))
+            runner.start()
+        except (OSError, ValueError) as error:
+            self._script_error(self._script, str(error), 0)
+
+    def _script_completed(self, runner: ScriptRunner, operation: str, commands: object) -> None:
+        if runner is not self._script or self._closing:
+            return
+        if operation == "update" and (self.paused or not self.isActiveWindow()):
+            self._accumulator = 0
+            return
+        try:
+            self.simulation.apply_script(commands)
+        except ValueError as error:
+            runner.stop()
+            self._script_error(runner, str(error), 0)
+            return
+        if operation == "start":
+            self._script_ready = True
+            self._last_tick = time.monotonic()
+        else:
+            self.simulation.step(*self._script_input)
+            self._ticks += 1
+        self.script_label.setText(self.simulation.message or "Python script running")
+        self._sync_position()
+
+    def _script_error(self, runner: ScriptRunner | None, message: str, line: int) -> None:
+        if runner is not self._script or self._closing:
+            return
+        self._script_failed = True
+        self._script_ready = False
+        self.paused = True
+        self.keys.clear()
+        self.sound_player.stop()
+        detail = f"Script error at line {line}: {message}" if line else f"Script error: {message}"
+        self.script_label.setText(detail)
+        self.script_label.setToolTip(detail)
+        self.pause_button.setText("Script stopped")
+        print(detail, file=sys.stderr, flush=True)
+
+    def _script_stopped(self, runner: ScriptRunner) -> None:
+        if runner is not self._script:
+            self._script_runners.remove(runner)
+            runner.deleteLater()
+        if self._closing:
+            self.close()
 
     def _sync_position(self) -> None:
+        if self.simulation.scene.script:
+            for entity in self.simulation.runtime_scene.entities:
+                if entity.id != self.simulation.controlled.id:
+                    self.items[entity.id].setPos(entity.x, entity.y)
         self.items[self.simulation.controlled.id].setPos(self.simulation.x, self.simulation.y)
         for coin in self.simulation.coins:
             self.items[coin.id].setVisible(coin.id not in self.simulation.collected)
@@ -152,13 +235,23 @@ class PlayerWindow(QMainWindow):
         now = time.monotonic()
         elapsed = min(now - self._last_tick, 0.1)
         self._last_tick = now
-        if self.paused or not self.isActiveWindow():
+        if self.paused or not self.isActiveWindow() or not self._script_ready:
             self.keys.clear()
             self._accumulator = 0
             return
         self._accumulator += elapsed
         horizontal = int(bool(self.keys & self.right)) - int(bool(self.keys & self.left))
         vertical = int(bool(self.keys & self.down)) - int(bool(self.keys & self.up))
+        if self._script is not None:
+            self._accumulator = min(self._accumulator, 0.1)
+            if self._script.idle and self._accumulator >= FIXED_STEP:
+                self._accumulator -= FIXED_STEP
+                self._script_input = (horizontal, vertical)
+                self._script.update(
+                    self.simulation.script_state(horizontal, vertical, self._ticks * FIXED_STEP),
+                    FIXED_STEP,
+                )
+            return
         while self._accumulator >= FIXED_STEP:
             self.simulation.step(horizontal, vertical)
             self._ticks += 1
@@ -166,6 +259,8 @@ class PlayerWindow(QMainWindow):
         self._sync_position()
 
     def toggle_pause(self) -> None:
+        if self._script_failed:
+            return
         self.paused = not self.paused
         if self.paused:
             self.sound_player.stop()
@@ -175,6 +270,14 @@ class PlayerWindow(QMainWindow):
         self._last_tick = time.monotonic()
 
     def restart(self) -> None:
+        previous = self._script
+        self._script = None
+        if previous is not None:
+            if previous.active:
+                previous.stop()
+            else:
+                self._script_runners.remove(previous)
+                previous.deleteLater()
         self.sound_player.stop()
         self._audio_count = 0
         self.paused = False
@@ -185,6 +288,8 @@ class PlayerWindow(QMainWindow):
         self._accumulator = 0
         self._last_tick = time.monotonic()
         self._sync_position()
+        if self.simulation.scene.script:
+            self._start_script()
 
     def keyPressEvent(self, event: QKeyEvent) -> None:
         if event.key() == Qt.Key.Key_Escape:
@@ -217,10 +322,11 @@ class PlayerWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent) -> None:
         self.timer.stop()
         self.keys.clear()
-        if self.sound_player.active:
+        self._closing = True
+        for runner in self._script_runners:
+            runner.stop()
+        if self.sound_player.active or any(runner.active for runner in self._script_runners):
             event.ignore()
-            if not self._closing:
-                self._closing = True
-                self.sound_player.stop()
+            self.sound_player.stop()
         else:
             super().closeEvent(event)

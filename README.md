@@ -10,13 +10,13 @@ Solar Forge combines a clear visual editor, editable game code, and an assistant
 that works through inspectable, undoable actions. Manual development and exported
 games should work without an AI service.
 
-**Status: editor and built-in native playback.** Create rectangles, select them in the viewport
+**Status: native editor, playback and scene scripting.** Create rectangles, select them in the viewport
 or scene tree, edit their name/position/size/color, undo/redo, and save/reopen scene
 documents. New/Open/Close protect unsaved changes. Play opens a separate native
 window with keyboard movement, wall collisions, and coin collection. PNG sprites
 and basic project folders are supported. An offline assistant demo supports reviewed
 scene edits, and opt-in Ollama supports local models. Single-scene runtime-only exports
-are available; sandboxed Python scripts and dependency bundles remain planned.
+and experimental Python/Qt folder bundles include restricted scene-level Python scripts.
 
 ## Run on Linux
 
@@ -84,12 +84,12 @@ Animation settings support undo, duplication and portable project/standalone sav
 Removing or replacing a sprite clears its animation settings in the same undoable
 edit. Named clips, partial-sheet sequences and one-shot animations remain future work.
 
-Save to a `.forge.json` file. Version-nine files contain the entire scene,
-roles, movement/animation settings, sprite pixels and optional collection sound.
-Versions one, two, three, five and seven still load. Before upgrading an older file, its exact bytes are retained
-in `<filename>.v<old-version>.bak`. Existing backups are never overwritten;
+Save to a `.forge.json` file. Version-eleven files contain the entire scene,
+roles, movement/animation settings, sprite pixels, optional collection sound and Python source.
+Versions one, two, three, five, seven and nine still load. Before upgrading an older
+file, its exact bytes are retained in `<filename>.v<old-version>.bak`. Existing backups are never overwritten;
 use Save As if that backup name is occupied. Scene files remain limited to 4 MiB;
-embedded sprites count toward that limit. Files never execute scripts.
+embedded sprites count toward that limit. Opening and saving files never execute scripts.
 
 Use **File → Create project from scene…** (Ctrl+Alt+N) and enter a **new folder name**
 to save the current applied scene as a project. Existing folders are never replaced.
@@ -121,13 +121,13 @@ invalid or failed updates leave the manifest intact. Startup selection is a proj
 setting outside scene undo/redo. Ordinary scene switching still leaves that setting
 unchanged and does not introduce runtime scene transitions.
 
-Project saves write version-ten scene files with relative sprite references to
+Project saves write version-twelve scene files with relative sprite references to
 `assets/<content-hash>.rgba`. Identical sprites share one bounded RGBA pixel file;
 files are validated by size, dimensions, and content hash when opened. Move the
 entire folder to keep the project portable. Standalone Save As still embeds pixels
-in version-nine scenes, and Play receives resolved data without reading asset paths.
-Older embedded scenes and version-four/six/eight project scenes load with default movement
-settings; saving upgrades them after keeping an exact version-specific `.bak`. Save publishes assets before atomically
+in version-eleven scenes, and Play receives resolved data without reading asset paths.
+Older embedded scenes and version-four/six/eight/ten project scenes load with defaults
+for missing fields; saving preserves an exact version-specific `.bak`. Save publishes assets before atomically
 replacing the scene. A failed save may leave unused asset files, while the previous
 scene stays usable. Assets are not automatically deleted, including after undo or
 sprite removal. Reviewed cleanup is available below.
@@ -225,15 +225,17 @@ and detected external changes are preserved, with a warning in Activity; locks
 remain usable in memory. Repair the settings and reopen the scene to resume saving.
 
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
-an animated courier, flickering reactor, industrial pixel art, and twelve energy
-cores to recover. WASD/arrows move; Pause and Restart control playback. All 187
-objects are editable, including collision walls and 19 animated sprites.
+an animated courier, bobbing energy cores, orbiting reactor sparks and pickup speed
+bursts. A timed finish awards a title and a spark celebration. WASD/arrows move;
+Pause and Restart control playback. All 193 objects are editable, including walls
+and 25 animated sprites. Open **Scene → Edit scene script** to explore the commented
+effects and tweak their constants.
 Create a project from this scene to save your changes.
 
 The [editable example project](examples/ember-run/README.md) also includes **Courier
-Bay**, a second scene sharing the same assets. Copy its folder before editing and
+Bay**, an orbital-collection script playground sharing the same assets. Copy its folder before editing and
 use **File → Open project**. The original artwork and scenes total less than 256 KB;
-no downloads or model connection are needed. [View the showcase](docs/screenshots/ember-run.png).
+no downloads or model connection are needed. [View the scripted showcase](docs/screenshots/ember-run-scripted.png).
 
 Choose **File → Coin starter** (Ctrl+Shift+N), then **Play** (F5). Move the teal player
 around the gray walls and collect all five gold coins. The HUD tracks the score
@@ -256,8 +258,58 @@ first object is used. Use **Pause**, **Restart**, **Esc**,
 or the editor's **Stop** (Shift+F5). Playback uses the last applied scene snapshot;
 unsaved scene edits are included, but unapplied Inspector fields are not.
 Playback changes never modify the authored scene. Opening/New/closing the editor
-stops its preview process. This data-only preview runs built-in behavior and does
-not execute project scripts or claim to sandbox arbitrary Python.
+stops its preview process. Applied scene scripts run in a separate restricted worker.
+
+## Script your scene
+
+Choose **Scene → Edit scene script…** (Ctrl+Shift+E), then **Insert example** or write
+Python. **Apply script** creates one undoable scene edit; press **Play** to run it
+and **Save** to keep it. Clearing the source removes the script. The native editor
+includes syntax colors, indentation, line navigation, API help and insertion of the
+selected object's ID. Opening, editing and saving source never execute it.
+
+```python
+def on_start(game):
+    game.set_speed(300)
+    game.data["elapsed"] = 0
+    game.say("Collect all the coins!")
+
+
+def on_update(game, dt):
+    game.data["elapsed"] += dt
+    if game.total_coins and game.collected == game.total_coins:
+        game.say("All collected!")
+```
+
+`on_start(game)` runs once per Play/Restart. `on_update(game, dt)` runs before each
+fixed simulation step (`dt = 1/60`). Read `game.player` (ID, position, speed),
+`game.objects[id]` (ID, name, position, size, role), `game.input["x"]` / `["y"]`
+(movement axes −1, 0, 1), `game.time`, `game.collected` and `game.total_coins`.
+`game.set_position(id, x, y)` moves existing objects, `game.set_speed(value)` changes
+player speed, and `game.say(text)` shows up to 200 plain-text characters. Player
+positions stay inside the arena; teleporting does not resolve wall overlaps.
+Changing state dictionaries alone has no gameplay effect. `game.data` and globals
+persist until Restart; `math` and `random` are available. `print()` appears in Activity.
+
+Errors stop scripted Play and report a source line when available. Use **Go to line**
+in the script editor, apply the fix and start Play again. Pause/focus loss suspend
+simulation; effects from an already-running update are discarded while paused.
+Restart resets script and game state. Stop/closing terminate the worker. Runtime
+changes never alter authored objects. Both export formats include the script and
+run without the editor or an AI service.
+
+The first version supports one embedded scene script, up to 32 KiB UTF-8 source,
+256 objects, 32 commands and 4 KiB log output per callback. It requires Linux x86_64
+and `libseccomp` (`sudo pacman -S libseccomp` on Arch; included in Docker images).
+A default-deny kernel policy blocks files, sockets, subprocesses and threads before
+source is sent. Missing isolation stops scripting; there is no unrestricted fallback.
+Workers receive no editor credentials or project paths and cannot load new packages
+from disk. Limits are 256 MiB address space, 60 CPU seconds per Play session, 3 seconds
+to initialize isolation, 1 second for startup code and 250 ms per update. These are
+termination limits, not frame-time guarantees. External Python modules, per-object
+script attachment, breakpoints and runtime scene transitions remain future work.
+See the [isolation decision](docs/architecture/0002-script-sandbox.md) for boundary tests
+and limitations.
 
 ## Assistant and local models
 
@@ -456,7 +508,8 @@ names without treating them as formatting or image references.
 
 ## Native game export
 
-Choose **File → Export active scene as game…** and save a new `.pyz` file. Export
+Choose **File → Export active scene as game…**. Select **Lightweight game** for a
+new `.pyz`, or **Linux bundle with Python and Qt** for a `.tar.gz`. Export
 uses the currently applied scene, including built-in gameplay, sprites, animation
 and collection sound. It runs in a worker, retains your unsaved edits, and keeps
 the captured snapshot even if you edit afterward. Existing output files are never
@@ -465,8 +518,8 @@ overwritten; choose a new filename for a new build.
 The archive contains only engine core/runtime code and bounded scene data. It runs
 without the editor, assistant, project folder or Docker. It needs **Python 3.14**,
 **PySide6-Essentials 6.11.2** and the native Linux Qt libraries; PipeWire is optional
-for sound. Python/Qt dependency bundling and clean-machine packaging remain future
-work. Qt's native extension modules stay outside the zip archive, as described in
+for sound. The lightweight archive leaves these dependencies installed separately; the
+folder bundle below carries Python and the Qt Widgets subset. Qt's native extension modules stay outside the zip archive, as described in
 [Python's zipapp documentation](https://docs.python.org/3.14/library/zipapp.html).
 
 ```sh
@@ -480,8 +533,56 @@ python3.14 -I Game.pyz --smoke-check
 The executable archive also supports `./Game.pyz` when `python3` resolves to the
 supported environment. Its launcher uses Python isolated mode, ignoring project
 imports and Python environment overrides. Export includes one scene and the built-in
-behaviors; imported/generated Python scripts and runtime scene transitions remain
-unimplemented.
+behaviors plus its Python scene script. Runtime scene transitions remain unimplemented.
+
+The **Linux bundle with Python and Qt** option builds a compressed `Game` folder.
+Extract the complete folder, then run `./play`. It works after moving or renaming
+the folder, including paths containing spaces. No system Python, pip, uv, editor,
+or model service is required. It retains system graphics/font dependencies; its
+README lists Arch prerequisites, and optional sound still uses system PipeWire.
+`./play --smoke-check` exercises movement and exits automatically.
+
+Bundle construction stays in the export worker and uses the applied scene captured
+at export start. Existing targets are never overwritten, and handled build failures
+remove their temporary files. The archive contains file hashes, runtime versions,
+external Qt library names, the engine MIT license, installed Python license text
+and Qt package metadata. It excludes development packages, user site packages and
+editor/assistant code. The launcher disables Python environment overrides, site
+customizations and bytecode writes; this is import isolation, not a script sandbox.
+
+Bundles are currently experimental/private: the complete third-party notice and
+corresponding-source audit remains open. Interpreter builds can contain additional
+embedded libraries; copying their installed license file alone does not complete
+that audit. Native Wayland and clean Arch offscreen playback passed on x86_64.
+Other architectures, X11 and other Linux distributions are not verified.
+
+Repeat the clean Arch acceptance check with Docker installed (build steps need
+network access; execution is offline). Choose a new temporary output directory:
+
+```sh
+docker build -f Dockerfile.export-check -t solar-forge-arch-export-check:dev .
+export_check_dir=$(mktemp -d /tmp/solar-forge-export.XXXXXX)
+.venv/bin/python scripts/validate_bundle.py build-fixture "$export_check_dir"
+.venv/bin/python scripts/validate_bundle.py check "$export_check_dir"
+# Optional native presentation check; forwards only the current Wayland socket
+.venv/bin/python scripts/validate_bundle.py check "$export_check_dir" --qpa wayland
+```
+
+The fixture deliberately moves the extracted game into a path containing spaces.
+The check mounts only that game read-only, verifies no system Python/Qt is installed,
+disables networking and plays a short scripted collection route.
+The [scripted acceptance report](docs/performance/2026-10-06-script-runtime.json) records
+successful offscreen and Wayland runs. Temporary output is retained
+for inspection. The [reference report](docs/performance/2026-10-06-native-bundle.json)
+records the image identity, sizes and successful native/Docker-produced exports.
+Image builds use a pinned Arch base and resolve Arch packages at build time.
+
+The [CI workflow](.github/workflows/checks.yml) runs on pushes and pull requests:
+Ruff, formatting, mypy and pytest in the independent frozen test image, followed by
+bundle creation in that same image and clean Arch offscreen playback. Checkout uses
+shell/git without Node-based actions, with a read-only token scoped to fetching the
+exact tested revision. Container checks run without host display or credentials.
+GitHub-hosted execution remains unverified until the branch is pushed.
 
 For the dependency-packaging spike, run the offline developer probe:
 
@@ -514,7 +615,7 @@ Concurrent external editing of the audio directory is not supported.
 Each scene can use one collection sound. The dialog shows its duration and lets you
 replace/remove it; **Scene → Remove collection sound** also works for standalone scenes.
 Assignment/removal supports undo/redo and rejects expired scene revisions. The assigned
-PCM is embedded in standalone format 9 and project format 10 within the existing
+PCM is embedded in standalone format 11 and project format 12 within the existing
 4 MiB scene limit; source/library paths are not needed by Play or standalone copies.
 Earlier scenes load silently and upgrades preserve exact versioned backups.
 
@@ -561,13 +662,19 @@ docker compose -f compose.test.yaml run --build --rm test
 ```
 
 The test service has no display mount, user project volume, or network access.
-Its configuration works without a Wayland session. Native compositor/GPU testing
-and gameplay preview isolation remain later validation work.
+Its configuration works without a Wayland session. Native Wayland and script isolation
+checks also pass; broad compositor/GPU compatibility remains open.
 
 - [Product and implementation plan](docs/ENGINE_PLAN.md)
 - [Instructions for coding agents](AGENTS.md)
 
 The native Python desktop direction is fixed. Runtime rendering performance,
 packaging, and sandboxing still need their planned validation milestones.
-The [sandbox spike](docs/architecture/0002-script-sandbox.md) records native boundary
-checks and the current Docker limitation; Python game behaviors remain disabled.
+The [script isolation decision](docs/architecture/0002-script-sandbox.md) records the
+implemented kernel policy, native/Docker checks and remaining security limitations.
+
+## License
+
+Engine and runtime code are available under the [MIT license](LICENSE).
+Python, Qt/PySide6 and other dependencies retain their own licenses. Exporting
+a game does not assign a license to imported content or game assets.

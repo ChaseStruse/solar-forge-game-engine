@@ -1,6 +1,6 @@
 # Native runtime packaging
 
-Status: measured direction; release bundling remains incomplete.
+Status: experimental Python/Qt folder bundles implemented; redistribution audit remains open.
 
 The exported `.pyz` contains core/runtime Python and one scene. Native extension
 modules cannot load from inside that archive; keep Python and Qt outside it.
@@ -20,10 +20,52 @@ Wayland and desktop-container Wayland. Each run uses Python 3.14.7 and Qt 6.11.2
 Subprocess duration includes a 400 ms gameplay check; it is not startup latency.
 This is a single warm-cache sample per environment, not a performance gate.
 
-Keep the current small archive option. A future bundle should carry the selected
-Qt files and a compatible interpreter, preserve plugin paths, and include required
-third-party notices. System graphics libraries, fonts and optional PipeWire still
-need a documented clean-Arch installation contract. The probe reports external
-libraries but does not prove that contract, licensing completeness, relocatable
-Python, or support on a clean machine. Do not ship its temporary environment as
-a release package.
+The editor retains the small `.pyz` option and can now publish a `.tar.gz` folder
+bundle. The shared selector inspects only trusted installed dependencies, never
+project binaries. The bundle copies the interpreter, Python source standard library,
+its shared library when available, and the Widgets subset. It excludes installed
+packages, test packages, Tk, caches and site customizations. No project code runs.
+
+`play` resolves its folder, chooses the bundled interpreter and Qt plugin directory,
+and starts Python with `-I -S -B`. The bootstrap rejects fallback to the build
+machine's Python prefix. Qt remains dynamically linked and replaceable. Bundles
+retain the host CPU architecture and need system graphics libraries/fonts; this
+is not a general Linux ABI or other-platform compatibility promise.
+
+A worker builds from one immutable scene snapshot in a private staging directory.
+Only a completed, flushed tar archive is published, through an exclusive hard link.
+Existing targets and late competing exports are preserved. Handled failures clean
+staging files. Process termination can leave a hidden staging directory; complete
+power-loss cleanup is not guaranteed. `bundle.json` includes versions, hashes and
+external Qt library names without recording builder filesystem paths or identity.
+
+October 6 verification: relocation with spaces, isolated imports, read-only clean
+Arch execution without installed Python/Qt, native Wayland playback, hashes,
+existing/late targets, failed-build cleanup and immutable editor snapshots pass.
+The repeatable two-object animated fixture is 64,124,304 compressed bytes from the
+native interpreter and 42,357,125 bytes from the Docker interpreter. Both pass clean
+Arch offscreen playback; the native-produced bundle also passes through the forwarded
+Wayland socket. The game and container root are read-only during these checks.
+The [reference report](../performance/2026-10-06-native-bundle.json) records versions,
+image identity and scope; these single samples are not a size or latency budget. All 286 tests
+pass locally (16.59 s) and in Docker (17.64 s), plus Ruff, formatting and strict mypy.
+The Docker interpreter and native installed interpreter both pass relocation checks.
+
+The engine/runtime now use MIT. Exports carry its notice, installed Python license
+text and Qt package metadata. A full audit of Qt/Python embedded third-party
+licenses and corresponding sources remains required before external redistribution;
+`redistribution_ready` remains false. Qt documents its component licenses and
+third-party notices in [Qt licensing](https://doc.qt.io/qt-6/licensing.html).
+Python standalone distributions may embed additional libraries; see their
+[distribution guidance](https://gregoryszorc.com/docs/python-build-standalone/main/running.html).
+Do not infer licenses for imported game assets. No dependency downloads occur during
+export. The older probe remains useful for measuring the Qt subset separately.
+
+`Dockerfile.export-check` defines the system-library-only Arch environment, with a
+pinned base image and packages resolved at build time. `scripts/validate_bundle.py`
+separates fixture generation (requires engine dependencies) from checking (host
+Python standard library plus Docker). CI generates the bundle in the same frozen
+image that passes the tests, then mounts only the export in the checking container.
+The local sequence and intentional failing-test exit propagation were exercised;
+GitHub-hosted execution is pending the user's push. No credentials are mounted into
+containers or retained by checkout.

@@ -85,6 +85,16 @@ class SetSceneName:
 
 
 @dataclass(frozen=True)
+class SetSceneScript:
+    """Store source without evaluating it; Scene enforces text and byte bounds."""
+
+    source: str
+
+    def apply(self, scene: Scene) -> Scene:
+        return replace(scene, script=self.source)
+
+
+@dataclass(frozen=True)
 class SetCoinSound:
     data: object
 

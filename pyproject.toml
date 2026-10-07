@@ -5,6 +5,8 @@ build-backend = "hatchling.build"
 [project]
 name = "solar-forge-game-engine"
 version = "0.1.0"
+license = "MIT"
+license-files = ["LICENSE"]
 description = "Native Python 2D game editor for Solar Forge Studios"
 requires-python = ">=3.14,<3.15"
 dependencies = ["PySide6-Essentials==6.11.2"]

@@ -1,6 +1,8 @@
 {
-  "format_version": 8,
-  "name": "Courier Bay \u2014 sprite playground",
+  "format_version": 12,
+  "name": "Courier Bay \u2014 orbital script playground",
+  "script": "# COURIER BAY \u2014 a small lesson in circular motion and state changes.\n# Increase ORBIT_SPEED for a harder chase; set it to 0 for stationary targets.\nORBIT_SPEED = 0.45\nORBIT_RADIUS = 180\nBOB_HEIGHT = 8\n\n\ndef on_start(game):\n    game.data[\"cores\"] = [\n        obj[\"id\"] for obj in game.objects.values() if obj[\"role\"] == \"coin\"\n    ]\n    game.data[\"last_count\"] = -1\n    game.data[\"finished\"] = False\n    game.set_speed(280)\n    game.say(\"ORBIT LAB | Chase the four satellites. WASD / arrows\")\n    print(\"Orbit Lab: try ORBIT_SPEED = 0, or change ORBIT_RADIUS in the script editor.\")\n\n\ndef on_update(game, dt):\n    t = game.time\n    cores = game.data[\"cores\"]\n    # Circular x/y motion uses cosine and sine of the same angle.\n    # All four objects share one rule, spaced equally around the ring.\n    for index, core_id in enumerate(cores):\n        angle = t * ORBIT_SPEED + index * math.tau / max(1, len(cores))\n        game.set_position(core_id,\n                          512 + math.cos(angle) * ORBIT_RADIUS - 16,\n                          288 + math.sin(angle) * ORBIT_RADIUS - 16)\n    game.set_position(\"bay-reactor\", 480, 192 + math.sin(t * 2) * BOB_HEIGHT)\n\n    if game.collected != game.data[\"last_count\"]:\n        game.data[\"last_count\"] = game.collected\n        if game.total_coins and game.collected == game.total_coins:\n            game.data[\"finished\"] = True\n            game.say(f\"ORBIT COMPLETE | Four satellites caught in {t:.1f}s! Restart to retry.\")\n            print(\"Orbit complete! Change the constants and build your own challenge.\")\n        elif game.collected:\n            game.say(f\"SATELLITE CAPTURED | {game.collected}/{game.total_coins} | Keep chasing!\")\n",
+  "coin_sound": null,
   "entities": [
     {
       "id": "ember-0",

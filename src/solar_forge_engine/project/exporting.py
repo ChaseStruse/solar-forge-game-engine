@@ -12,9 +12,11 @@ from solar_forge_engine.project.storage import atomic_write
 from solar_forge_engine.runtime.simulation import controlled_entity
 
 RUNTIME_FILES = (
+    "LICENSE.txt",
     "__init__.py",
     "core/__init__.py",
     "core/limits.py",
+    "core/commands.py",
     "core/scene.py",
     "core/sprite.py",
     "core/animation.py",
@@ -23,6 +25,8 @@ RUNTIME_FILES = (
     "runtime/application.py",
     "runtime/exported.py",
     "runtime/player.py",
+    "runtime/scripting.py",
+    "runtime/script_worker.py",
     "runtime/rendering.py",
     "runtime/simulation.py",
     "runtime/audio.py",

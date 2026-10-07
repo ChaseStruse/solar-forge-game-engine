@@ -9,7 +9,8 @@ from solar_forge_engine.core.animation import Animation
 from solar_forge_engine.core.audio import SoundClip
 from solar_forge_engine.core.sprite import Sprite
 
-FORMAT_VERSION = 9
+FORMAT_VERSION = 11
+MAX_SCRIPT_BYTES = 32 * 1024
 MAX_ENTITIES = 10_000
 
 
@@ -128,9 +129,18 @@ class Scene:
     name: str = "Untitled scene"
     entities: tuple[Entity, ...] = ()
     coin_sound: SoundClip | None = None
+    script: str = ""
 
     def __post_init__(self) -> None:
         text(self.name, "Scene name")
+        if not isinstance(self.script, str) or "\0" in self.script:
+            raise ValueError("Scene scripts must be text without null characters.")
+        try:
+            size = len(self.script.encode("utf-8"))
+        except UnicodeEncodeError as error:
+            raise ValueError("Scene scripts must be valid UTF-8 text.") from error
+        if size > MAX_SCRIPT_BYTES:
+            raise ValueError("Scene scripts must be no larger than 32 KiB.")
         if self.coin_sound is not None and not isinstance(self.coin_sound, SoundClip):
             raise ValueError("Invalid coin-collection sound.")
         if not isinstance(self.entities, tuple) or len(self.entities) > MAX_ENTITIES:
@@ -150,6 +160,7 @@ class Scene:
         return {
             "format_version": FORMAT_VERSION,
             "name": self.name,
+            "script": self.script,
             "coin_sound": asdict(self.coin_sound) if self.coin_sound else None,
             "entities": [asdict(entity) for entity in self.entities],
         }
@@ -159,14 +170,16 @@ class Scene:
         if not isinstance(value, dict):
             raise ValueError("Invalid scene document fields.")
         fields = {"format_version", "name", "entities"}
-        if value.get("format_version") == FORMAT_VERSION:
+        if value.get("format_version") in (9, FORMAT_VERSION):
             fields.add("coin_sound")
+        if value.get("format_version") == FORMAT_VERSION:
+            fields.add("script")
         if set(value) != fields:
             raise ValueError("Invalid scene document fields.")
         version = value["format_version"]
-        if type(version) is not int or version not in (1, 2, 3, 5, 7, FORMAT_VERSION):
+        if type(version) is not int or version not in (1, 2, 3, 5, 7, 9, FORMAT_VERSION):
             raise ValueError(
-                "Unsupported scene format version; supported versions: 1, 2, 3, 5, 7 and 9."
+                "Unsupported scene format version; supported versions: 1, 2, 3, 5, 7, 9 and 11."
             )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
@@ -196,7 +209,8 @@ class Scene:
         return cls(
             name=text(value["name"], "Scene name"),
             entities=tuple(entities),
+            script=value["script"] if version == FORMAT_VERSION else "",
             coin_sound=SoundClip.from_data(value["coin_sound"])
-            if version == FORMAT_VERSION and value["coin_sound"] is not None
+            if version in (9, FORMAT_VERSION) and value["coin_sound"] is not None
             else None,
         )

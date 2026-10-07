@@ -1,6 +1,73 @@
 # Solar Forge Game Engine — product and implementation plan
 
-Status: playable native prototype, updated October 5, 2026. Implemented features
+Status: playable native prototype, updated October 6, 2026.
+
+## Current assessment and immediate direction
+
+The manual authoring loop now works end to end: edit a scene and its Python source,
+apply/undo, save/reopen, Play/restart, and export a game that runs without the editor
+or AI. Ember Run and Courier Bay exercise that loop with readable, editable scripts.
+The latest verified baseline is 314 tests in the frozen offline Docker image, plus
+Ruff, formatting, strict mypy, native Wayland visual review and both demo `.pyz`
+playback checks. The checkpoint records below retain earlier results as history.
+
+The biggest product gap is the breadth and ease of scripting, rather than another
+foundational rewrite. Current scripts have one scene-level lifecycle and a narrow
+position/speed/message API. Errors report lines, but users still navigate back to
+the modal source editor themselves; there are no breakpoints, named input actions,
+per-object behaviors or runtime scene transitions. The demos establish useful small
+games, not general-purpose gameplay coverage or a frame-time guarantee.
+
+Prioritize a tighter edit/run/fix loop, then one useful gameplay capability at a time.
+Keep the existing native Qt editor, shared commands and computation-only worker.
+Before external distribution, close dependency notices/source obligations and desktop
+acceptance. Multi-session recovery, renderer presentation budgets and independent
+security review remain open; syscall regression tests are not a security audit.
+Hosted CI has not been observed because no push has been authorized.
+
+## Implementation checkpoint history
+
+October 6 showcase checkpoint: Ember Run now embeds an editable, commented script
+with bobbing cores, six orbiting sparks, pickup speed bursts, progress messages,
+finish-time titles and a victory orbit around the courier. Courier Bay is a smaller
+orbital-collection example. Both built-in templates and the distributed project use
+the same source. The main scene now has 193 objects / 25 animated sprites. Restricted
+worker tests complete both collection routes, check boost expiry/reset, victory
+state and authored-data preservation. A native Wayland run advanced 149 ticks with
+18 moving objects and no script failure; its rendering was visually reviewed.
+Both demos pass standalone `.pyz` playback with no editor loaded. All 314 tests
+pass in the frozen offline Docker image, with Ruff, formatting and strict mypy.
+
+October 6 scripting checkpoint: Scene → Edit scene script (Ctrl+Shift+E) now provides
+native Python editing, API help, an example and undoable Apply. Standalone format 11
+and project format 12 preserve source without evaluating it. Play and both exports
+run `on_start` / `on_update` in a default-deny seccomp worker with bounded asynchronous
+IPC, validated atomic commands, deadlines and parent-death termination. The initial
+API reads scene metadata and movement input and changes positions, speed and a HUD
+message. Restart resets script state; errors stop scripted Play. One embedded script
+per scene is supported on Linux x86_64 with libseccomp; external modules, per-object
+scripts and a debugger remain future work. See the [isolation decision](architecture/0002-script-sandbox.md).
+All 311 tests pass in Docker with Ruff, formatting and strict mypy. A native Wayland
+edit/Apply/Save/Play check passes with unchanged authored objects. The local non-network
+subset passes 272 tests; Docker covers the omitted loopback/preference modules.
+Scripted relocated bundles also pass clean Arch offscreen and Wayland without installed
+Python/Qt; the [acceptance report](performance/2026-10-06-script-runtime.json) records results.
+
+October 6 packaging checkpoint: the editor now offers an experimental `.tar.gz`
+folder bundle alongside lightweight `.pyz` export. It includes a relocatable Python
+runtime and the Widgets-only Qt subset, an isolated launcher, file hashes and
+installed license metadata. Exports still contain one active scene. Native Wayland
+and clean Arch offscreen gameplay without installed Python/Qt pass on x86_64;
+286 tests pass locally and in Docker, plus Ruff/formatting/mypy. Engine/runtime
+licensing is MIT. Complete third-party redistribution notices/source auditing and
+broader compatibility remain open; bundles are marked experimental/private.
+A checked-in CI workflow now runs the frozen offline suite and clean Arch bundle
+acceptance. Its container steps and failing-test exit propagation pass locally;
+GitHub-hosted execution remains pending a push. A pinned-base Arch check image and
+repeatable fixture/check script also support Wayland verification through one socket.
+See the [packaging decision](architecture/0001-runtime-packaging.md).
+
+Implemented features
 include native scene editing and playback, Docker workflows, duplication, PNG
 sprites, project-relative assets and sprite reuse, autosave/recovery, multiple scenes,
 startup-scene selection, asset quarantine/restoration, movement/input settings,
@@ -479,8 +546,8 @@ compositor/GPU compatibility.
 
 This is a small authoring slice, not a completed phase 0 or phase 1. Project asset
 libraries and sound import/collection playback now exist, alongside a runtime-only
-native export and opt-in local Ollama adapter. Sandboxed scripts, dependency-bundled
-exports and enterprise adapters remain unimplemented. The assistant starts with
+native export, experimental dependency bundles, restricted scene scripts and an opt-in
+local Ollama adapter. Enterprise adapters remain unimplemented. The assistant starts with
 an offline demo fixture. Project folders support multiple authored scenes with
 relative sprite references, per-scene recovery and a project-wide sprite palette.
 Reviewed unused-asset scanning, reversible quarantine and native browsing/restoration
@@ -647,7 +714,8 @@ one lockfile, Ruff, mypy, pytest, and pytest-qt. Qt Graphics View is shared by e
 and player. The renderer draws geometry and native sprite pixmaps, decoding each
 unique resolved sprite once per scene rebuild; the frame loop only moves items.
 The built-in simulation is Qt-independent. Recovery writes run in a Qt worker
-thread. Audio bindings, broader asset pipelines and provider adapters remain planned.
+thread. Native PipeWire collection audio and loopback Ollama are implemented; broader
+audio controls, asset pipelines and hosted/enterprise adapters remain planned.
 
 Qt's Graphics View provides 2D scene items and views through Python bindings.
 Use it as the first rendering spike so authoring and standalone playback can share
@@ -690,11 +758,13 @@ compose.test.yaml
 ```
 
 The `ai/` package contains the offline provider and bounded proposal decoder.
-Add export modules, `resources/`, external `templates/`,
-and `packaging/` when their features are implemented. The current starter is data in
-[`core/templates.py`](../src/solar_forge_engine/core/templates.py); it contains no
-project scripts. A source-run console launcher and Docker image exist; Arch package
-recipes, desktop entries, icons, and distributable game packaging do not yet exist.
+Exports are implemented in `project/exporting.py` and `project/bundling.py`.
+The coin starter remains data in [`core/templates.py`](../src/solar_forge_engine/core/templates.py);
+showcase scripts live in [`core/showcase_scripts.py`](../src/solar_forge_engine/core/showcase_scripts.py)
+and are embedded into editable scenes. Native scene-source editing and the restricted
+controller/bootstrap live in `editor/scripts.py` and `runtime/scripting.py` /
+`runtime/script_worker.py`. Source-run launching, Docker and experimental game bundles
+exist. Arch package recipes, desktop entries and a complete redistribution audit remain open.
 
 Editor, project, and AI layers use core; runtime consumes validated game data.
 Core cannot import the editor or providers. The standalone player must not import
@@ -796,11 +866,12 @@ sprites into the existing bounded palette. An explicit Refresh action handles
 external changes. Corrupt scenes are skipped with warnings. This is an ephemeral
 catalog of saved-scene references, not a persisted index of all asset files.
 
-**Planned project extensions:** scene organization,
-and sandboxed Python `scripts/`. The basic `project.json`, `scenes/`, and `assets/`
-layout and relative sprite references are implemented; standalone scenes still
-embed pixels. Ignore generated caches and builds. Use stable IDs and relative asset references, with
-separate scene files for manageable diffs. Never store keys or machine-specific
+**Planned project extensions:** scene organization and reusable external Python
+script assets. Current Python source is embedded per scene; a project `scripts/`
+folder is not implemented. The basic `project.json`, `scenes/`, and `assets/` layout
+and relative sprite references are implemented; standalone scenes still embed pixels.
+Ignore generated caches and builds. Use stable IDs and relative asset references,
+with separate scene files for manageable diffs. Never store keys or machine-specific
 absolute paths in projects.
 
 Use a scene graph with typed components such as Transform2D, Sprite, Camera2D,
@@ -934,17 +1005,17 @@ model requests cannot grant themselves permissions. Use private, bounded IPC for
 worker commands/results; deserialize data, never arbitrary Python objects from an
 untrusted worker.
 
-Run Python game previews in a separate process so crashes and runaway loops can be
-terminated without losing editor state. **A subprocess is not a sandbox.** Before
-running untrusted/generated code, implement and verify a Linux sandbox policy, such
-as bubblewrap with a read-only project snapshot, isolated writable save directory,
-restricted filesystem/process access, no credentials, and network disabled by
-default. Expose only necessary display/audio resources. Use explicit permissions for
-networked games. Validate the sandbox both for native launch and container launch;
-nested namespace restrictions can differ. If isolation is unavailable, do not
-silently execute untrusted code; provide a clear trusted-project execution choice.
-Bubblewrap supplies mechanisms; the caller must define the actual policy.
-[Bubblewrap security model](https://github.com/containers/bubblewrap).
+Python game scripts now run in a separate, disposable worker. **A subprocess is not
+a sandbox:** the implemented Linux x86_64 libseccomp policy installs kernel
+restrictions before source submission, with scrubbed environment, bounded JSON IPC,
+resource/deadline limits and parent-death termination. Files, networking, process/thread
+creation and access to display/audio sockets are denied. The trusted player performs
+validated simulation/rendering outside the worker. Missing isolation stops scripted
+Play; there is no trusted-project or unrestricted fallback. Native and unchanged
+Docker-policy checks pass. The earlier Bubblewrap probe could not initialize inside
+Docker and is historical evidence, not the selected backend. See the
+[isolation decision](architecture/0002-script-sandbox.md). New gameplay APIs must keep
+these boundaries; they do not justify granting filesystem or network access.
 
 Enterprise readiness is incremental: v0.1 is intended to provide endpoint flexibility, local-only
 policy, exclusions, and bounded audit metadata. Central SSO, organization roles,
@@ -1094,10 +1165,10 @@ experience; these milestones are gates, not promised delivery dates.
 
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
-| 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
-| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
-| 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Expanded asset libraries/animation clips, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
-| 3 — Useful assistant | Partial: offline demo proposals, readable diffs, validated atomic edits, undo/revision protection and cancellation | Verified local/hosted models, compact model context, request timeouts, privacy and credential handling |
+| 0 — Prove foundation | Partial: native viewport/player, Wayland, rendering fixtures and restricted script policy verified | Presentation budgets, independent isolation review, distribution acceptance and final renderer decision |
+| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, multi-session recovery ownership and whole-project integrity; CI workflow added, hosted execution pending |
+| 2 — Playable 2D slice | Partial: collector gameplay, sprite animation, collection audio, restricted scene scripts, active-scene exports and experimental Python/Qt bundles verified on clean Arch offscreen | Named animation clips, general inputs, per-object behaviors, scene transitions and redistribution audit |
+| 3 — Useful assistant | Partial: reviewed offline/Ollama proposals, live local-model verification, bounded context, deadlines, cancellation and revision-safe atomic undo | Hosted/enterprise adapters, credential handling and broader model acceptance |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
 
@@ -1156,9 +1227,13 @@ Completed task checklist:
 - [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
 - [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.
 - [x] Add runtime-only native active-scene export and verified editor-free playback.
-- [ ] Bundle runtime dependencies and verify exported games on clean Arch.
+- [x] Bundle Python/Qt dependencies and verify exported games on clean Arch offscreen.
+- [ ] Complete third-party redistribution notices/source audit and clean-desktop release acceptance.
 - [x] Measure a copied Widgets-only Qt subset and verify editor-free exports on host and Docker Wayland.
-- [ ] Add sandboxed Python game scripting.
+- [x] Add CI configuration and reproducible clean Arch bundle acceptance; verify its container steps locally.
+- [ ] Observe the first GitHub-hosted CI run after an authorized push.
+- [x] Add minimal native scene-source editing and kernel-restricted Python lifecycle in Play/exports.
+- [x] Ship commented Ember Run / Orbit Lab scripts, customization guide and complete scripted route checks.
 - [x] Probe native namespace boundaries and record the current Docker namespace restriction.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
 - [x] Add an opt-in Ollama loopback adapter with bounded metadata, deadlines and cancellation.
@@ -1168,22 +1243,32 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Package native runtime dependencies and verify the independent game export
-   on clean Arch. Measure bundle size and startup, preserving the lightweight option.
-   The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB
-   Qt subset with actual copies; interpreter bundling, notices and clean-machine
-   dependency verification remain open.
-2. Prove a native and container-compatible sandbox before enabling imported/generated
-   Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
-   The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native
-   boundary checks; the unchanged Docker policy denies user namespaces. A compatible
-   restriction backend, resource limits and hostile-code/lifecycle checks remain open.
-3. Add multi-session recovery ownership and strengthen whole-project crash/power-loss
-   guarantees. Current publication coordination does not make a project-folder
-   transaction or reserve a recovery slot for one editing session.
-4. Connect local and enterprise provider adapters after the initial fake-provider
-   workflow and scene-edit review are verified. Script-edit tools depend on the
-   sandboxed execution path.
+1. **Shorten the script edit/run/fix loop.** Surface the scene and source line for a
+   Play error and offer navigation directly to that source. Preserve unsaved drafts
+   and revision checks. Exit check: cause an error, navigate, fix, apply, rerun and
+   undo without losing source or executing it during editing. Keep actual evaluation
+   inside the existing restricted worker; defer a full debugger/live reload.
+2. **Add one deliberate input action.** Extend movement-only input with a bounded
+   named-action contract and demonstrate a user-triggered dash in the showcase.
+   Verify press/release behavior, focus loss, pause, restart and export parity.
+   Avoid raw device access or adding OS permissions to the script worker.
+3. **Introduce reusable per-object behavior after the input slice.** Define attachment,
+   instance state and lifecycle ownership before changing the schema. Demonstrate
+   two independently tunable instances with undo, migration, save/load and export
+   checks. Runtime scene transitions follow as a separate scoped feature.
+4. **Close distribution gates.** Finish the Python/Qt notices and source-obligation
+   audit, Arch desktop acceptance and compatibility documentation. Preserve both
+   lightweight and bundled exports. Observe hosted CI after an authorized push;
+   local container success does not prove a hosted run.
+5. **Strengthen recovery and measured performance.** Add multi-session recovery
+   ownership and whole-project crash/power-loss guarantees. Measure callback/IPC
+   overhead and native presentation with scripted workloads before optimizing;
+   the successful demo is not the complete 60 fps gate.
+
+Broader hosted/enterprise AI adapters, script-generation tools, plugin APIs and
+additional platforms remain deferred behind the manual game-making workflow. The
+existing offline/Ollama integration remains usable; do not repeat completed provider
+or sandbox scaffolding. Reassess these priorities after each complete small workflow.
 
 Continue committing coherent small features. Do not repeat finished scaffolding or
 replace the working native approach while closing the remaining milestone gates.
@@ -1204,9 +1289,10 @@ replace the working native approach while closing the remaining milestone gates.
 Fixed direction: native Arch Linux desktop, Python/PySide6, Python game scripting,
 native Linux exports, and no JavaScript/TypeScript or web UI. Default assumptions:
 local single-user authoring, no account, keyboard/mouse first, and Wayland first.
-Other native OS support, minimum hardware, first enterprise provider, and licensing
-remain open decisions. Choose the engine license before external release; document
-third-party notices and template/asset licenses. Never infer a license for imported
+Other native OS support, minimum hardware and the first enterprise provider
+remain open decisions. Engine and runtime code use the MIT license, selected
+October 6, 2026. Complete third-party notices and template/asset licensing before
+external release. Never infer a license for imported
 or generated content.
 
 Maintain a changelog, semantic project-format versions, migration fixtures, and short
@@ -1214,3 +1300,12 @@ ADRs. Commit small, coherent working checkpoints. Root [`AGENTS.md`](../AGENTS.m
 defines model coding, testing, and commit rules. Keep progress honest: a proposed
 command is not an implemented feature, and a mocked test does not prove real-model
 quality.
+
+October 6 scripting data checkpoint: standalone format 11 and project format 12
+add one optional scene-level Python source string, bounded to 32 KiB of UTF-8.
+`SetSceneScript` uses the same validated, revision-checked undo/redo transaction as
+manual scene edits. Saving, loading, importing and recovery do not evaluate source.
+Prior formats retain exact upgrade backups; recovery hashes for prior v5/v7/v9
+snapshots remain compatible when their baseline has no script. Runtime/editor
+integration is now complete in the scripting checkpoint above. The 123 focused schema, migration, project,
+recovery and command tests pass locally; Ruff, formatting and mypy also pass.

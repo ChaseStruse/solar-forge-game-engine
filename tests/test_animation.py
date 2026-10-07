@@ -80,6 +80,7 @@ def test_animation_upgrade_preserves_legacy_bytes_and_cleanup(tmp_path, version)
     path = project.scene_path()
     data = scene.to_data() if version == 5 else json.loads(path.read_bytes())
     data.pop("coin_sound", None)
+    data.pop("script", None)
     data["format_version"] = version
     for entry in data["entities"]:
         del entry["animation"]
@@ -137,6 +138,7 @@ def test_previous_release_recovery_survives_animation_format_upgrade(tmp_path):
     def legacy(scene):
         data = scene.to_data()
         data.pop("coin_sound", None)
+        data.pop("script", None)
         data["format_version"] = 5
         for entry in data["entities"]:
             del entry["animation"]
