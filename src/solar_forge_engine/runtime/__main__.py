@@ -12,6 +12,7 @@ from solar_forge_engine.runtime.application import run_scene
 def main() -> int:
     parser = argparse.ArgumentParser(description="Solar Forge built-in scene player")
     parser.add_argument("--control", required=True, help="Entity ID controlled by the keyboard")
+    parser.add_argument("--editor-events", action="store_true", help="Report script errors as JSON")
     args = parser.parse_args()
     try:
         raw = sys.stdin.buffer.read(MAX_FILE_BYTES + 1)
@@ -22,7 +23,7 @@ def main() -> int:
     except (ValueError, UnicodeDecodeError, RecursionError) as error:
         print(f"Cannot play scene: {error}", file=sys.stderr)
         return 1
-    return run_scene(scene, args.control)
+    return run_scene(scene, args.control, editor_events=args.editor_events)
 
 
 if __name__ == "__main__":

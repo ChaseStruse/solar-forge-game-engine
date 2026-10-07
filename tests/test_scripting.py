@@ -111,9 +111,12 @@ def test_script_error_reports_line_and_restart_does_not_silently_skip_script(qtb
     authored = scene("def on_update(game, dt):\n    raise ValueError('fix this')\n")
     player = PlayerWindow(authored, "player")
     qtbot.addWidget(player)
+    errors = []
+    player.script_failed.connect(lambda message, line: errors.append((message, line)))
     player.show()
     qtbot.waitUntil(lambda: player._script_failed, timeout=5000)
     assert "line 2" in player.script_label.text()
+    assert errors == [("ValueError: fix this", 2)]
     assert player.paused
     player.toggle_pause()
     assert player.paused

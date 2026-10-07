@@ -4,7 +4,7 @@ import base64
 import sys
 import time
 
-from PySide6.QtCore import QEvent, Qt, QTimer
+from PySide6.QtCore import QEvent, Qt, QTimer, Signal
 from PySide6.QtGui import QBrush, QCloseEvent, QColor, QKeyEvent, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QGraphicsScene,
@@ -54,6 +54,8 @@ class GameView(QGraphicsView):
 
 
 class PlayerWindow(QMainWindow):
+    script_failed = Signal(str, int)
+
     def __init__(self, scene: Scene, controlled_id: str) -> None:
         super().__init__()
         self.sound_player = SoundPlayer(self)
@@ -202,6 +204,7 @@ class PlayerWindow(QMainWindow):
         self.script_label.setToolTip(detail)
         self.pause_button.setText("Script stopped")
         print(detail, file=sys.stderr, flush=True)
+        self.script_failed.emit(message, line)
 
     def _script_stopped(self, runner: ScriptRunner) -> None:
         if runner is not self._script:
