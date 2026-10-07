@@ -10,6 +10,7 @@ WORKDIR /app
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project --no-cache
 COPY src ./src
+COPY LICENSE ./LICENSE
 RUN uv sync --frozen --no-dev --no-cache
 RUN groupadd --gid "${SOLAR_FORGE_GID}" forge \
     && useradd --uid "${SOLAR_FORGE_UID}" --gid "${SOLAR_FORGE_GID}" --create-home forge \

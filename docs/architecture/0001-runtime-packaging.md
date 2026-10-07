@@ -1,6 +1,6 @@
 # Native runtime packaging
 
-Status: measured direction; release bundling remains incomplete.
+Status: experimental Python/Qt folder bundles implemented; redistribution audit remains open.
 
 The exported `.pyz` contains core/runtime Python and one scene. Native extension
 modules cannot load from inside that archive; keep Python and Qt outside it.
@@ -20,27 +20,39 @@ Wayland and desktop-container Wayland. Each run uses Python 3.14.7 and Qt 6.11.2
 Subprocess duration includes a 400 ms gameplay check; it is not startup latency.
 This is a single warm-cache sample per environment, not a performance gate.
 
-Keep the current small archive option. A future bundle should carry the selected
-Qt files and a compatible interpreter, preserve plugin paths, and include required
-third-party notices. System graphics libraries, fonts and optional PipeWire still
-need a documented clean-Arch installation contract. The probe reports external
-libraries but does not prove that contract, licensing completeness, relocatable
-Python, or support on a clean machine. Do not ship its temporary environment as
-a release package.
+The editor retains the small `.pyz` option and can now publish a `.tar.gz` folder
+bundle. The shared selector inspects only trusted installed dependencies, never
+project binaries. The bundle copies the interpreter, Python source standard library,
+its shared library when available, and the Widgets subset. It excludes installed
+packages, test packages, Tk, caches and site customizations. No project code runs.
 
-## Implementation checkpoint — October 6, 2026
+`play` resolves its folder, chooses the bundled interpreter and Qt plugin directory,
+and starts Python with `-I -S -B`. The bootstrap rejects fallback to the build
+machine's Python prefix. Qt remains dynamically linked and replaceable. Bundles
+retain the host CPU architecture and need system graphics libraries/fonts; this
+is not a general Linux ABI or other-platform compatibility promise.
 
-The packaging probe and forthcoming bundle writer share one Qt dependency selector.
-The selector inspects only trusted installed engine dependencies, never imported
-project binaries. Keep the small `.pyz` option and add a separate compressed folder
-bundle with an isolated, relative launcher, copied Python runtime and Widgets subset.
-Build in a worker from the captured scene; publish a completed archive exclusively
-so failed builds cannot replace existing exports. Do not copy development packages,
-user preferences, environment files or the editor into games.
+A worker builds from one immutable scene snapshot in a private staging directory.
+Only a completed, flushed tar archive is published, through an exclusive hard link.
+Existing targets and late competing exports are preserved. Handled failures clean
+staging files. Process termination can leave a hidden staging directory; complete
+power-loss cleanup is not guaranteed. `bundle.json` includes versions, hashes and
+external Qt library names without recording builder filesystem paths or identity.
 
-Acceptance requires relocation (including spaces in paths), execution without a
-system Python/Qt or development checkout, missing-dependency diagnostics, preserved
-existing targets and immutable scene snapshots. Record the actual Linux libraries
-left outside the bundle. Clean Arch offscreen and native Wayland checks establish
-different properties and must be reported separately. Engine license selection and
-third-party redistribution notices remain release work; no license is inferred.
+October 6 verification: relocation with spaces, isolated imports, read-only clean
+Arch execution without installed Python/Qt, native Wayland playback, hashes,
+existing/late targets, failed-build cleanup and immutable editor snapshots pass.
+The initial two-object host bundle was 64,128,560 compressed bytes; that observation
+predates inclusion of the engine MIT notice and is not a size budget. All 286 tests
+pass locally (16.59 s) and in Docker (17.64 s), plus Ruff, formatting and strict mypy.
+The Docker interpreter and native installed interpreter both pass relocation checks.
+
+The engine/runtime now use MIT. Exports carry its notice, installed Python license
+text and Qt package metadata. A full audit of Qt/Python embedded third-party
+licenses and corresponding sources remains required before external redistribution;
+`redistribution_ready` remains false. Qt documents its component licenses and
+third-party notices in [Qt licensing](https://doc.qt.io/qt-6/licensing.html).
+Python standalone distributions may embed additional libraries; see their
+[distribution guidance](https://gregoryszorc.com/docs/python-build-standalone/main/running.html).
+Do not infer licenses for imported game assets. No dependency downloads occur during
+export. The older probe remains useful for measuring the Qt subset separately.

@@ -1166,13 +1166,19 @@ class EditorWindow(QMainWindow):
             self.preview.waitForFinished(1000)
 
     def choose_export(self) -> None:
-        filename, _ = QFileDialog.getSaveFileName(
-            self, "Export active scene as a native game", "Game.pyz", "Python native game (*.pyz)"
+        filename, selected_filter = QFileDialog.getSaveFileName(
+            self,
+            "Export active scene as a native game",
+            "Game.pyz",
+            "Lightweight game (*.pyz);;Linux bundle with Python and Qt (*.tar.gz)",
         )
         if filename:
             path = Path(filename)
-            if not path.suffix:
-                path = path.with_suffix(".pyz")
+            extension = ".tar.gz" if "*.tar.gz" in selected_filter else ".pyz"
+            if not path.suffix or path.suffix.lower() == ".pyz" and extension == ".tar.gz":
+                path = path.with_suffix(extension)
+            elif path.name.lower().endswith(".tar.gz") and extension == ".pyz":
+                path = path.with_name(path.name[:-7] + extension)
             self.export_game_to(path)
 
     def export_game_to(self, path: Path) -> bool:
@@ -1196,10 +1202,16 @@ class EditorWindow(QMainWindow):
         if job.error:
             self._error(f"Could not export game: {job.error}")
         else:
-            self.log.appendPlainText(
-                f"Exported {job.scene.name} to {job.path.name} ({job.size} bytes). "
-                "Requires Python 3.14 and PySide6-Essentials 6.11.2. "
+            instructions = (
+                "Extract the complete Game folder and run play. Python and Qt are included. "
+                "Linux graphics libraries are required; see the bundled README. "
+                "Redistribution notices still need review before external release."
+                if job.bundled
+                else "Requires Python 3.14 and PySide6-Essentials 6.11.2. "
                 "Editor and Docker are not needed."
+            )
+            self.log.appendPlainText(
+                f"Exported {job.scene.name} to {job.path.name} ({job.size} bytes). {instructions}"
             )
 
     def save(self, checked: bool = False, *, choose_path: bool = False) -> bool:

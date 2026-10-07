@@ -1,7 +1,9 @@
+import io
 import json
 import os
 import subprocess
 import sys
+import tarfile
 import zipfile
 from dataclasses import replace
 from pathlib import Path
@@ -117,19 +119,27 @@ def test_exported_runtime_rejects_invalid_snapshot_before_play(tmp_path, mutatio
     assert "Cannot launch game" in result.stderr and not result.stdout
 
 
-def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, qtbot):
+@pytest.mark.parametrize("extension", [".pyz", ".tar.gz"])
+def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, qtbot, extension):
     editor = EditorWindow()
     qtbot.addWidget(editor)
     editor._open_starter(game(), "Export fixture")
     snapshot = editor.document.scene
     saved = editor.saved_scene
-    target = tmp_path / "Game.pyz"
+    target = tmp_path / f"Game{extension}"
     assert editor.export_game_to(target)
     editor.execute(SetSceneName("Later edit"))
-    qtbot.waitUntil(lambda: editor._export_job is None)
+    qtbot.waitUntil(lambda: editor._export_job is None, timeout=20000)
     assert editor.saved_scene == saved and editor.dirty
     assert editor.document.scene == replace(snapshot, name="Later edit")
-    with zipfile.ZipFile(target) as archive:
+    if extension == ".tar.gz":
+        with tarfile.open(target) as bundle:
+            stream = bundle.extractfile("Game/Game.pyz")
+            assert stream is not None
+            raw = stream.read()
+    else:
+        raw = target.read_bytes()
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         assert json.loads(archive.read("game_data/scene.json"))["scene"] == snapshot.to_data()
     editor._confirm_discard = lambda: True
     editor.close()

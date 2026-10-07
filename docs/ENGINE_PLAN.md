@@ -1,6 +1,18 @@
 # Solar Forge Game Engine — product and implementation plan
 
-Status: playable native prototype, updated October 5, 2026. Implemented features
+Status: playable native prototype, updated October 6, 2026.
+
+October 6 packaging checkpoint: the editor now offers an experimental `.tar.gz`
+folder bundle alongside lightweight `.pyz` export. It includes a relocatable Python
+runtime and the Widgets-only Qt subset, an isolated launcher, file hashes and
+installed license metadata. Exports still contain one active scene. Native Wayland
+and clean Arch offscreen gameplay without installed Python/Qt pass on x86_64;
+286 tests pass locally and in Docker, plus Ruff/formatting/mypy. Engine/runtime
+licensing is MIT. Complete third-party redistribution notices/source auditing and
+broader compatibility remain open; bundles are marked experimental/private.
+See the [packaging decision](architecture/0001-runtime-packaging.md).
+
+ Implemented features
 include native scene editing and playback, Docker workflows, duplication, PNG
 sprites, project-relative assets and sprite reuse, autosave/recovery, multiple scenes,
 startup-scene selection, asset quarantine/restoration, movement/input settings,
@@ -1096,8 +1108,8 @@ experience; these milestones are gates, not promised delivery dates.
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
 | 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
-| 2 — Playable 2D slice | Partial: editable collector, PNG sprites, configurable movement/key presets, walls, coin triggers, HUD and restart | Expanded asset libraries/animation clips, audio, arbitrary key bindings/behaviors, sandboxed Python lifecycle and independent Linux export tested on clean Arch |
-| 3 — Useful assistant | Partial: offline demo proposals, readable diffs, validated atomic edits, undo/revision protection and cancellation | Verified local/hosted models, compact model context, request timeouts, privacy and credential handling |
+| 2 — Playable 2D slice | Partial: collector gameplay, sprite animation, collection audio, active-scene exports and experimental Python/Qt bundles verified on clean Arch offscreen | Named animation clips, general inputs/behaviors, sandboxed Python lifecycle, scene transitions and redistribution audit |
+| 3 — Useful assistant | Partial: reviewed offline/Ollama proposals, live local-model verification, bounded context, deadlines, cancellation and revision-safe atomic undo | Hosted/enterprise adapters, credential handling and broader model acceptance |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
 
@@ -1156,7 +1168,8 @@ Completed task checklist:
 - [x] Add bounded project WAV import, portable deduplication and optional native/Docker PipeWire preview.
 - [x] Add undoable portable collection sounds and one-voice, restart-safe native Play audio.
 - [x] Add runtime-only native active-scene export and verified editor-free playback.
-- [ ] Bundle runtime dependencies and verify exported games on clean Arch.
+- [x] Bundle Python/Qt dependencies and verify exported games on clean Arch offscreen.
+- [ ] Complete third-party redistribution notices/source audit and clean-desktop release acceptance.
 - [x] Measure a copied Widgets-only Qt subset and verify editor-free exports on host and Docker Wayland.
 - [ ] Add sandboxed Python game scripting.
 - [x] Probe native namespace boundaries and record the current Docker namespace restriction.
@@ -1168,11 +1181,10 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. Package native runtime dependencies and verify the independent game export
-   on clean Arch. Measure bundle size and startup, preserving the lightweight option.
-   The [packaging spike](architecture/0001-runtime-packaging.md) proves an 80 MiB
-   Qt subset with actual copies; interpreter bundling, notices and clean-machine
-   dependency verification remain open.
+1. Complete the third-party redistribution audit and clean-desktop release acceptance
+   for the implemented Python/Qt bundle. Measure startup and document compatibility
+   while preserving the lightweight export option. See the
+   [packaging decision](architecture/0001-runtime-packaging.md).
 2. Prove a native and container-compatible sandbox before enabling imported/generated
    Python behaviors. Add the minimal script lifecycle and terminate/recovery checks.
    The [sandbox spike](architecture/0002-script-sandbox.md) passes fourteen native

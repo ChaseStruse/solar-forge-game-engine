@@ -16,7 +16,7 @@ documents. New/Open/Close protect unsaved changes. Play opens a separate native
 window with keyboard movement, wall collisions, and coin collection. PNG sprites
 and basic project folders are supported. An offline assistant demo supports reviewed
 scene edits, and opt-in Ollama supports local models. Single-scene runtime-only exports
-are available; sandboxed Python scripts and dependency bundles remain planned.
+and experimental Python/Qt folder bundles are available; sandboxed Python scripts remain planned.
 
 ## Run on Linux
 
@@ -456,7 +456,8 @@ names without treating them as formatting or image references.
 
 ## Native game export
 
-Choose **File → Export active scene as game…** and save a new `.pyz` file. Export
+Choose **File → Export active scene as game…**. Select **Lightweight game** for a
+new `.pyz`, or **Linux bundle with Python and Qt** for a `.tar.gz`. Export
 uses the currently applied scene, including built-in gameplay, sprites, animation
 and collection sound. It runs in a worker, retains your unsaved edits, and keeps
 the captured snapshot even if you edit afterward. Existing output files are never
@@ -465,8 +466,8 @@ overwritten; choose a new filename for a new build.
 The archive contains only engine core/runtime code and bounded scene data. It runs
 without the editor, assistant, project folder or Docker. It needs **Python 3.14**,
 **PySide6-Essentials 6.11.2** and the native Linux Qt libraries; PipeWire is optional
-for sound. Python/Qt dependency bundling and clean-machine packaging remain future
-work. Qt's native extension modules stay outside the zip archive, as described in
+for sound. The lightweight archive leaves these dependencies installed separately; the
+folder bundle below carries Python and the Qt Widgets subset. Qt's native extension modules stay outside the zip archive, as described in
 [Python's zipapp documentation](https://docs.python.org/3.14/library/zipapp.html).
 
 ```sh
@@ -482,6 +483,27 @@ supported environment. Its launcher uses Python isolated mode, ignoring project
 imports and Python environment overrides. Export includes one scene and the built-in
 behaviors; imported/generated Python scripts and runtime scene transitions remain
 unimplemented.
+
+The **Linux bundle with Python and Qt** option builds a compressed `Game` folder.
+Extract the complete folder, then run `./play`. It works after moving or renaming
+the folder, including paths containing spaces. No system Python, pip, uv, editor,
+or model service is required. It retains system graphics/font dependencies; its
+README lists Arch prerequisites, and optional sound still uses system PipeWire.
+`./play --smoke-check` exercises movement and exits automatically.
+
+Bundle construction stays in the export worker and uses the applied scene captured
+at export start. Existing targets are never overwritten, and handled build failures
+remove their temporary files. The archive contains file hashes, runtime versions,
+external Qt library names, the engine MIT license, installed Python license text
+and Qt package metadata. It excludes development packages, user site packages and
+editor/assistant code. The launcher disables Python environment overrides, site
+customizations and bytecode writes; this is import isolation, not a script sandbox.
+
+Bundles are currently experimental/private: the complete third-party notice and
+corresponding-source audit remains open. Interpreter builds can contain additional
+embedded libraries; copying their installed license file alone does not complete
+that audit. Native Wayland and clean Arch offscreen playback passed on x86_64.
+Other architectures, X11 and other Linux distributions are not verified.
 
 For the dependency-packaging spike, run the offline developer probe:
 
