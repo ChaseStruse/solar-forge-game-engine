@@ -27,3 +27,20 @@ need a documented clean-Arch installation contract. The probe reports external
 libraries but does not prove that contract, licensing completeness, relocatable
 Python, or support on a clean machine. Do not ship its temporary environment as
 a release package.
+
+## Implementation checkpoint — October 6, 2026
+
+The packaging probe and forthcoming bundle writer share one Qt dependency selector.
+The selector inspects only trusted installed engine dependencies, never imported
+project binaries. Keep the small `.pyz` option and add a separate compressed folder
+bundle with an isolated, relative launcher, copied Python runtime and Widgets subset.
+Build in a worker from the captured scene; publish a completed archive exclusively
+so failed builds cannot replace existing exports. Do not copy development packages,
+user preferences, environment files or the editor into games.
+
+Acceptance requires relocation (including spaces in paths), execution without a
+system Python/Qt or development checkout, missing-dependency diagnostics, preserved
+existing targets and immutable scene snapshots. Record the actual Linux libraries
+left outside the bundle. Clean Arch offscreen and native Wayland checks establish
+different properties and must be reported separately. Engine license selection and
+third-party redistribution notices remain release work; no license is inferred.
