@@ -1,0 +1,43 @@
+name: Native engine checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: native-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # Shell checkout keeps this Python project independent of Node-based actions.
+      # The header is scoped to this fetch and is never saved in .git/config.
+      - name: Check out the exact tested revision
+        env:
+          CHECKOUT_TOKEN: ${{ github.token }}
+        run: |
+          git init .
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          checkout_auth="$(printf 'x-access-token:%s' "$CHECKOUT_TOKEN" | base64 -w0)"
+          GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=http.extraheader \
+            GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $checkout_auth" \
+            git fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          unset checkout_auth CHECKOUT_TOKEN
+          git checkout --detach FETCH_HEAD
+      - name: Lint, types and offline regression suite
+        run: docker compose -f compose.test.yaml run --build --rm test
+      - name: Build the clean Arch acceptance image
+        run: docker build -f Dockerfile.export-check -t solar-forge-arch-export-check:dev .
+      - name: Export from the same frozen test image
+        run: |
+          mkdir -p "$RUNNER_TEMP/forge-export"
+          docker run --rm --network none --cap-drop ALL \
+            --security-opt no-new-privileges:true --user "$(id -u):$(id -g)" \
+            --mount "type=bind,src=$RUNNER_TEMP/forge-export,dst=/export" \
+            solar-forge-engine-test:dev \
+            .venv/bin/python scripts/validate_bundle.py build-fixture /export
+      - name: Play the relocated export without system Python or Qt
+        run: python3 scripts/validate_bundle.py check "$RUNNER_TEMP/forge-export"

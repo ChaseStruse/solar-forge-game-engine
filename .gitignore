@@ -11,3 +11,5 @@ build/
 compose.override.yaml
 *.v*.bak
 *.pyz
+*.tar.gz
+.forge-bundle-*/

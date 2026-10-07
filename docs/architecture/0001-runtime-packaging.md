@@ -42,8 +42,12 @@ external Qt library names without recording builder filesystem paths or identity
 October 6 verification: relocation with spaces, isolated imports, read-only clean
 Arch execution without installed Python/Qt, native Wayland playback, hashes,
 existing/late targets, failed-build cleanup and immutable editor snapshots pass.
-The initial two-object host bundle was 64,128,560 compressed bytes; that observation
-predates inclusion of the engine MIT notice and is not a size budget. All 286 tests
+The repeatable two-object animated fixture is 64,124,304 compressed bytes from the
+native interpreter and 42,357,125 bytes from the Docker interpreter. Both pass clean
+Arch offscreen playback; the native-produced bundle also passes through the forwarded
+Wayland socket. The game and container root are read-only during these checks.
+The [reference report](../performance/2026-10-06-native-bundle.json) records versions,
+image identity and scope; these single samples are not a size or latency budget. All 286 tests
 pass locally (16.59 s) and in Docker (17.64 s), plus Ruff, formatting and strict mypy.
 The Docker interpreter and native installed interpreter both pass relocation checks.
 
@@ -56,3 +60,12 @@ Python standalone distributions may embed additional libraries; see their
 [distribution guidance](https://gregoryszorc.com/docs/python-build-standalone/main/running.html).
 Do not infer licenses for imported game assets. No dependency downloads occur during
 export. The older probe remains useful for measuring the Qt subset separately.
+
+`Dockerfile.export-check` defines the system-library-only Arch environment, with a
+pinned base image and packages resolved at build time. `scripts/validate_bundle.py`
+separates fixture generation (requires engine dependencies) from checking (host
+Python standard library plus Docker). CI generates the bundle in the same frozen
+image that passes the tests, then mounts only the export in the checking container.
+The local sequence and intentional failing-test exit propagation were exercised;
+GitHub-hosted execution is pending the user's push. No credentials are mounted into
+containers or retained by checkout.

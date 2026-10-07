@@ -505,6 +505,32 @@ embedded libraries; copying their installed license file alone does not complete
 that audit. Native Wayland and clean Arch offscreen playback passed on x86_64.
 Other architectures, X11 and other Linux distributions are not verified.
 
+Repeat the clean Arch acceptance check with Docker installed (build steps need
+network access; execution is offline). Choose a new temporary output directory:
+
+```sh
+docker build -f Dockerfile.export-check -t solar-forge-arch-export-check:dev .
+export_check_dir=$(mktemp -d /tmp/solar-forge-export.XXXXXX)
+.venv/bin/python scripts/validate_bundle.py build-fixture "$export_check_dir"
+.venv/bin/python scripts/validate_bundle.py check "$export_check_dir"
+# Optional native presentation check; forwards only the current Wayland socket
+.venv/bin/python scripts/validate_bundle.py check "$export_check_dir" --qpa wayland
+```
+
+The fixture deliberately moves the extracted game into a path containing spaces.
+The check mounts only that game read-only, verifies no system Python/Qt is installed,
+disables networking and plays a short collection route. Temporary output is retained
+for inspection. The [reference report](docs/performance/2026-10-06-native-bundle.json)
+records the image identity, sizes and successful native/Docker-produced exports.
+Image builds use a pinned Arch base and resolve Arch packages at build time.
+
+The [CI workflow](.github/workflows/checks.yml) runs on pushes and pull requests:
+Ruff, formatting, mypy and pytest in the independent frozen test image, followed by
+bundle creation in that same image and clean Arch offscreen playback. Checkout uses
+shell/git without Node-based actions, with a read-only token scoped to fetching the
+exact tested revision. Container checks run without host display or credentials.
+GitHub-hosted execution remains unverified until the branch is pushed.
+
 For the dependency-packaging spike, run the offline developer probe:
 
 ```sh

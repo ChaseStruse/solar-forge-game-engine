@@ -10,3 +10,5 @@
 dist
 build
 *.pyz
+*.tar.gz
+.forge-bundle-*/

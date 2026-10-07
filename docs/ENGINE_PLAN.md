@@ -10,9 +10,13 @@ and clean Arch offscreen gameplay without installed Python/Qt pass on x86_64;
 286 tests pass locally and in Docker, plus Ruff/formatting/mypy. Engine/runtime
 licensing is MIT. Complete third-party redistribution notices/source auditing and
 broader compatibility remain open; bundles are marked experimental/private.
+A checked-in CI workflow now runs the frozen offline suite and clean Arch bundle
+acceptance. Its container steps and failing-test exit propagation pass locally;
+GitHub-hosted execution remains pending a push. A pinned-base Arch check image and
+repeatable fixture/check script also support Wayland verification through one socket.
 See the [packaging decision](architecture/0001-runtime-packaging.md).
 
- Implemented features
+Implemented features
 include native scene editing and playback, Docker workflows, duplication, PNG
 sprites, project-relative assets and sprite reuse, autosave/recovery, multiple scenes,
 startup-scene selection, asset quarantine/restoration, movement/input settings,
@@ -1106,8 +1110,8 @@ experience; these milestones are gates, not promised delivery dates.
 
 | Phase | Current status | Remaining exit work |
 | --- | --- | --- |
-| 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Representative sprite and presentation budgets, isolation policy, packaging spike, reference hardware record and backend ADR |
-| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, expanded recovery guarantees and complete project integrity checks; CI automation still absent |
+| 0 — Prove foundation | Partial: dependencies, native viewport/player, Wayland launch, software fixture verified | Complete presentation budgets, isolation policy, distribution acceptance and backend ADR |
+| 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, multi-session recovery ownership and whole-project integrity; CI workflow added, hosted execution pending |
 | 2 — Playable 2D slice | Partial: collector gameplay, sprite animation, collection audio, active-scene exports and experimental Python/Qt bundles verified on clean Arch offscreen | Named animation clips, general inputs/behaviors, sandboxed Python lifecycle, scene transitions and redistribution audit |
 | 3 — Useful assistant | Partial: reviewed offline/Ollama proposals, live local-model verification, bounded context, deadlines, cancellation and revision-safe atomic undo | Hosted/enterprise adapters, credential handling and broader model acceptance |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
@@ -1171,6 +1175,8 @@ Completed task checklist:
 - [x] Bundle Python/Qt dependencies and verify exported games on clean Arch offscreen.
 - [ ] Complete third-party redistribution notices/source audit and clean-desktop release acceptance.
 - [x] Measure a copied Widgets-only Qt subset and verify editor-free exports on host and Docker Wayland.
+- [x] Add CI configuration and reproducible clean Arch bundle acceptance; verify its container steps locally.
+- [ ] Observe the first GitHub-hosted CI run after an authorized push.
 - [ ] Add sandboxed Python game scripting.
 - [x] Probe native namespace boundaries and record the current Docker namespace restriction.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
