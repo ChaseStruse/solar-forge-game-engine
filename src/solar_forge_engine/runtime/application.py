@@ -15,11 +15,27 @@ from solar_forge_engine.runtime.player import PlayerWindow
 
 
 def run_scene(
-    scene: Scene, controlled_id: str, *, exported: bool = False, smoke: bool = False
+    scene: Scene,
+    controlled_id: str,
+    *,
+    exported: bool = False,
+    smoke: bool = False,
+    editor_events: bool = False,
 ) -> int:
     app = QApplication([sys.argv[0]])
     app.setStyle("Fusion")
     window = PlayerWindow(scene, controlled_id)
+    if editor_events:
+        # Only the trusted player writes events to stdout. Worker logs use stderr.
+        window.script_failed.connect(
+            lambda message, line: print(
+                json.dumps(
+                    {"type": "script_error", "message": message[:1000], "line": line},
+                    ensure_ascii=False,
+                ),
+                flush=True,
+            )
+        )
     if exported:
         window.setWindowTitle(scene.name)
     for signum in (signal.SIGTERM, signal.SIGINT):
@@ -45,6 +61,24 @@ def run_scene(
             QApplication.postEvent(
                 window, QKeyEvent(QKeyEvent.Type.KeyPress, key, Qt.KeyboardModifier.NoModifier)
             )
+            if scene.script:
+                QApplication.postEvent(
+                    window,
+                    QKeyEvent(
+                        QKeyEvent.Type.KeyPress, Qt.Key.Key_Space, Qt.KeyboardModifier.NoModifier
+                    ),
+                )
+                QTimer.singleShot(
+                    120,
+                    lambda: QApplication.postEvent(
+                        window,
+                        QKeyEvent(
+                            QKeyEvent.Type.KeyRelease,
+                            Qt.Key.Key_Space,
+                            Qt.KeyboardModifier.NoModifier,
+                        ),
+                    ),
+                )
             QTimer.singleShot(320, finish)
 
         def finish() -> None:

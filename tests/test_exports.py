@@ -13,11 +13,63 @@ from test_animation import sheet
 from test_scene_audio import clip
 
 from solar_forge_engine.core.animation import Animation
+from solar_forge_engine.core.behavior import Behavior, BehaviorParameter
 from solar_forge_engine.core.commands import SetSceneName
 from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.editor.window import EditorWindow
 from solar_forge_engine.project import exporting
 from solar_forge_engine.project.exporting import export_game
+
+INPUT_SCRIPT = """
+def on_start(game):
+    assert game.actions["dash"] == {"held": False, "pressed": False, "released": False}
+    game.data["presses"] = 0
+    game.data["releases"] = 0
+    game.data["held"] = False
+    game.set_speed(360)
+    game.say("Waiting for dash input")
+
+def on_update(game, dt):
+    dash = game.actions["dash"]
+    game.data["presses"] += int(dash["pressed"])
+    game.data["releases"] += int(dash["released"])
+    game.data["held"] |= dash["held"]
+    if game.data["presses"] and game.data["releases"] and game.data["held"]:
+        assert game.data["presses"] == game.data["releases"] == 1
+        game.say("Dash input verified")
+"""
+
+BEHAVIOR_SCRIPT = """
+def probe_start(game, instance):
+    assert not instance.data
+    instance.data["steps"] = 0
+
+def probe_update(game, instance, dt):
+    instance.data["steps"] += 1
+    game.data[instance.id] = instance.data["steps"]
+    game.set_position(instance.id, game.objects[instance.id]["x"],
+                      instance.data["steps"] * instance.parameters["speed"] * dt)
+    if instance.id == "second":
+        assert game.data["first"] == game.data["second"]
+        assert instance.parameters["speed"] == 40
+        if game.data["presses"] and game.data["releases"] and game.data["held"]:
+            game.say("Input and behaviors verified")
+"""
+
+
+def scripted_game():
+    original = game()
+    return replace(
+        original,
+        script=INPUT_SCRIPT + BEHAVIOR_SCRIPT,
+        entities=(
+            *original.entities,
+            *(
+                Entity(name, x=x, behavior=Behavior("probe", (BehaviorParameter("speed", speed),)))
+                for name, x, speed in (("first", 100, 20), ("second", 200, 40))
+            ),
+        ),
+    )
 
 
 def game():
@@ -146,9 +198,8 @@ def test_editor_exports_snapshot_without_saving_or_losing_later_edits(tmp_path, 
 
 
 def test_exported_script_runs_in_restricted_worker_without_editor(tmp_path):
-    source = 'def on_start(game):\n    game.set_speed(360)\n    game.say("Scripted export ready")\n'
     archive = tmp_path / "Scripted.pyz"
-    export_game(archive, replace(game(), script=source))
+    export_game(archive, scripted_game())
     result = subprocess.run(
         [sys.executable, "-I", str(archive), "--smoke-check"],
         capture_output=True,
@@ -158,6 +209,6 @@ def test_exported_script_runs_in_restricted_worker_without_editor(tmp_path):
     assert result.returncode == 0, result.stderr
     report = json.loads(result.stdout)
     assert report["script_ready"] and not report["script_failed"]
-    assert report["script_message"] == "Scripted export ready"
+    assert report["script_message"] == "Input and behaviors verified"
     assert report["player_speed"] == 360 and report["collected"] == 1, report
     assert report["scene_unchanged"] and not report["editor_loaded"]

@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from solar_forge_engine.core.animation import Animation
+from solar_forge_engine.core.behavior import Behavior
 from solar_forge_engine.core.commands import (
     Command,
     CreateEntity,
@@ -53,6 +54,7 @@ from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.assistant import AssistantPanel
 from solar_forge_engine.editor.audio import SoundsDialog
+from solar_forge_engine.editor.behaviors import BehaviorDialog
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.exporting import ExportWorker
@@ -104,6 +106,12 @@ class EditorWindow(QMainWindow):
         self.recovery_timer.setInterval(2000)
         self.recovery_timer.timeout.connect(self.autosave)
         self.preview = QProcess(self)
+        self._preview_context: tuple[Document, str, str] | None = None
+        self._preview_buffer = bytearray()
+        self._preview_overflow = False
+        self._script_error_context: tuple[Document, str, int] | None = None
+        self._script_dialog: ScriptDialog | None = None
+        self._script_document: Document | None = None
         self._stopping_preview = False
         self.preview.finished.connect(self._preview_finished)
         self.preview.errorOccurred.connect(self._preview_error)
@@ -279,6 +287,12 @@ class EditorWindow(QMainWindow):
         ):
             self.input_field.addItem(label, preset.value)
         forms["Movement"].addRow("Keys", self.input_field)
+        self.behavior_button = QPushButton("Object behavior…")
+        self.behavior_button.clicked.connect(self.edit_behavior)
+        forms["Movement"].addRow(self.behavior_button)
+        self.behavior_label = QLabel()
+        self.behavior_label.setTextFormat(Qt.TextFormat.PlainText)
+        forms["Movement"].addRow("Behavior", self.behavior_label)
         self.sprite_label = QLabel()
         forms["Appearance"].addRow("Sprite", self.sprite_label)
         self.animation_check = QCheckBox("Loop sprite sheet in Play")
@@ -334,7 +348,19 @@ class EditorWindow(QMainWindow):
         self.log.setReadOnly(True)
         self.log.document().setMaximumBlockCount(100)
         self.log.setMaximumHeight(130)
-        self._dock("Activity", self.log, Qt.DockWidgetArea.BottomDockWidgetArea)
+        activity = QWidget()
+        activity_layout = QVBoxLayout(activity)
+        self.script_error_hint = QLabel()
+        self.script_error_hint.setTextFormat(Qt.TextFormat.PlainText)
+        self.script_error_hint.setWordWrap(True)
+        self.script_error_hint.hide()
+        activity_layout.addWidget(self.script_error_hint)
+        self.script_error_button = QPushButton("Edit failed script…")
+        self.script_error_button.hide()
+        self.script_error_button.clicked.connect(self._edit_failed_script)
+        activity_layout.addWidget(self.script_error_button)
+        activity_layout.addWidget(self.log)
+        self._dock("Activity", activity, Qt.DockWidgetArea.BottomDockWidgetArea)
         self.log.appendPlainText(
             "Create a rectangle, edit its properties, and save your first scene."
         )
@@ -364,6 +390,9 @@ class EditorWindow(QMainWindow):
         self.script_action = scene_menu.addAction("Edit scene script…")
         self.script_action.setShortcut("Ctrl+Shift+E")
         self.script_action.triggered.connect(self.edit_script)
+        self.behavior_action = scene_menu.addAction("Edit selected object behavior…")
+        self.behavior_action.setShortcut("Ctrl+Shift+B")
+        self.behavior_action.triggered.connect(self.edit_behavior)
         find_object = scene_menu.addAction("Find object")
         find_object.setShortcut("Ctrl+L")
         find_object.triggered.connect(self.find_object)
@@ -602,6 +631,7 @@ class EditorWindow(QMainWindow):
         self._update_inspector()
         self.undo_action.setEnabled(self.document.can_undo)
         self.redo_action.setEnabled(self.document.can_redo)
+        self._refresh_script_error()
         self.play_action.setEnabled(
             bool(ids) and self.preview.state() == QProcess.ProcessState.NotRunning
         )
@@ -656,6 +686,7 @@ class EditorWindow(QMainWindow):
         self.apply_button.setEnabled(self.selected_id is not None)
         self.delete_action.setEnabled(self.selected_id is not None)
         self.duplicate_action.setEnabled(self.selected_id is not None)
+        self.behavior_action.setEnabled(self.selected_id is not None)
         position = next(
             (
                 index
@@ -678,8 +709,10 @@ class EditorWindow(QMainWindow):
             self.color_field.clear()
             self.sprite_label.clear()
             self.clear_sprite_button.setEnabled(False)
+            self.behavior_label.clear()
             return
         entity = self.document.scene.entity(self.selected_id)
+        self.behavior_label.setText(entity.behavior.name if entity.behavior else "None")
         self.sprite_label.setText(
             f"{entity.sprite.width} × {entity.sprite.height} pixels" if entity.sprite else "None"
         )
@@ -901,21 +934,91 @@ class EditorWindow(QMainWindow):
         self.execute(SetSceneName(name), expected_revision=revision)
 
     def edit_script(self) -> None:
-        document, revision = self.document, self.document.revision
-        dialog = ScriptDialog(document.scene, self.selected_id, self)
+        self._open_script()
 
-        def apply(source: str) -> None:
+    def edit_behavior(self) -> None:
+        if self.selected_id is None:
+            return
+        document, revision, entity_id = self.document, self.document.revision, self.selected_id
+        dialog = BehaviorDialog(document.scene.entity(entity_id), self)
+
+        def apply(attachment: object) -> None:
             if self.document is not document or document.revision != revision:
                 dialog.status.setText(
-                    "The scene changed. Copy your draft and reopen the script editor."
+                    "The scene changed. Keep your settings and reopen this dialog."
                 )
                 return
-            if self._execute_bounded(SetSceneScript(source), expected_revision=revision):
+            if attachment is not None and not isinstance(attachment, Behavior):
+                dialog.status.setText("Invalid behavior attachment.")
+                return
+            if self._execute_bounded(
+                SetEntity(entity_id, {"behavior": asdict(attachment) if attachment else None}),
+                expected_revision=revision,
+            ):
                 dialog.accept()
 
         dialog.apply_requested.connect(apply)
         dialog.exec()
         dialog.deleteLater()
+
+    def _open_script(self, line: int = 0, detail: str = "") -> None:
+        if self._script_dialog is not None and self._script_document is self.document:
+            if detail:
+                self._script_dialog.show_error(line, detail)
+            self._script_dialog.exec()
+            return
+        if self._script_dialog is not None:
+            self._script_dialog.deleteLater()
+        document, revision = self.document, self.document.revision
+        dialog = ScriptDialog(document.scene, self.selected_id, self)
+        self._script_dialog = dialog
+        self._script_document = document
+
+        def apply(source: str) -> None:
+            if self.document is not document or document.revision != revision:
+                dialog.status.setText(
+                    "The scene changed. Copy your draft before using Reload applied source."
+                )
+                return
+            if self._execute_bounded(SetSceneScript(source), expected_revision=revision):
+                dialog.accept()
+                self._script_dialog = None
+                self._script_document = None
+                dialog.deleteLater()
+
+        def reload() -> None:
+            nonlocal revision
+            if self.document is not document:
+                dialog.status.setText("The scene changed. Reopen the script editor.")
+                return
+            revision = document.revision
+            dialog.code.setPlainText(document.scene.script)
+            dialog.error_hint.hide()
+
+        dialog.apply_requested.connect(apply)
+        dialog.reload_requested.connect(reload)
+        if detail:
+            dialog.show_error(line, detail)
+        dialog.exec()
+
+    def _refresh_script_error(self) -> None:
+        context = self._script_error_context
+        self.script_error_button.setEnabled(
+            context is not None
+            and context[0] is self.document
+            and context[1] == self.document.scene.script
+        )
+        self.script_error_button.setToolTip(
+            "Open the reported source line. A retained draft is kept; its lines may have shifted."
+            if self.script_error_button.isEnabled()
+            else "The scene or applied source changed. Run Play again for a current error."
+        )
+
+    def _edit_failed_script(self) -> None:
+        self._refresh_script_error()
+        context = self._script_error_context
+        if context is not None and self.script_error_button.isEnabled():
+            self._open_script(context[2], self.script_error_hint.text())
 
     def browse_sounds(self) -> None:
         if self.project is None:
@@ -1132,10 +1235,27 @@ class EditorWindow(QMainWindow):
             self._error("The scene is too large to preview (4 MiB limit).")
             return
         controlled_id = controlled_entity(self.document.scene, self.selected_id)
+        self._preview_context = (
+            self.document,
+            self.document.scene.script,
+            self.document.scene.name,
+        )
+        self._preview_buffer.clear()
+        self._preview_overflow = False
+        self._script_error_context = None
+        self.script_error_hint.hide()
+        self.script_error_button.hide()
         self._stopping_preview = False
         self.preview.setProgram(sys.executable)
         self.preview.setArguments(
-            ["-I", "-m", "solar_forge_engine.runtime", "--control", controlled_id]
+            [
+                "-I",
+                "-m",
+                "solar_forge_engine.runtime",
+                "--control",
+                controlled_id,
+                "--editor-events",
+            ]
         )
         self.preview.start()
         self.preview.write(snapshot)
@@ -1149,6 +1269,7 @@ class EditorWindow(QMainWindow):
         )
 
     def _preview_finished(self, exit_code: int, status: QProcess.ExitStatus) -> None:
+        self._preview_ready()
         detail = f" (exit {exit_code})" if exit_code and not self._stopping_preview else ""
         self.log.appendPlainText(f"Play stopped{detail}. Authored scene retained.")
         self.stop_action.setEnabled(False)
@@ -1169,10 +1290,53 @@ class EditorWindow(QMainWindow):
         self.log.appendPlainText(message[:4000])
 
     def _preview_ready(self) -> None:
-        message = bytes(self.preview.readAllStandardOutput().data()).decode(
-            "utf-8", errors="replace"
-        )
-        self.log.appendPlainText(message[:4000].strip())
+        self.preview.setReadChannel(QProcess.ProcessChannel.StandardOutput)
+        while self.preview.bytesAvailable():
+            self._consume_preview_output(bytes(self.preview.read(4096).data()))
+
+    def _consume_preview_output(self, data: bytes) -> None:
+        for part in data.splitlines(keepends=True):
+            self._preview_buffer.extend(part)
+            if len(self._preview_buffer) > 8192:
+                self._preview_overflow = True
+            if part.endswith(b"\n"):
+                if not self._preview_overflow:
+                    self._preview_record(bytes(self._preview_buffer))
+                self._preview_buffer.clear()
+                self._preview_overflow = False
+            elif self._preview_overflow:
+                self._preview_buffer.clear()
+
+    def _preview_record(self, raw: bytes) -> None:
+        text = raw.decode("utf-8", errors="replace").strip()
+        context = self._preview_context
+        try:
+            event = json.loads(text)
+        except ValueError, RecursionError:
+            self.log.appendPlainText(text[:4000])
+            return
+        if (
+            context is None
+            or not isinstance(event, dict)
+            or set(event) != {"type", "message", "line"}
+            or event["type"] != "script_error"
+            or not isinstance(event["message"], str)
+            or len(event["message"]) > 1000
+            or type(event["line"]) is not int
+            or not 0 <= event["line"] <= context[1].count("\n") + 1
+        ):
+            self.log.appendPlainText("Ignored invalid preview event.")
+            return
+        document, source, name = context
+        line = event["line"]
+        location = f" · line {line}" if line else ""
+        detail = f"Script error · {name}{location}: {event['message']}"
+        self._script_error_context = (document, source, line)
+        self.script_error_hint.setText(detail)
+        self.script_error_hint.show()
+        self.script_error_button.show()
+        self._refresh_script_error()
+        self.log.appendPlainText(detail)
 
     def stop_preview(self) -> None:
         if self.preview.state() != QProcess.ProcessState.NotRunning:

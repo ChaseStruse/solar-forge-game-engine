@@ -52,6 +52,12 @@ Read current state:
     id, name, x, y, width, height, role
   game.input["x"], ["y"]
     -1, 0 or 1 from movement keys
+  game.actions["dash"] (Space)
+    ["held"], ["pressed"], ["released"]
+    Boolean flags. Edges occur once per
+    callback; quick taps can set both.
+    Repeats are ignored. Pause/focus loss
+    and Restart clear input, without edges.
   game.collected, game.total_coins
   game.time (simulation seconds)
 
@@ -64,6 +70,17 @@ Remember values between updates:
   game.data["elapsed"] = 0
   game.data["elapsed"] += dt
 Globals also persist until Restart.
+
+Object behaviors (Scene → Edit selected object behavior):
+  bob_start(game, instance)
+  bob_update(game, instance, dt)
+  instance.id identifies the attached object.
+  instance.parameters contains numeric settings.
+  instance.data starts empty for each object.
+Scene callbacks run first, then objects in draw order.
+All emit one atomic command batch per step.
+Globals/game.data are shared; instance.data is separate.
+Restart resets all instances. At most 32 attachments.
 
 math and random are already available.
 print() sends output to Activity.
@@ -154,12 +171,13 @@ class CodeEdit(QPlainTextEdit):
 
 class ScriptDialog(QDialog):
     apply_requested = Signal(str)
+    reload_requested = Signal()
 
     def __init__(
         self, scene: Scene, selected_id: str | None, parent: QWidget | None = None
     ) -> None:
         super().__init__(parent)
-        self.setWindowTitle("Scene script — Python")
+        self.setWindowTitle(f"Scene script — {scene.name} — Python")
         self.resize(1000, 650)
         layout = QVBoxLayout(self)
         hint = QLabel(
@@ -167,6 +185,11 @@ class ScriptDialog(QDialog):
         )
         hint.setWordWrap(True)
         layout.addWidget(hint)
+        self.error_hint = QLabel()
+        self.error_hint.setTextFormat(Qt.TextFormat.PlainText)
+        self.error_hint.setWordWrap(True)
+        self.error_hint.hide()
+        layout.addWidget(self.error_hint)
         splitter = QSplitter()
         self.code = CodeEdit(scene.script)
         self.code.setPlaceholderText("Write Python here, or insert the starter example below.")
@@ -204,8 +227,14 @@ class ScriptDialog(QDialog):
         self.status.setTextFormat(Qt.TextFormat.PlainText)
         layout.addWidget(self.status)
         actions = QHBoxLayout()
+        self.reload_button = QPushButton("Reload applied source")
+        self.reload_button.setToolTip(
+            "Replace this draft with the scene's currently applied source."
+        )
+        self.reload_button.clicked.connect(self.reload_requested.emit)
+        actions.addWidget(self.reload_button)
         actions.addStretch()
-        cancel = QPushButton("Cancel")
+        cancel = QPushButton("Close · keep draft")
         cancel.clicked.connect(self.reject)
         actions.addWidget(cancel)
         self.apply_button = QPushButton("Apply script")
@@ -217,6 +246,12 @@ class ScriptDialog(QDialog):
         self.code.textChanged.connect(self._validate)
         self.code.cursorPositionChanged.connect(self._validate)
         self._validate()
+
+    def show_error(self, line: int, detail: str) -> None:
+        self.error_hint.setText(detail)
+        self.error_hint.show()
+        self.line.setValue(max(1, line))
+        self.go_to_line()
 
     def _validate(self) -> None:
         try:

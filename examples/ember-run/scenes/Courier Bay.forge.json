@@ -1,7 +1,7 @@
 {
-  "format_version": 12,
+  "format_version": 14,
   "name": "Courier Bay \u2014 orbital script playground",
-  "script": "# COURIER BAY \u2014 a small lesson in circular motion and state changes.\n# Increase ORBIT_SPEED for a harder chase; set it to 0 for stationary targets.\nORBIT_SPEED = 0.45\nORBIT_RADIUS = 180\nBOB_HEIGHT = 8\n\n\ndef on_start(game):\n    game.data[\"cores\"] = [\n        obj[\"id\"] for obj in game.objects.values() if obj[\"role\"] == \"coin\"\n    ]\n    game.data[\"last_count\"] = -1\n    game.data[\"finished\"] = False\n    game.set_speed(280)\n    game.say(\"ORBIT LAB | Chase the four satellites. WASD / arrows\")\n    print(\"Orbit Lab: try ORBIT_SPEED = 0, or change ORBIT_RADIUS in the script editor.\")\n\n\ndef on_update(game, dt):\n    t = game.time\n    cores = game.data[\"cores\"]\n    # Circular x/y motion uses cosine and sine of the same angle.\n    # All four objects share one rule, spaced equally around the ring.\n    for index, core_id in enumerate(cores):\n        angle = t * ORBIT_SPEED + index * math.tau / max(1, len(cores))\n        game.set_position(core_id,\n                          512 + math.cos(angle) * ORBIT_RADIUS - 16,\n                          288 + math.sin(angle) * ORBIT_RADIUS - 16)\n    game.set_position(\"bay-reactor\", 480, 192 + math.sin(t * 2) * BOB_HEIGHT)\n\n    if game.collected != game.data[\"last_count\"]:\n        game.data[\"last_count\"] = game.collected\n        if game.total_coins and game.collected == game.total_coins:\n            game.data[\"finished\"] = True\n            game.say(f\"ORBIT COMPLETE | Four satellites caught in {t:.1f}s! Restart to retry.\")\n            print(\"Orbit complete! Change the constants and build your own challenge.\")\n        elif game.collected:\n            game.say(f\"SATELLITE CAPTURED | {game.collected}/{game.total_coins} | Keep chasing!\")\n",
+  "script": "# COURIER BAY \u2014 a small lesson in circular motion and state changes.\n# Increase ORBIT_SPEED for a harder chase; set it to 0 for stationary targets.\nORBIT_SPEED = 0.45\nORBIT_RADIUS = 180\nBOB_HEIGHT = 8\n\n\ndef on_start(game):\n    game.data[\"cores\"] = [\n        obj[\"id\"] for obj in game.objects.values() if obj[\"role\"] == \"coin\"\n    ]\n    game.data[\"last_count\"] = -1\n    game.data[\"finished\"] = False\n    game.set_speed(280)\n    game.say(\"ORBIT LAB | Chase the four satellites. WASD / arrows\")\n    print(\"Orbit Lab: try ORBIT_SPEED = 0, or change ORBIT_RADIUS in the script editor.\")\n\n\ndef on_update(game, dt):\n    t = game.time\n    cores = game.data[\"cores\"]\n    # Circular x/y motion uses cosine and sine of the same angle.\n    # All four objects share one rule, spaced equally around the ring.\n    for index, core_id in enumerate(cores):\n        angle = t * ORBIT_SPEED + index * math.tau / max(1, len(cores))\n        game.set_position(core_id,\n                          512 + math.cos(angle) * ORBIT_RADIUS - 16,\n                          288 + math.sin(angle) * ORBIT_RADIUS - 16)\n    game.set_position(\"bay-reactor\", 480, 192 + math.sin(t * 2) * BOB_HEIGHT)\n\n    if game.collected != game.data[\"last_count\"]:\n        game.data[\"last_count\"] = game.collected\n        if game.total_coins and game.collected == game.total_coins:\n            game.data[\"finished\"] = True\n            game.say(f\"ORBIT COMPLETE | Four satellites caught in {t:.1f}s! Restart to retry.\")\n            print(\"Orbit complete! Change the constants and build your own challenge.\")\n        elif game.collected:\n            game.say(f\"SATELLITE CAPTURED | {game.collected}/{game.total_coins} | Keep chasing!\")\n\n\n# Both bay beacons attach bob with different numeric parameters in the editor.\ndef bob_start(game, instance):\n    obj = game.objects[instance.id]\n    instance.data[\"origin\"] = (obj[\"x\"], obj[\"y\"])\n    instance.data[\"elapsed\"] = 0\n\n\ndef bob_update(game, instance, dt):\n    instance.data[\"elapsed\"] += dt\n    x, y = instance.data[\"origin\"]\n    offset = math.sin(instance.data[\"elapsed\"] * instance.parameters[\"rate\"])\n    game.set_position(instance.id, x, y + offset * instance.parameters[\"amplitude\"])\n",
   "coin_sound": null,
   "entities": [
     {
@@ -20,7 +20,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-1",
@@ -38,7 +39,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-2",
@@ -56,7 +58,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-3",
@@ -74,7 +77,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-4",
@@ -92,7 +96,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-5",
@@ -110,7 +115,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-6",
@@ -128,7 +134,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-7",
@@ -146,7 +153,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-8",
@@ -164,7 +172,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-9",
@@ -182,7 +191,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-10",
@@ -200,7 +210,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-11",
@@ -218,7 +229,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-12",
@@ -236,7 +248,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-13",
@@ -254,7 +267,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-14",
@@ -272,7 +286,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-15",
@@ -290,7 +305,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-16",
@@ -308,7 +324,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-17",
@@ -326,7 +343,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-18",
@@ -344,7 +362,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-19",
@@ -362,7 +381,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-20",
@@ -380,7 +400,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-21",
@@ -398,7 +419,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-22",
@@ -416,7 +438,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-23",
@@ -434,7 +457,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-24",
@@ -452,7 +476,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-25",
@@ -470,7 +495,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-26",
@@ -488,7 +514,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-27",
@@ -506,7 +533,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-28",
@@ -524,7 +552,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-29",
@@ -542,7 +571,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-30",
@@ -560,7 +590,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-31",
@@ -578,7 +609,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-32",
@@ -596,7 +628,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-33",
@@ -614,7 +647,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-34",
@@ -632,7 +666,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-35",
@@ -650,7 +685,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-36",
@@ -668,7 +704,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-37",
@@ -686,7 +723,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-38",
@@ -704,7 +742,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-39",
@@ -722,7 +761,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-40",
@@ -740,7 +780,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-41",
@@ -758,7 +799,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-42",
@@ -776,7 +818,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-43",
@@ -794,7 +837,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-44",
@@ -812,7 +856,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-45",
@@ -830,7 +875,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-46",
@@ -848,7 +894,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-47",
@@ -866,7 +913,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-48",
@@ -884,7 +932,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-49",
@@ -902,7 +951,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-50",
@@ -920,7 +970,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-51",
@@ -938,7 +989,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-52",
@@ -956,7 +1008,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-53",
@@ -974,7 +1027,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-54",
@@ -992,7 +1046,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-55",
@@ -1010,7 +1065,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-56",
@@ -1028,7 +1084,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-57",
@@ -1046,7 +1103,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-58",
@@ -1064,7 +1122,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-59",
@@ -1082,7 +1141,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-60",
@@ -1100,7 +1160,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-61",
@@ -1118,7 +1179,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-62",
@@ -1136,7 +1198,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-63",
@@ -1154,7 +1217,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-64",
@@ -1172,7 +1236,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-65",
@@ -1190,7 +1255,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-66",
@@ -1208,7 +1274,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-67",
@@ -1226,7 +1293,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-68",
@@ -1244,7 +1312,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-69",
@@ -1262,7 +1331,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-70",
@@ -1280,7 +1350,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-71",
@@ -1298,7 +1369,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-72",
@@ -1316,7 +1388,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-73",
@@ -1334,7 +1407,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-74",
@@ -1352,7 +1426,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-75",
@@ -1370,7 +1445,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-76",
@@ -1388,7 +1464,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-77",
@@ -1406,7 +1483,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-78",
@@ -1424,7 +1502,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-79",
@@ -1442,7 +1521,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-80",
@@ -1460,7 +1540,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-81",
@@ -1478,7 +1559,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-82",
@@ -1496,7 +1578,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-83",
@@ -1514,7 +1597,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-84",
@@ -1532,7 +1616,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-85",
@@ -1550,7 +1635,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-86",
@@ -1568,7 +1654,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-87",
@@ -1586,7 +1673,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-88",
@@ -1604,7 +1692,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-89",
@@ -1622,7 +1711,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-90",
@@ -1640,7 +1730,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-91",
@@ -1658,7 +1749,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-92",
@@ -1676,7 +1768,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-93",
@@ -1694,7 +1787,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-94",
@@ -1712,7 +1806,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-95",
@@ -1730,7 +1825,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-96",
@@ -1748,7 +1844,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-97",
@@ -1766,7 +1863,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-98",
@@ -1784,7 +1882,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-99",
@@ -1802,7 +1901,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-100",
@@ -1820,7 +1920,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-101",
@@ -1838,7 +1939,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-102",
@@ -1856,7 +1958,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-103",
@@ -1874,7 +1977,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-104",
@@ -1892,7 +1996,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-105",
@@ -1910,7 +2015,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-106",
@@ -1928,7 +2034,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-107",
@@ -1946,7 +2053,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-108",
@@ -1964,7 +2072,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-109",
@@ -1982,7 +2091,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-110",
@@ -2000,7 +2110,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-111",
@@ -2018,7 +2129,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-112",
@@ -2036,7 +2148,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-113",
@@ -2054,7 +2167,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-114",
@@ -2072,7 +2186,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-115",
@@ -2090,7 +2205,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-116",
@@ -2108,7 +2224,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-117",
@@ -2126,7 +2243,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-118",
@@ -2144,7 +2262,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-119",
@@ -2162,7 +2281,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-120",
@@ -2180,7 +2300,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-121",
@@ -2198,7 +2319,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-122",
@@ -2216,7 +2338,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-123",
@@ -2234,7 +2357,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-124",
@@ -2252,7 +2376,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-125",
@@ -2270,7 +2395,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-126",
@@ -2288,7 +2414,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-127",
@@ -2306,7 +2433,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-128",
@@ -2324,7 +2452,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-129",
@@ -2342,7 +2471,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-130",
@@ -2360,7 +2490,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-131",
@@ -2378,7 +2509,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-132",
@@ -2396,7 +2528,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-133",
@@ -2414,7 +2547,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-134",
@@ -2432,7 +2566,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-135",
@@ -2450,7 +2585,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-136",
@@ -2468,7 +2604,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-137",
@@ -2486,7 +2623,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-138",
@@ -2504,7 +2642,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-139",
@@ -2522,7 +2661,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-140",
@@ -2540,7 +2680,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-141",
@@ -2558,7 +2699,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-142",
@@ -2576,7 +2718,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "ember-143",
@@ -2594,7 +2737,8 @@
       },
       "move_speed": 240,
       "input_preset": "wasd_arrows",
-      "animation": null
+      "animation": null,
+      "behavior": null
     },
     {
       "id": "bay-player",
@@ -2616,7 +2760,8 @@
         "columns": 4,
         "rows": 1,
         "fps": 8
-      }
+      },
+      "behavior": null
     },
     {
       "id": "bay-reactor",
@@ -2638,6 +2783,77 @@
         "columns": 4,
         "rows": 1,
         "fps": 12
+      },
+      "behavior": null
+    },
+    {
+      "id": "bay-beacon-1",
+      "name": "Bobbing beacon 1",
+      "x": 320,
+      "y": 420,
+      "width": 64,
+      "height": 16,
+      "color": "#f4b544",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/877dbec0fbea62d7f0174a77e0d2469c945739c516031b0f18beb61f5eb1b551.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      },
+      "behavior": {
+        "name": "bob",
+        "parameters": [
+          {
+            "name": "amplitude",
+            "value": 8.0
+          },
+          {
+            "name": "rate",
+            "value": 2.0
+          }
+        ]
+      }
+    },
+    {
+      "id": "bay-beacon-2",
+      "name": "Bobbing beacon 2",
+      "x": 640,
+      "y": 420,
+      "width": 64,
+      "height": 16,
+      "color": "#f4b544",
+      "role": "decoration",
+      "sprite": {
+        "width": 64,
+        "height": 16,
+        "asset": "assets/877dbec0fbea62d7f0174a77e0d2469c945739c516031b0f18beb61f5eb1b551.rgba"
+      },
+      "move_speed": 240,
+      "input_preset": "wasd_arrows",
+      "animation": {
+        "columns": 4,
+        "rows": 1,
+        "fps": 8
+      },
+      "behavior": {
+        "name": "bob",
+        "parameters": [
+          {
+            "name": "amplitude",
+            "value": 16.0
+          },
+          {
+            "name": "rate",
+            "value": 3.0
+          }
+        ]
       }
     },
     {
@@ -2660,7 +2876,8 @@
         "columns": 4,
         "rows": 1,
         "fps": 8
-      }
+      },
+      "behavior": null
     },
     {
       "id": "bay-core-1",
@@ -2682,7 +2899,8 @@
         "columns": 4,
         "rows": 1,
         "fps": 8
-      }
+      },
+      "behavior": null
     },
     {
       "id": "bay-core-2",
@@ -2704,7 +2922,8 @@
         "columns": 4,
         "rows": 1,
         "fps": 8
-      }
+      },
+      "behavior": null
     },
     {
       "id": "bay-core-3",
@@ -2726,7 +2945,8 @@
         "columns": 4,
         "rows": 1,
         "fps": 8
-      }
+      },
+      "behavior": null
     }
   ]
 }

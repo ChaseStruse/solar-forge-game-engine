@@ -1,9 +1,11 @@
 """Deterministic keyboard movement, independent of Qt."""
 
 import math
+from dataclasses import asdict
 
 from solar_forge_engine.core.commands import SetEntity
 from solar_forge_engine.core.scene import Entity, Role, Scene
+from solar_forge_engine.runtime.script_worker import dash_actions, validate_actions
 
 WORLD_WIDTH = 1024
 WORLD_HEIGHT = 576
@@ -38,7 +40,14 @@ class Simulation:
         self.x = min(max(self.controlled.x, 0), max(0, WORLD_WIDTH - self.controlled.width))
         self.y = min(max(self.controlled.y, 0), max(0, WORLD_HEIGHT - self.controlled.height))
 
-    def script_state(self, horizontal: int, vertical: int, elapsed: float) -> dict[str, object]:
+    def script_state(
+        self,
+        horizontal: int,
+        vertical: int,
+        elapsed: float,
+        *,
+        actions: dict[str, dict[str, bool]] | None = None,
+    ) -> dict[str, object]:
         if len(self.runtime_scene.entities) > 256:
             raise ValueError("Scene scripting currently supports at most 256 objects.")
         objects = {
@@ -59,6 +68,12 @@ class Simulation:
             "objects": objects,
             "player": player,
             "input": {"x": horizontal, "y": vertical},
+            "actions": dash_actions() if actions is None else validate_actions(actions),
+            "behaviors": [
+                {"id": entity.id, "attachment": asdict(entity.behavior)}
+                for entity in self.scene.entities
+                if entity.behavior is not None
+            ],
             "collected": len(self.collected),
             "total_coins": len(self.coins),
             "time": elapsed,

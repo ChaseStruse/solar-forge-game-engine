@@ -4,6 +4,7 @@ import base64
 from functools import lru_cache
 
 from solar_forge_engine.core.animation import Animation
+from solar_forge_engine.core.behavior import Behavior, BehaviorParameter
 from solar_forge_engine.core.scene import Entity, Role, Scene
 from solar_forge_engine.core.showcase_scripts import BAY_SCRIPT, EMBER_SCRIPT
 from solar_forge_engine.core.sprite import Sprite
@@ -300,6 +301,26 @@ def courier_bay() -> Scene:
                 128,
                 sprite=art["flame"],
                 animation=Animation(4, 1, 12),
+            ),
+            *(
+                Entity(
+                    f"bay-beacon-{index}",
+                    f"Bobbing beacon {index}",
+                    x,
+                    420,
+                    64,
+                    16,
+                    sprite=art["beacon"],
+                    animation=Animation(4, 1, 8),
+                    behavior=Behavior(
+                        "bob",
+                        (
+                            BehaviorParameter("amplitude", amplitude),
+                            BehaviorParameter("rate", rate),
+                        ),
+                    ),
+                )
+                for index, (x, amplitude, rate) in enumerate(((320, 8, 2), (640, 16, 3)), 1)
             ),
             *(
                 Entity(

@@ -83,6 +83,7 @@ def test_animation_upgrade_preserves_legacy_bytes_and_cleanup(tmp_path, version)
     data.pop("script", None)
     data["format_version"] = version
     for entry in data["entities"]:
+        del entry["behavior"]
         del entry["animation"]
     original = json.dumps(data).encode()
     path.write_bytes(original)
@@ -141,6 +142,7 @@ def test_previous_release_recovery_survives_animation_format_upgrade(tmp_path):
         data.pop("script", None)
         data["format_version"] = 5
         for entry in data["entities"]:
+            del entry["behavior"]
             del entry["animation"]
         return data
 

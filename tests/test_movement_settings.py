@@ -47,6 +47,7 @@ def test_legacy_movement_defaults_upgrade_backups_and_cleanup(tmp_path, version)
     data.pop("script", None)
     data["format_version"] = version
     for entry in data["entities"]:
+        del entry["behavior"]
         del entry["animation"]
         del entry["move_speed"]
         del entry["input_preset"]
@@ -103,6 +104,8 @@ def test_player_uses_speed_and_selected_keys_after_restart(qtbot, preset, accept
     player = PlayerWindow(scene, "player")
     qtbot.addWidget(player)
     player.timer.stop()
+    player.show()
+    qtbot.waitUntil(player.isActiveWindow)
     qtbot.keyPress(player, rejected)
     assert not player.keys
     qtbot.keyPress(player, accepted)

@@ -11,7 +11,8 @@ from solar_forge_engine.core.scene import Role
 from solar_forge_engine.core.showcase import courier_bay, ember_run
 from solar_forge_engine.editor.window import EditorWindow
 from solar_forge_engine.project.workspace import open_project, open_scene
-from solar_forge_engine.runtime import script_worker
+from solar_forge_engine.runtime.script_worker import dash_actions
+from solar_forge_engine.runtime.scripting import worker_bootstrap
 from solar_forge_engine.runtime.simulation import FIXED_STEP, Simulation
 
 
@@ -29,7 +30,7 @@ def scripted_game():
                 "-S",
                 "-B",
                 "-c",
-                Path(script_worker.__file__).read_text(),
+                worker_bootstrap(),
                 str(os.getpid()),
             ],
             stdin=subprocess.PIPE,
@@ -49,13 +50,13 @@ def scripted_game():
         assert receive() == {"type": "ready"}
         sequence = 0
 
-        def update(t, operation="update"):
+        def update(t, operation="update", *, horizontal=0, vertical=0, actions=None):
             nonlocal sequence
             sequence += 1
             request = {
                 "id": sequence,
                 "op": operation,
-                "state": simulation.script_state(0, 0, t),
+                "state": simulation.script_state(horizontal, vertical, t, actions=actions),
                 "dt": FIXED_STEP,
             }
             if operation == "start":
@@ -168,6 +169,51 @@ def test_showcase_boost_expires_and_restart_resets_state(scripted_game):
     restarted, _ = scripted_game(scene, "courier")
     assert restarted.speed == 220 and not restarted.collected
     assert "Recover 12 cores" in restarted.message
+
+
+def test_showcase_dash_requires_movement_respects_cooldown_and_preserves_pickup_boost(
+    scripted_game,
+):
+    scene = ember_run()
+    simulation, update = scripted_game(scene, "courier")
+    tap = dash_actions(pressed=True, released=True)
+    update(0, actions=tap)
+    assert simulation.speed == 220  # A stationary press does not spend the dash.
+    update(0.1, horizontal=1, actions=tap)
+    assert simulation.speed == 480 and "DASH!" in simulation.message
+    start_x = simulation.x
+    simulation.step(1, 0)
+    assert simulation.x - start_x == pytest.approx(480 * FIXED_STEP)
+    simulation.collected.add(simulation.coins[0].id)
+    update(0.2, horizontal=1)
+    assert simulation.speed == 480  # A pickup never reduces an active dash.
+    update(0.4, horizontal=1, actions=tap)
+    assert simulation.speed == 330 and "OVERDRIVE" in simulation.message
+    update(1.31, horizontal=1, actions=dash_actions(held=True))
+    assert simulation.speed == 330  # Holding never retriggers when cooldown expires.
+    update(1.32, horizontal=1, actions=tap)
+    assert simulation.speed == 480
+    update(1.6)
+    assert simulation.speed == 220
+    simulation.collected.update(coin.id for coin in simulation.coins)
+    update(3, horizontal=1, actions=tap)
+    assert simulation.speed == 220 and "All cores secured" in simulation.message
+    assert simulation.scene == scene
+    restarted, update_restart = scripted_game(scene, "courier")
+    update_restart(0, horizontal=1, actions=tap)
+    assert restarted.speed == 480  # Restart resets cooldown, too.
+
+
+def test_showcase_dash_cannot_cross_walls(scripted_game):
+    simulation, update = scripted_game(ember_run(), "courier")
+    wall = simulation.walls[0]
+    simulation.x = wall.x - simulation.controlled.width - 1
+    simulation.y = wall.y
+    update(0, horizontal=1, actions=dash_actions(pressed=True))
+    assert simulation.speed == 480
+    simulation.step(1, 0)
+    assert simulation.x == wall.x - simulation.controlled.width
+    assert not any(simulation.overlaps(candidate) for candidate in simulation.walls)
 
 
 def test_orbital_bay_satellites_are_catchable_and_finish_is_stable(scripted_game):

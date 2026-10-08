@@ -2,9 +2,8 @@ import json
 import os
 import subprocess
 import sys
-from pathlib import Path
 
-from solar_forge_engine.runtime import script_worker
+from solar_forge_engine.runtime.scripting import worker_bootstrap
 
 
 def worker_command():
@@ -14,7 +13,7 @@ def worker_command():
         "-S",
         "-B",
         "-c",
-        Path(script_worker.__file__).read_text(),
+        worker_bootstrap(),
         str(os.getpid()),
     ]
 
