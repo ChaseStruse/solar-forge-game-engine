@@ -18,7 +18,7 @@ from solar_forge_engine.project.storage import (
     save_scene_data,
 )
 
-PROJECT_SCENE_VERSION = 12
+PROJECT_SCENE_VERSION = 14
 
 
 def asset_path(root: Path, reference: str) -> Path:
@@ -107,13 +107,14 @@ def load_project_scene(root: Path, path: Path) -> Scene:
         6,
         8,
         10,
+        12,
         PROJECT_SCENE_VERSION,
     ):
         return load_scene(path)
     fields = {"format_version", "name", "entities"}
-    if data["format_version"] in (10, PROJECT_SCENE_VERSION):
+    if data["format_version"] in (10, 12, PROJECT_SCENE_VERSION):
         fields.add("coin_sound")
-    if data["format_version"] == PROJECT_SCENE_VERSION:
+    if data["format_version"] in (12, PROJECT_SCENE_VERSION):
         fields.add("script")
     if type(data["format_version"]) is not int or set(data) != fields:
         raise ValueError("Invalid project scene document fields.")
@@ -155,7 +156,9 @@ def load_project_scene(root: Path, path: Path) -> Scene:
             "height": normalized.height,
             "pixels": normalized.pixels,
         }
-    data["format_version"] = {4: 3, 6: 5, 8: 7, 10: 9}.get(data["format_version"], FORMAT_VERSION)
+    data["format_version"] = {4: 3, 6: 5, 8: 7, 10: 9, 12: 11}.get(
+        data["format_version"], FORMAT_VERSION
+    )
     scene = Scene.from_data(data)
     if len(json.dumps(scene.to_data(), indent=2).encode()) + 1 > MAX_FILE_BYTES:
         raise ValueError("Resolved scenes must be smaller than 4 MiB.")

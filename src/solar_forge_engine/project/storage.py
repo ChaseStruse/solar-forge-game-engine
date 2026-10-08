@@ -52,7 +52,7 @@ def load_scene(path: Path) -> Scene:
         raise FileNotFoundError(f"Scene file is missing: {path.name}")
     try:
         data = json.loads(raw)
-        if isinstance(data, dict) and data.get("format_version") in (4, 6, 8, 10, 12):
+        if isinstance(data, dict) and data.get("format_version") in (4, 6, 8, 10, 12, 14):
             raise ValueError("This scene uses project assets. Use File → Open project instead.")
         return Scene.from_data(data)
     except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as error:
@@ -120,12 +120,12 @@ def _publish_scene_data(
         if (
             isinstance(previous_data, dict)
             and type(previous_data.get("format_version")) is int
-            and previous_data["format_version"] in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+            and previous_data["format_version"] in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
             and previous_data["format_version"] < data["format_version"]
         ):
             # Project v4/v6 carry asset references; retain its opaque bytes exactly.
             # Its references are validated by the project loader, not Scene.from_data.
-            if previous_data["format_version"] not in (4, 6, 8, 10):
+            if previous_data["format_version"] not in (4, 6, 8, 10, 12, 14):
                 Scene.from_data(previous_data)
             backup = path.with_name(f"{path.name}.v{previous_data['format_version']}.bak")
             try:

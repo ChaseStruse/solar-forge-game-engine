@@ -7,9 +7,10 @@ from enum import StrEnum
 
 from solar_forge_engine.core.animation import Animation
 from solar_forge_engine.core.audio import SoundClip
+from solar_forge_engine.core.behavior import MAX_BEHAVIORS, Behavior
 from solar_forge_engine.core.sprite import Sprite
 
-FORMAT_VERSION = 11
+FORMAT_VERSION = 13
 MAX_SCRIPT_BYTES = 32 * 1024
 MAX_ENTITIES = 10_000
 
@@ -60,8 +61,11 @@ class Entity:
     move_speed: float = 240
     input_preset: InputPreset = InputPreset.BOTH
     animation: Animation | None = None
+    behavior: Behavior | None = None
 
     def __post_init__(self) -> None:
+        if self.behavior is not None and not isinstance(self.behavior, Behavior):
+            raise ValueError("Invalid object behavior attachment.")
         if not 0 <= number(self.move_speed, "Movement speed") <= 2000:
             raise ValueError("Movement speed must be within 0–2,000 units/second.")
         if not isinstance(self.input_preset, InputPreset):
@@ -103,10 +107,14 @@ class Entity:
             "move_speed",
             "input_preset",
             "animation",
+            "behavior",
         }
         if not isinstance(value, dict) or set(value) != fields:
             raise ValueError("Invalid entity fields.")
         return cls(
+            behavior=Behavior.from_data(value["behavior"])
+            if value["behavior"] is not None
+            else None,
             animation=Animation.from_data(value["animation"])
             if value["animation"] is not None
             else None,
@@ -149,6 +157,13 @@ class Scene:
             raise ValueError("Scene entries must be entities.")
         if len({entity.id for entity in self.entities}) != len(self.entities):
             raise ValueError("Entity IDs must be unique.")
+        count = sum(entity.behavior is not None for entity in self.entities)
+        if count > MAX_BEHAVIORS:
+            raise ValueError("A scene supports at most 32 behavior attachments.")
+        if count and not self.script.strip():
+            raise ValueError(
+                "Object behaviors require scene source; detach them before clearing it."
+            )
 
     def entity(self, entity_id: str) -> Entity:
         for entity in self.entities:
@@ -170,16 +185,16 @@ class Scene:
         if not isinstance(value, dict):
             raise ValueError("Invalid scene document fields.")
         fields = {"format_version", "name", "entities"}
-        if value.get("format_version") in (9, FORMAT_VERSION):
+        if value.get("format_version") in (9, 11, FORMAT_VERSION):
             fields.add("coin_sound")
-        if value.get("format_version") == FORMAT_VERSION:
+        if value.get("format_version") in (11, FORMAT_VERSION):
             fields.add("script")
         if set(value) != fields:
             raise ValueError("Invalid scene document fields.")
         version = value["format_version"]
-        if type(version) is not int or version not in (1, 2, 3, 5, 7, 9, FORMAT_VERSION):
+        if type(version) is not int or version not in (1, 2, 3, 5, 7, 9, 11, FORMAT_VERSION):
             raise ValueError(
-                "Unsupported scene format version; supported versions: 1, 2, 3, 5, 7, 9 and 11."
+                "Unsupported scene format version; supported versions: 1, 2, 3, 5, 7, 9, 11 and 13."
             )
         entries = value["entities"]
         if not isinstance(entries, list) or len(entries) > MAX_ENTITIES:
@@ -205,12 +220,16 @@ class Scene:
             if any(not isinstance(entry, dict) or "animation" in entry for entry in entries):
                 raise ValueError("Invalid legacy animation fields.")
             entries = [{**entry, "animation": None} for entry in entries]
+        if version != FORMAT_VERSION:
+            if any(not isinstance(entry, dict) or "behavior" in entry for entry in entries):
+                raise ValueError("Invalid legacy behavior fields.")
+            entries = [{**entry, "behavior": None} for entry in entries]
         entities = [Entity.from_data(entry) for entry in entries]
         return cls(
             name=text(value["name"], "Scene name"),
             entities=tuple(entities),
-            script=value["script"] if version == FORMAT_VERSION else "",
+            script=value["script"] if version in (11, FORMAT_VERSION) else "",
             coin_sound=SoundClip.from_data(value["coin_sound"])
-            if version in (9, FORMAT_VERSION) and value["coin_sound"] is not None
+            if version in (9, 11, FORMAT_VERSION) and value["coin_sound"] is not None
             else None,
         )

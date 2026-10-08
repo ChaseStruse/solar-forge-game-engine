@@ -85,22 +85,26 @@ def _decode_snapshot(raw: bytes, baseline: Scene) -> Scene | None:
     if (
         isinstance(snapshot, dict)
         and type(snapshot.get("format_version")) is int
-        and snapshot["format_version"] in (5, 7, 9)
-        and not baseline.script
-        and (snapshot["format_version"] == 9 or baseline.coin_sound is None)
+        and snapshot["format_version"] in (5, 7, 9, 11)
+        and all(entity.behavior is None for entity in baseline.entities)
+        and (snapshot["format_version"] == 11 or not baseline.script)
+        and (snapshot["format_version"] in (9, 11) or baseline.coin_sound is None)
         and (
-            snapshot["format_version"] in (7, 9)
+            snapshot["format_version"] in (7, 9, 11)
             or all(entity.animation is None for entity in baseline.entities)
         )
     ):
         # Preserve hashes from before source and collection sounds were added.
         legacy = Scene.from_data(baseline.to_data()).to_data()
         legacy["format_version"] = snapshot["format_version"]
-        del legacy["script"]
+        if snapshot["format_version"] < 11:
+            del legacy["script"]
         if snapshot["format_version"] < 9:
             del legacy["coin_sound"]
         entries = legacy["entities"]
         assert isinstance(entries, list)
+        for entry in entries:
+            del entry["behavior"]
         if snapshot["format_version"] == 5:
             for entry in entries:
                 del entry["animation"]

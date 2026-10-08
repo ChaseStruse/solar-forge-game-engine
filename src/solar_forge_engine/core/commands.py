@@ -40,6 +40,7 @@ class SetEntity:
             "move_speed",
             "input_preset",
             "animation",
+            "behavior",
         }:
             raise ValueError("Only editable entity properties may be changed.")
         entity = Entity.from_data({**asdict(scene.entity(self.entity_id)), **self.changes})

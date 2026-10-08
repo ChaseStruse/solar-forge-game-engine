@@ -47,6 +47,7 @@ def test_legacy_movement_defaults_upgrade_backups_and_cleanup(tmp_path, version)
     data.pop("script", None)
     data["format_version"] = version
     for entry in data["entities"]:
+        del entry["behavior"]
         del entry["animation"]
         del entry["move_speed"]
         del entry["input_preset"]
