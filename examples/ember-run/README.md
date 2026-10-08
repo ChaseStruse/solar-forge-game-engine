@@ -46,12 +46,19 @@ constants override the Inspector's player speed during Play.
 Select **Courier Bay** in the Project Scenes panel, then Play. Chase four satellites
 around a gently floating flame. They travel slowly enough to catch with normal
 movement; collect all four to record your time. This smaller script demonstrates
-one reusable motion rule applied to several objects.
+scene-level orbital motion alongside reusable object behaviors.
 
 Open its script and try `ORBIT_SPEED = 0` to freeze the targets, a negative value to
 reverse their direction, or `ORBIT_RADIUS = 140` for a tighter chase. `BOB_HEIGHT`
 controls the flame's vertical motion. Keep the radius below 240 to stay comfortably
 inside the arena. Restart to try another run.
+
+Two lower beacons share the `bob` behavior. Select either beacon, open **Scene →
+Edit selected object behavior** (Ctrl+Shift+B), and change `amplitude` or `rate`, then Apply
+and Play. Their initial values are 8/2 and 16/3. Each has its own elapsed time and
+origin in `instance.data`; `bob_start` and `bob_update` define the shared rule in
+the scene script. Undo/redo, duplication, save/reopen and exports preserve the
+attachment. Restart resets motion without changing authored positions.
 
 ## What is included
 

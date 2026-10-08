@@ -7,20 +7,20 @@ Status: playable native prototype, updated October 7, 2026.
 The manual authoring loop now works end to end: edit a scene and its Python source,
 apply/undo, save/reopen, Play/restart, and export a game that runs without the editor
 or AI. Ember Run and Courier Bay exercise that loop with readable, editable scripts.
-The latest verified baseline is 329 tests in the frozen offline Docker image, plus
-Ruff, formatting, strict mypy, native Wayland dash review and clean Arch named-input
-bundle checks on offscreen/Wayland without installed Python/Qt.
+The latest verified baseline is 346 tests in the frozen offline Docker image, plus
+Ruff, formatting, strict mypy, native Wayland object-behavior authoring/playback
+and clean Arch input/behavior bundle checks on offscreen/Wayland without installed
+Python/Qt.
 The checkpoint records below retain earlier export/playback results as history.
 
 The biggest product gap is the breadth and ease of scripting, rather than another
-foundational rewrite. Current scripts have one scene-level lifecycle and a narrow
-position/speed/message API plus a fixed Space dash action. Play errors now navigate
+foundational rewrite. Current scripts have scene-level and reusable object lifecycles
+with a narrow position/speed/message API plus a fixed Space dash action. Play errors now navigate
 directly to source while retaining drafts and checking revisions; there are no
-breakpoints, configurable input actions, per-object behaviors or runtime scene
-transitions. The demos establish useful small
-games, not general-purpose gameplay coverage or a frame-time guarantee.
+breakpoints, configurable input actions or runtime scene transitions. The demos
+establish useful small games, not general-purpose gameplay coverage or a frame-time guarantee.
 
-Prioritize one useful gameplay capability at a time, starting with reusable per-object behavior.
+Prioritize one useful gameplay capability at a time, starting with runtime scene transitions.
 Keep the existing native Qt editor, shared commands and computation-only worker.
 Before external distribution, close dependency notices/source obligations and desktop
 acceptance. Multi-session recovery, renderer presentation budgets and independent
@@ -28,6 +28,25 @@ security review remain open; syscall regression tests are not a security audit.
 Hosted CI has not been observed because no push has been authorized.
 
 ## Implementation checkpoint history
+
+October 7 object-behavior checkpoint: native attachment controls (Ctrl+Shift+B)
+reuse scene-local named Python callbacks with independently tunable numeric
+parameters and per-object state. Scene callbacks run first, then attachments in
+saved draw order; one shared command budget and atomic response cover the full
+step. Errors identify the behavior, object ID and source line. Restart resets
+instances. Revision-checked edits, undo/redo, duplication, save/reopen and both
+exports preserve attachments. Standalone format 13 / project format 14 keep exact
+legacy backups and compatible recovery hashes for detached baselines. Source is
+never evaluated during editing, loading or export; kernel permissions are unchanged.
+Courier Bay includes two differently tuned bobbing beacons with shared code.
+All 346 tests pass in the frozen offline Docker image (23.74 seconds), with Ruff,
+formatting and strict mypy. Native Wayland tuning, undo/redo, save/reopen, independent
+motion and Restart pass, and both layouts were visually reviewed. A relocated
+bundle verifies distinct state and parameter values on clean Arch offscreen and
+Wayland without installed Python/Qt or editor imports. The
+[acceptance record](performance/2026-10-07-object-behaviors.json) documents the
+fixture and scope. External modules, runtime attachment changes and scene
+transitions remain separate work.
 
 October 7 named-input checkpoint: `game.actions["dash"]` exposes bounded boolean
 held/pressed/released flags for Space, independently of movement presets. Edges
@@ -1207,7 +1226,7 @@ experience; these milestones are gates, not promised delivery dates.
 | --- | --- | --- |
 | 0 — Prove foundation | Partial: native viewport/player, Wayland, rendering fixtures and restricted script policy verified | Presentation budgets, independent isolation review, distribution acceptance and final renderer decision |
 | 1 — Reliable workspace | Partial: multiple authored scenes, project folders, relative assets, path/hash validation, recovery, save/reopen, upgrades, undo and Docker tests | Scene organization, multi-session recovery ownership and whole-project integrity; CI workflow added, hosted execution pending |
-| 2 — Playable 2D slice | Partial: collector gameplay, sprite animation, collection audio, restricted scene scripts, fixed Space action, active-scene exports and experimental Python/Qt bundles verified on clean Arch offscreen | Named animation clips, configurable inputs, per-object behaviors, scene transitions and redistribution audit |
+| 2 — Playable 2D slice | Partial: collector gameplay, sprite animation, collection audio, restricted scene scripts, fixed Space action, reusable object behaviors, active-scene exports and experimental Python/Qt bundles verified on clean Arch offscreen | Named animation clips, configurable inputs, scene transitions and redistribution audit |
 | 3 — Useful assistant | Partial: reviewed offline/Ollama proposals, live local-model verification, bounded context, deadlines, cancellation and revision-safe atomic undo | Hosted/enterprise adapters, credential handling and broader model acceptance |
 | 4 — v0.1 polish | Not started as a release milestone; basic theme, shortcuts and help already exist | Arch distribution, recovery/onboarding/accessibility checks, measured budgets, first-time-user exercise and release documentation |
 | 5 — Validated expansion | Deferred | Feedback justifying tilemaps, SDK, additional native platforms and enterprise governance |
@@ -1275,6 +1294,7 @@ Completed task checklist:
 - [x] Add minimal native scene-source editing and kernel-restricted Python lifecycle in Play/exports.
 - [x] Navigate Play script errors to source, retain temporary drafts and reject stale Apply/navigation.
 - [x] Add a bounded Space dash action, showcase behavior and input lifecycle/export parity checks.
+- [x] Add reusable scene-local object behaviors with native tuning, independent state and migration/export checks.
 - [x] Ship commented Ember Run / Orbit Lab scripts, customization guide and complete scripted route checks.
 - [x] Probe native namespace boundaries and record the current Docker namespace restriction.
 - [x] Connect an offline fake provider through bounded scene tools and reviewed atomic edits.
@@ -1285,10 +1305,10 @@ Completed task checklist:
 
 Next small features, in recommended order:
 
-1. **Introduce reusable per-object behavior after the input slice.** Define attachment,
-   instance state and lifecycle ownership before changing the schema. Demonstrate
-   two independently tunable instances with undo, migration, save/load and export
-   checks. Runtime scene transitions follow as a separate scoped feature.
+1. **Add scoped runtime scene transitions.** Define scene ownership, transition
+   triggers and restart/state semantics before changing export packaging. Complete
+   a playable two-scene route with authored-data preservation and editor-free
+   exports; keep object behaviors and scene source independently editable.
 2. **Close distribution gates.** Finish the Python/Qt notices and source-obligation
    audit, Arch desktop acceptance and compatibility documentation. Preserve both
    lightweight and bundled exports. Observe hosted CI after an authorized push;

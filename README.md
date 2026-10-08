@@ -311,6 +311,40 @@ Custom action names and rebinding are not implemented. Pause, focus loss, script
 failure, Restart and closing clear held keys and pending edges without synthesizing
 release events. Press again after resuming; a held key's repeats do not reactivate it.
 
+Select an object and choose **Scene → Edit selected object behavior** (Ctrl+Shift+B), or
+use its Inspector **Object behavior…** button. Attach a name such as `drift` and numeric
+parameters such as `speed = 20`. Define its callbacks in the scene script:
+
+```python
+def drift_start(game, instance):
+    instance.data["x"] = game.objects[instance.id]["x"]
+
+
+def drift_update(game, instance, dt):
+    instance.data["x"] += instance.parameters["speed"] * dt
+    obj = game.objects[instance.id]
+    game.set_position(instance.id, instance.data["x"], obj["y"])
+```
+
+Each attached object gets its own `instance.data` and copied `instance.parameters`;
+`instance.id` identifies that object. Duplicate an object to reuse the rule with
+fresh runtime state, then tune its parameters independently. Restart clears instance
+state. Globals and `game.data` remain shared across the scene.
+
+Scene callbacks run first, followed by object callbacks in saved draw order. Each
+step shares one snapshot and command budget; commands apply together after all
+callbacks succeed. The last command for a property wins. Any callback error stops
+scripted Play and identifies the behavior, object ID and source line.
+
+Attachments support one name and up to sixteen finite numeric parameters per object,
+with at most 32 attached objects per scene. Parameter names must be identifiers;
+values range from −100,000 to 100,000. At least one named callback must be callable
+when Play starts. Apply supports undo/redo and rejects stale revisions. Detach all
+behaviors before clearing scene source. Standalone format 13 and project format 14
+preserve attachments without executing source; older scenes load detached with exact
+upgrade backups. Courier Bay demonstrates two independently tuned `bob` instances.
+See the [behavior contract](docs/architecture/0003-object-behaviors.md).
+
 Errors stop scripted Play. Activity shows the failing scene and source line when
 available; **Edit failed script…** opens that line directly. Apply the fix, Stop the
 old preview and press Play again. Navigation disables if the scene or applied source
@@ -333,15 +367,15 @@ changes never alter authored objects. Both export formats include the script and
 run without the editor or an AI service.
 
 The first version supports one embedded scene script, up to 32 KiB UTF-8 source,
-256 objects, 32 commands and 4 KiB log output per callback. It requires Linux x86_64
-and `libseccomp` (`sudo pacman -S libseccomp` on Arch; included in Docker images).
+256 objects, 32 commands and 4 KiB log output per lifecycle step (scene plus object
+callbacks). It requires Linux x86_64 and `libseccomp` (`sudo pacman -S libseccomp` on Arch; included in Docker images).
 A default-deny kernel policy blocks files, sockets, subprocesses and threads before
 source is sent. Missing isolation stops scripting; there is no unrestricted fallback.
 Workers receive no editor credentials or project paths and cannot load new packages
 from disk. Limits are 256 MiB address space, 60 CPU seconds per Play session, 3 seconds
 to initialize isolation, 1 second for startup code and 250 ms per update. These are
-termination limits, not frame-time guarantees. External Python modules, per-object
-script attachment, breakpoints and runtime scene transitions remain future work.
+termination limits, not frame-time guarantees. External Python modules, runtime
+attachment changes, breakpoints and runtime scene transitions remain future work.
 See the [isolation decision](docs/architecture/0002-script-sandbox.md) for boundary tests
 and limitations.
 
@@ -650,7 +684,7 @@ Concurrent external editing of the audio directory is not supported.
 Each scene can use one collection sound. The dialog shows its duration and lets you
 replace/remove it; **Scene → Remove collection sound** also works for standalone scenes.
 Assignment/removal supports undo/redo and rejects expired scene revisions. The assigned
-PCM is embedded in standalone format 11 and project format 12 within the existing
+PCM is embedded in standalone format 13 and project format 14 within the existing
 4 MiB scene limit; source/library paths are not needed by Play or standalone copies.
 Earlier scenes load silently and upgrades preserve exact versioned backups.
 

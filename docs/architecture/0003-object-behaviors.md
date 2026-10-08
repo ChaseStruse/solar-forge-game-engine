@@ -1,6 +1,6 @@
 # Scene-local reusable object behaviors
 
-Status: selected for implementation; verification will be recorded after integration.
+Status: implemented and verified October 7, 2026.
 
 An object may attach one behavior name and up to sixteen numeric parameters.
 The name identifies `<name>_start(game, instance)` and
@@ -42,3 +42,12 @@ attachment/parameter controls use revision-checked `SetEntity`, and existing sce
 source editing defines reusable code. Demonstrate two differently tuned instances
 and verify independent state, undo/redo, duplication, migration, recovery, restart,
 failure atomicity and both exported formats before marking this slice complete.
+
+Verification: 346 tests pass in the frozen offline Docker image with Ruff, formatting
+and strict mypy. Focused checks cover independent state, lifecycle order, atomic
+failure, shared budgets, numeric validation, duplication, migration, recovery and
+both export formats. Native Wayland tuning, undo/redo, save/reopen, independent
+motion and Restart pass; dialog and player layouts were visually reviewed. A
+relocated bundled game verifies two differently parameterized instances on clean
+Arch offscreen and Wayland without installed Python/Qt or editor imports. See the
+[acceptance record](../performance/2026-10-07-object-behaviors.json).

@@ -1,0 +1,78 @@
+{
+  "date": "2026-10-07",
+  "implementation_commits": [
+    "f6a53dd",
+    "bb0ff31",
+    "67ac7b7"
+  ],
+  "scope": "Functional scene-local object behavior acceptance; not a performance or security audit.",
+  "frozen_offline_docker": {
+    "command": "docker compose -f compose.test.yaml run --build --rm test",
+    "tests_passed": 346,
+    "pytest_seconds": 23.74,
+    "ruff": "passed",
+    "formatting": "passed",
+    "strict_mypy": "passed"
+  },
+  "native_wayland": {
+    "scene": "Built-in Courier Bay",
+    "parameter_edit": "bay-beacon-1 amplitude 8 to 10 through BehaviorDialog",
+    "undo_redo": true,
+    "save_reopen": true,
+    "ticks": 20,
+    "first_y": 426.18369803069737,
+    "second_y": 433.4635357569263,
+    "independent_motion": true,
+    "authored_unchanged": true,
+    "restart_reset": true,
+    "script_failed": false,
+    "dialog_and_player_visually_reviewed": true
+  },
+  "clean_arch_bundle": {
+    "fixture": "tests/test_exports.py scripted_game(); success text changed from Input and behaviors verified to Scripted export ready for scripts/validate_bundle.py check",
+    "script_assertions": "Empty per-instance initial state; matching independent step counters; second-instance speed 40; one dash press/release and a held sample. Instances use speeds 20 and 40.",
+    "archive_bytes": 64149383,
+    "image": "solar-forge-arch-export-check:dev",
+    "image_id": "sha256:bff2dd8487f180e317585769a843edac0e8e56c2bb28a148be81145008380a51",
+    "machine": "x86_64",
+    "environment": "Read-only relocated bundle; networking disabled; no installed Python/Qt or mounted editor; dropped capabilities",
+    "runs": [
+      {
+        "qpa": "offscreen",
+        "container_and_smoke_ms": 1203.717,
+        "x": 114.0,
+        "ticks": 19,
+        "collected": 1,
+        "player_speed": 360.0,
+        "script_ready": true,
+        "script_failed": false,
+        "script_message": "Scripted export ready",
+        "scene_unchanged": true,
+        "editor_loaded": false,
+        "runtime_from_archive": true
+      },
+      {
+        "qpa": "wayland",
+        "container_and_smoke_ms": 1297.364,
+        "x": 114.0,
+        "ticks": 19,
+        "collected": 1,
+        "player_speed": 360.0,
+        "script_ready": true,
+        "script_failed": false,
+        "script_message": "Scripted export ready",
+        "scene_unchanged": true,
+        "editor_loaded": false,
+        "runtime_from_archive": true
+      }
+    ]
+  },
+  "remaining": [
+    "Runtime scene transitions",
+    "External modules and runtime attachment changes are outside this slice",
+    "Callback/IPC and native presentation performance budgets",
+    "Independent script-isolation security review",
+    "Third-party redistribution audit and broader desktop acceptance",
+    "Hosted CI execution"
+  ]
+}
