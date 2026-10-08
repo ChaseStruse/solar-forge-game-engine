@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-07",
+  "implementation_commits": ["b877e91", "0225f8a"],
+  "scope": "Functional named-action acceptance, not a frame-time or physical-input benchmark.",
+  "frozen_offline_docker": {
+    "command": "docker compose -f compose.test.yaml run --build --rm test",
+    "tests_passed": 329,
+    "pytest_seconds": 22.96,
+    "ruff": "passed",
+    "formatting": "passed",
+    "strict_mypy": "passed"
+  },
+  "native_wayland": {
+    "input_source": "Qt-delivered QKeyEvent press/release in the actual PlayerWindow",
+    "scene": "Built-in Ember Run",
+    "start_x": 80,
+    "dash_x": 88.0,
+    "dash_message": "DASH! | 0/12 cores | Engines bursting",
+    "expired_to_base_speed": true,
+    "pause_cleared_input": true,
+    "restart_reset": true,
+    "authored_unchanged": true,
+    "script_failed": false,
+    "hud_visually_reviewed": true
+  },
+  "clean_arch_bundle": {
+    "fixture": "tests/test_exports.py game() with INPUT_SCRIPT; only its success message was changed from Dash input verified to Scripted export ready for scripts/validate_bundle.py check",
+    "script_assertions": "Neutral on_start; exactly one dash press and release; at least one held sample",
+    "archive_bytes": 64138900,
+    "image": "solar-forge-arch-export-check:dev",
+    "image_id": "sha256:bff2dd8487f180e317585769a843edac0e8e56c2bb28a148be81145008380a51",
+    "machine": "x86_64",
+    "environment": "Read-only relocated bundle, networking disabled, no installed Python/Qt, no mounted editor, dropped capabilities",
+    "runs": [
+      {
+        "qpa": "offscreen",
+        "container_and_smoke_ms": 1183.74,
+        "x": 114.0,
+        "ticks": 19,
+        "collected": 1,
+        "player_speed": 360.0,
+        "script_ready": true,
+        "script_failed": false,
+        "script_message": "Scripted export ready",
+        "scene_unchanged": true,
+        "editor_loaded": false,
+        "runtime_from_archive": true
+      },
+      {
+        "qpa": "wayland",
+        "container_and_smoke_ms": 1121.374,
+        "x": 120.0,
+        "ticks": 20,
+        "collected": 1,
+        "player_speed": 360.0,
+        "script_ready": true,
+        "script_failed": false,
+        "script_message": "Scripted export ready",
+        "scene_unchanged": true,
+        "editor_loaded": false,
+        "runtime_from_archive": true
+      }
+    ]
+  },
+  "remaining": [
+    "Physical keyboard/compositor input acceptance",
+    "Configurable bindings and additional named actions",
+    "Script callback/IPC and native presentation performance budgets",
+    "Third-party redistribution audit and broader desktop compatibility",
+    "Hosted CI execution"
+  ]
+}

@@ -226,7 +226,8 @@ remain usable in memory. Repair the settings and reopen the scene to resume savi
 
 Try **Forge showcase** (Ctrl+Shift+F), then **Play** (F5), to explore **Ember Run**:
 an animated courier, bobbing energy cores, orbiting reactor sparks and pickup speed
-bursts. A timed finish awards a title and a spark celebration. WASD/arrows move;
+bursts. Press Space while moving for a short dash with a cooldown. A timed finish
+awards a title and a spark celebration. WASD/arrows move;
 Pause and Restart control playback. All 193 objects are editable, including walls
 and 25 animated sprites. Open **Scene → Edit scene script** to explore the commented
 effects and tweak their constants.
@@ -291,6 +292,25 @@ positions stay inside the arena; teleporting does not resolve wall overlaps.
 Changing state dictionaries alone has no gameplay effect. `game.data` and globals
 persist until Restart; `math` and `random` are available. `print()` appears in Activity.
 
+`game.actions["dash"]` exposes three booleans for Space: `held` is its current state,
+`pressed` and `released` report transitions since the previous update request. Edges
+are consumed once when a callback is dispatched, including input received while the
+worker is busy. A quick tap can report both edges with `held=False`; multiple taps
+between requests coalesce. Native key repeats are ignored. The startup callback
+receives neutral input. These snapshots grant no device access and do not change
+gameplay by themselves: your script defines what a dash does. For example:
+
+```python
+def on_update(game, dt):
+    if game.actions["dash"]["pressed"]:
+        game.say("Space pressed!")
+```
+
+The first action is fixed to Space, independently of WASD/arrows movement presets.
+Custom action names and rebinding are not implemented. Pause, focus loss, script
+failure, Restart and closing clear held keys and pending edges without synthesizing
+release events. Press again after resuming; a held key's repeats do not reactivate it.
+
 Errors stop scripted Play. Activity shows the failing scene and source line when
 available; **Edit failed script…** opens that line directly. Apply the fix, Stop the
 old preview and press Play again. Navigation disables if the scene or applied source
@@ -305,8 +325,9 @@ them. Save persists only applied source. If the scene revision changed, Apply ke
 the draft and refuses to overwrite it. Copy any text you want to keep before choosing
 **Reload applied source**, which explicitly replaces the draft with current source.
 
-Pause/focus loss suspend simulation; effects from an already-running update are
-discarded while paused.
+Pause/focus loss suspend simulation and discard commands from an update that was
+in flight when suspension occurred, even if you resume before it finishes. That
+callback can still change its worker-local `game.data` and globals.
 Restart resets script and game state. Stop/closing terminate the worker. Runtime
 changes never alter authored objects. Both export formats include the script and
 run without the editor or an AI service.
@@ -553,7 +574,8 @@ Extract the complete folder, then run `./play`. It works after moving or renamin
 the folder, including paths containing spaces. No system Python, pip, uv, editor,
 or model service is required. It retains system graphics/font dependencies; its
 README lists Arch prerequisites, and optional sound still uses system PipeWire.
-`./play --smoke-check` exercises movement and exits automatically.
+`./play --smoke-check` exercises movement, presses/releases Space for scripted games
+and exits automatically.
 
 Bundle construction stays in the export worker and uses the applied scene captured
 at export start. Existing targets are never overwritten, and handled build failures

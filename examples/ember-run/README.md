@@ -3,7 +3,10 @@
 Recover twelve energy cores in a glowing industrial forge. Pilot the courier with
 WASD or arrows, navigate around machinery, and collect the gold diamonds. Cores
 bob in a travelling wave; six sparks orbit the reactor. Each pickup gives you a
-short **Overdrive** speed burst. The HUD tracks power, progress and simulation time.
+short **Overdrive** speed burst. Press **Space while moving** for a 0.25-second dash
+at speed 480; it recharges 1.2 seconds after the press. Holding Space does not
+repeat the dash. Walls still stop you, and an active pickup boost resumes after
+the dash. The HUD tracks power, progress, dash readiness and simulation time.
 Finish to earn **Solar Ace** (under 45 seconds), **Forge Runner** (under 75 seconds),
 or **Core Keeper**; the sparks gather around your courier to celebrate. Pause freezes
 the run, and Restart resets everything. The sparks are decoration, not collectibles.
@@ -24,13 +27,17 @@ and playback leaves authored objects unchanged. Constants are at the top:
 | --- | --- |
 | `BOOST_SPEED = 400` | A faster pickup burst |
 | `BOOST_SECONDS = 2.5` | More time to chain pickups together |
+| `DASH_SPEED = 550` | A faster Space dash |
+| `DASH_SECONDS = 0.35` | A longer dash |
+| `DASH_COOLDOWN = 2` | More time between dashes |
 | `CORE_BOB_HEIGHT = 0` | Stationary cores while other effects keep running |
 | `SPARK_RADIUS = 100` | A wider reactor orbit |
 | Change the medal thresholds in `on_update` | Your own time-trial challenge |
 
 The main script demonstrates saving initial positions in `on_start`, sine-wave
-motion, phased orbits, reacting once to a changed collection count, timed effects,
-and persistent victory state. HUD commands are sent only when their text changes;
+motion, phased orbits, reading `game.actions["dash"]["pressed"]`, reacting once to a
+changed collection count, timed effects and persistent victory state. HUD commands
+are sent only when their text changes;
 `print()` sends pickup milestones to the editor's Activity panel. Script speed
 constants override the Inspector's player speed during Play.
 
@@ -57,4 +64,5 @@ requires Linux x86_64 and libseccomp, also supplied by the engine's Docker image
 The source templates live in
 [`showcase_scripts.py`](../../src/solar_forge_engine/core/showcase_scripts.py).
 They are copied into each scene so your edits belong to your project. These demos
-use the current position/speed/message API; there are no enemies or scene transitions.
+use the current movement/action/position/speed/message API; there are no enemies or
+scene transitions.
