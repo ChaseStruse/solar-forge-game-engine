@@ -35,6 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from solar_forge_engine.core.animation import Animation
+from solar_forge_engine.core.behavior import Behavior
 from solar_forge_engine.core.commands import (
     Command,
     CreateEntity,
@@ -53,6 +54,7 @@ from solar_forge_engine.core.sprite import Sprite
 from solar_forge_engine.core.templates import coin_collector
 from solar_forge_engine.editor.assistant import AssistantPanel
 from solar_forge_engine.editor.audio import SoundsDialog
+from solar_forge_engine.editor.behaviors import BehaviorDialog
 from solar_forge_engine.editor.catalog import AssetIndexer
 from solar_forge_engine.editor.cleanup import CleanupWorker
 from solar_forge_engine.editor.exporting import ExportWorker
@@ -285,6 +287,12 @@ class EditorWindow(QMainWindow):
         ):
             self.input_field.addItem(label, preset.value)
         forms["Movement"].addRow("Keys", self.input_field)
+        self.behavior_button = QPushButton("Object behavior…")
+        self.behavior_button.clicked.connect(self.edit_behavior)
+        forms["Movement"].addRow(self.behavior_button)
+        self.behavior_label = QLabel()
+        self.behavior_label.setTextFormat(Qt.TextFormat.PlainText)
+        forms["Movement"].addRow("Behavior", self.behavior_label)
         self.sprite_label = QLabel()
         forms["Appearance"].addRow("Sprite", self.sprite_label)
         self.animation_check = QCheckBox("Loop sprite sheet in Play")
@@ -382,6 +390,9 @@ class EditorWindow(QMainWindow):
         self.script_action = scene_menu.addAction("Edit scene script…")
         self.script_action.setShortcut("Ctrl+Shift+E")
         self.script_action.triggered.connect(self.edit_script)
+        self.behavior_action = scene_menu.addAction("Edit selected object behavior…")
+        self.behavior_action.setShortcut("Ctrl+Shift+B")
+        self.behavior_action.triggered.connect(self.edit_behavior)
         find_object = scene_menu.addAction("Find object")
         find_object.setShortcut("Ctrl+L")
         find_object.triggered.connect(self.find_object)
@@ -675,6 +686,7 @@ class EditorWindow(QMainWindow):
         self.apply_button.setEnabled(self.selected_id is not None)
         self.delete_action.setEnabled(self.selected_id is not None)
         self.duplicate_action.setEnabled(self.selected_id is not None)
+        self.behavior_action.setEnabled(self.selected_id is not None)
         position = next(
             (
                 index
@@ -697,8 +709,10 @@ class EditorWindow(QMainWindow):
             self.color_field.clear()
             self.sprite_label.clear()
             self.clear_sprite_button.setEnabled(False)
+            self.behavior_label.clear()
             return
         entity = self.document.scene.entity(self.selected_id)
+        self.behavior_label.setText(entity.behavior.name if entity.behavior else "None")
         self.sprite_label.setText(
             f"{entity.sprite.width} × {entity.sprite.height} pixels" if entity.sprite else "None"
         )
@@ -921,6 +935,31 @@ class EditorWindow(QMainWindow):
 
     def edit_script(self) -> None:
         self._open_script()
+
+    def edit_behavior(self) -> None:
+        if self.selected_id is None:
+            return
+        document, revision, entity_id = self.document, self.document.revision, self.selected_id
+        dialog = BehaviorDialog(document.scene.entity(entity_id), self)
+
+        def apply(attachment: object) -> None:
+            if self.document is not document or document.revision != revision:
+                dialog.status.setText(
+                    "The scene changed. Keep your settings and reopen this dialog."
+                )
+                return
+            if attachment is not None and not isinstance(attachment, Behavior):
+                dialog.status.setText("Invalid behavior attachment.")
+                return
+            if self._execute_bounded(
+                SetEntity(entity_id, {"behavior": asdict(attachment) if attachment else None}),
+                expected_revision=revision,
+            ):
+                dialog.accept()
+
+        dialog.apply_requested.connect(apply)
+        dialog.exec()
+        dialog.deleteLater()
 
     def _open_script(self, line: int = 0, detail: str = "") -> None:
         if self._script_dialog is not None and self._script_document is self.document:

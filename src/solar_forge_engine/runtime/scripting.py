@@ -15,6 +15,18 @@ from solar_forge_engine.runtime.script_worker import (
 )
 
 
+def worker_bootstrap() -> str:
+    """Preload the trusted shared schema before the worker installs restrictions."""
+    contract = files("solar_forge_engine.core").joinpath("behavior.py").read_text()
+    prelude = (
+        "import sys, types\n"
+        "_contract = types.ModuleType('solar_forge_engine.core.behavior')\n"
+        "sys.modules[_contract.__name__] = _contract\n"
+        f"exec(compile({contract!r}, '<engine-behavior-contract>', 'exec'), _contract.__dict__)\n"
+    )
+    return prelude + files("solar_forge_engine.runtime").joinpath("script_worker.py").read_text()
+
+
 class ScriptRunner(QObject):
     completed = Signal(str, object)
     failed = Signal(str, int)
@@ -57,7 +69,7 @@ class ScriptRunner(QObject):
         return not self._booting and not self._stopping and self._pending is None and self.active
 
     def start(self) -> None:
-        bootstrap = files("solar_forge_engine.runtime").joinpath("script_worker.py").read_text()
+        bootstrap = worker_bootstrap()
         self.process.start(sys.executable, ["-I", "-S", "-B", "-c", bootstrap, str(os.getpid())])
         self.deadline.start(3000)
 

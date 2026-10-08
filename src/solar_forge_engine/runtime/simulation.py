@@ -1,6 +1,7 @@
 """Deterministic keyboard movement, independent of Qt."""
 
 import math
+from dataclasses import asdict
 
 from solar_forge_engine.core.commands import SetEntity
 from solar_forge_engine.core.scene import Entity, Role, Scene
@@ -68,6 +69,11 @@ class Simulation:
             "player": player,
             "input": {"x": horizontal, "y": vertical},
             "actions": dash_actions() if actions is None else validate_actions(actions),
+            "behaviors": [
+                {"id": entity.id, "attachment": asdict(entity.behavior)}
+                for entity in self.scene.entities
+                if entity.behavior is not None
+            ],
             "collected": len(self.collected),
             "total_coins": len(self.coins),
             "time": elapsed,

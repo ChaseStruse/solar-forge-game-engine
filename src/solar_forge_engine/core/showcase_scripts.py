@@ -142,4 +142,18 @@ def on_update(game, dt):
             print("Orbit complete! Change the constants and build your own challenge.")
         elif game.collected:
             game.say(f"SATELLITE CAPTURED | {game.collected}/{game.total_coins} | Keep chasing!")
+
+
+# Both bay beacons attach bob with different numeric parameters in the editor.
+def bob_start(game, instance):
+    obj = game.objects[instance.id]
+    instance.data["origin"] = (obj["x"], obj["y"])
+    instance.data["elapsed"] = 0
+
+
+def bob_update(game, instance, dt):
+    instance.data["elapsed"] += dt
+    x, y = instance.data["origin"]
+    offset = math.sin(instance.data["elapsed"] * instance.parameters["rate"])
+    game.set_position(instance.id, x, y + offset * instance.parameters["amplitude"])
 """

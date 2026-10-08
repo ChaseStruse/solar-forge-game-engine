@@ -17,6 +17,8 @@ import resource
 import signal
 import sys
 
+from solar_forge_engine.core.behavior import MAX_BEHAVIORS, Behavior
+
 MAX_MESSAGE_BYTES = 128 * 1024
 MAX_OUTPUT_BYTES = 4096
 MAX_COMMANDS = 32
@@ -185,6 +187,45 @@ class Game:
         self.commands.append(command)
 
 
+class BehaviorInstance:
+    def __init__(self, entity_id: str, attachment: Behavior) -> None:
+        self.id = entity_id
+        self.parameters = {item.name: item.value for item in attachment.parameters}
+        self.data: dict[str, object] = {}
+
+
+def behavior_instances(
+    state: dict[str, object], namespace: dict[str, object]
+) -> list[tuple[str, BehaviorInstance]]:
+    entries = state.get("behaviors", [])
+    objects = state.get("objects")
+    if (
+        not isinstance(entries, list)
+        or len(entries) > MAX_BEHAVIORS
+        or not isinstance(objects, dict)
+    ):
+        raise ValueError("Invalid behavior context or more than 32 attachments.")
+    result: list[tuple[str, BehaviorInstance]] = []
+    ids: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != {"id", "attachment"}:
+            raise ValueError("Invalid behavior context fields.")
+        entity_id = entry["id"]
+        if not isinstance(entity_id, str) or entity_id not in objects or entity_id in ids:
+            raise ValueError("Behavior objects must exist and have unique IDs.")
+        attachment = Behavior.from_data(entry["attachment"])
+        callbacks = [namespace.get(attachment.name + suffix) for suffix in ("_start", "_update")]
+        if not any(callable(callback) for callback in callbacks) or any(
+            callback is not None and not callable(callback) for callback in callbacks
+        ):
+            raise ValueError(
+                f"Behavior {attachment.name} on {entity_id} requires callable callbacks."
+            )
+        ids.add(entity_id)
+        result.append((attachment.name, BehaviorInstance(entity_id, attachment)))
+    return result
+
+
 def send(message: dict[str, object]) -> None:
     raw = (json.dumps(message, allow_nan=False) + "\n").encode("utf-8")
     if len(raw) > MAX_MESSAGE_BYTES:
@@ -204,6 +245,7 @@ def main() -> int:
     game = Game()
     namespace: dict[str, object] = {"__name__": "__game__", "math": math, "random": random}
     started = False
+    instances: list[tuple[str, BehaviorInstance]] = []
     while True:
         raw = sys.stdin.buffer.readline(MAX_MESSAGE_BYTES + 1)
         if not raw:
@@ -211,6 +253,7 @@ def main() -> int:
         if len(raw) > MAX_MESSAGE_BYTES or not raw.endswith(b"\n"):
             return 1
         request_id = -1
+        behavior_context = ""
         try:
             request = json.loads(raw)
             if not isinstance(request, dict) or type(request.get("id")) is not int:
@@ -227,18 +270,33 @@ def main() -> int:
                     if not isinstance(source, str):
                         raise ValueError("Missing script source.")
                     exec(compile(source, "<scene-script>", "exec"), namespace)
+                    instances = behavior_instances(state, namespace)
                     started = True
                     callback = namespace.get("on_start")
                     if callback is not None:
                         if not callable(callback):
                             raise ValueError("on_start must be a function.")
                         callback(game)
+                    for name, instance in instances:
+                        behavior_context = f"Behavior {name} on {instance.id}: "
+                        callback = namespace.get(name + "_start")
+                        if callback is not None:
+                            if not callable(callback):
+                                raise ValueError("Behavior start callback must be a function.")
+                            callback(game, instance)
                 elif request.get("op") == "update" and started:
                     callback = namespace.get("on_update")
                     if callback is not None:
                         if not callable(callback):
                             raise ValueError("on_update must be a function.")
                         callback(game, request["dt"])
+                    for name, instance in instances:
+                        behavior_context = f"Behavior {name} on {instance.id}: "
+                        callback = namespace.get(name + "_update")
+                        if callback is not None:
+                            if not callable(callback):
+                                raise ValueError("Behavior update callback must be a function.")
+                            callback(game, instance, request["dt"])
                 else:
                     raise ValueError("Invalid script lifecycle request.")
             send(
@@ -261,7 +319,7 @@ def main() -> int:
                     "type": "error",
                     "id": request_id,
                     "line": line or 0,
-                    "message": f"{type(error).__name__}: {str(error)[:500]}",
+                    "message": f"{behavior_context}{type(error).__name__}: {str(error)[:350]}",
                 }
             )
             return 1

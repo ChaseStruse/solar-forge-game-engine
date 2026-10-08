@@ -71,6 +71,17 @@ Remember values between updates:
   game.data["elapsed"] += dt
 Globals also persist until Restart.
 
+Object behaviors (Scene → Edit selected object behavior):
+  bob_start(game, instance)
+  bob_update(game, instance, dt)
+  instance.id identifies the attached object.
+  instance.parameters contains numeric settings.
+  instance.data starts empty for each object.
+Scene callbacks run first, then objects in draw order.
+All emit one atomic command batch per step.
+Globals/game.data are shared; instance.data is separate.
+Restart resets all instances. At most 32 attachments.
+
 math and random are already available.
 print() sends output to Activity.
 Use Insert selected object ID below to target

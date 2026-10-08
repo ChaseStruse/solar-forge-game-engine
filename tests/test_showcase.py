@@ -11,8 +11,8 @@ from solar_forge_engine.core.scene import Role
 from solar_forge_engine.core.showcase import courier_bay, ember_run
 from solar_forge_engine.editor.window import EditorWindow
 from solar_forge_engine.project.workspace import open_project, open_scene
-from solar_forge_engine.runtime import script_worker
 from solar_forge_engine.runtime.script_worker import dash_actions
+from solar_forge_engine.runtime.scripting import worker_bootstrap
 from solar_forge_engine.runtime.simulation import FIXED_STEP, Simulation
 
 
@@ -30,7 +30,7 @@ def scripted_game():
                 "-S",
                 "-B",
                 "-c",
-                Path(script_worker.__file__).read_text(),
+                worker_bootstrap(),
                 str(os.getpid()),
             ],
             stdin=subprocess.PIPE,

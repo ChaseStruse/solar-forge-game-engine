@@ -126,17 +126,10 @@ def test_script_error_reports_line_and_restart_does_not_silently_skip_script(qtb
 
 
 def test_missing_isolation_fails_before_any_source_is_sent(qtbot, monkeypatch, tmp_path):
-    from pathlib import Path
+    from solar_forge_engine.runtime import scripting
 
-    from solar_forge_engine.runtime import script_worker, scripting
-
-    bootstrap = (
-        Path(script_worker.__file__)
-        .read_text()
-        .replace("libseccomp.so.2", "missing-forge-seccomp.so")
-    )
-    (tmp_path / "script_worker.py").write_text(bootstrap)
-    monkeypatch.setattr(scripting, "files", lambda package: tmp_path)
+    bootstrap = scripting.worker_bootstrap().replace("libseccomp.so.2", "missing-forge-seccomp.so")
+    monkeypatch.setattr(scripting, "worker_bootstrap", lambda: bootstrap)
     runner = ScriptRunner(
         "raise AssertionError('must not execute')",
         Simulation(scene(), "player").script_state(0, 0, 0),
@@ -157,11 +150,10 @@ def test_parent_death_kills_busy_worker(qtbot):
     import signal
     import subprocess
     import sys
-    from pathlib import Path
 
-    from solar_forge_engine.runtime import script_worker
+    from solar_forge_engine.runtime.scripting import worker_bootstrap
 
-    bootstrap = Path(script_worker.__file__).read_text()
+    bootstrap = worker_bootstrap()
     source = "import os\nos.write(1, b'busy\\n')\nwhile True: pass"
     state = Simulation(scene(), "player").script_state(0, 0, 0)
     request = json.dumps({"id": 1, "op": "start", "source": source, "state": state}) + "\n"
